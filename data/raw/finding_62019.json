@@ -1,0 +1,55 @@
+{
+    "id": 62019,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 37,
+    "impact": "LOW",
+    "finders_count": 3,
+    "protocol_id": 3366,
+    "title": "DSO Delegate Election issues",
+    "content": "**Update**\nMarked as \"Fixed\" by the client. Addressed in: `0750272bda1895cdd46816b04376168f6f38a723`, `2e555c7d61d0e60f4512fbe0261937d6c0e05322`. The client provided the following explanation:\n\n> *   0750272bda1895cdd46816b04376168f6f38a723 implements delegate less automation\n> *   2e555c7d61d0e60f4512fbe0261937d6c0e05322 enables it by default\n\n![Image 18: Alert icon](https://certificate.quantstamp.com/full/canton-coin-an-implementation-of-splice-amulet/d95ae8a5-34b5-4245-8afc-bfd5435e4632/static/media/info-icon-alert.3c9578483b1cf3181c9bfb6fec7dc641.svg)\n\n**Update**\nThe flawed election still exists in the code, however there is no impact as the dsoDelegate role no longer has any power. The Scala supporting the SV app can, in theory, be rolled back to support actions as a dsoDelegate. This cannot happen in practice due to the change in the daml. We note this to be complete in our review and expect all support for the dso delegate to be removed in future development work.\n\n**File(s) affected:**`daml/splice-dso-governance/daml/Splice/DsoRules.daml`, `apps/sv/src/main/scala/org/lfdecentralizedtrust/splice/sv/automation/confirmation/ElectionRequestTrigger.scala`\n\n**Description:** The current `DsoRules_ElectDsoDelegate` choice for resolving delegate elections suffers from two issues:\n\n1.   Candidates can win the election by achieving the majority of the quorum rather than the majority of active voters.\n2.   The `actor` can call tally the elections before all votes are submitted.\n\nAfter discussions with the team, it seems that the intended purpose of the delegate elections is to prevent poor delegates from being elected rather than securing the most favorable candidate. Given that a poor delegate is unlikely to win despite these issues, we have assigned the issue a Low severity.\n\nIf it become important to secure the best candidate or if the election logic is used in future development, these issues should be addressed.\n\n#### Incorrect `numVotesForMajority`\n\nThe`DsoRules_ElectDsoDelegate`choice facilitates the election of a new DSO delegate using an Instant Run-off Voting (IRV) mechanism. The threshold for a candidate to win a round in this IRV process is`numVotesForMajority = (summary.requiredNumVotes + 1) / 2`.\n\nHowever,`summary.requiredNumVotes`represents the minimum number of`ElectionRequest`contracts required to initiate the election process. Consequently,`numVotesForMajority`is being assigned as a majority of this minimum quorum rather than the majority of the `numVoters`.\n\nA candidate could be elected with a number of votes that, while being a majority of the quorum, is _not_ a majority of the`numVoters`who actually participated in the election.\n\n#### Race Condition for Resolving Elections\n\n`DsoRules_ElectDsoDelegate` can be called as soon as quorum is reached. In fact, the automation in `ElectionRequestTrigger.scala` attempts to resolve the election as soon as quorum is reached.\n\nThis design does not allow for the inclusion of the full set of voters. It may be the case that additional incoming votes would have swung the election. Even if the automation is removed, in a close election the winner may be determined by opportunistically calling `DsoRules_ElectDsoDelegate` when the transaction ordering results in favorable election outcomes. Additionally, SVs can only be elected if they participate in time. Consider if a minimum election period is needed.\n\n**Recommendation:**\n\n1.   Update the assignment to `numVotesForMajority = (numVoters + 1) / 2`.\n2.   Require for a minimum duration to have passed since the last vote submission before resolving an election.",
+    "summary": "",
+    "report_date": "2025-08-14T13:19:40.214Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://certificate.quantstamp.com/full/canton-coin-an-implementation-of-splice-amulet/d95ae8a5-34b5-4245-8afc-bfd5435e4632/index.html",
+    "sponsor_name": "",
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://certificate.quantstamp.com/full/canton-coin-an-implementation-of-splice-amulet/d95ae8a5-34b5-4245-8afc-bfd5435e4632/index.html",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "dso-delegate-election-issues-quantstamp-canton-coin-an-implementation-of-splice-amulet-markdown",
+    "firm_name": "Quantstamp",
+    "firm_logo_square": "quantstamp_square.png",
+    "protocol_name": "Canton Coin, an implementation of Splice Amulet",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Gereon Mendler"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Ibrahim Abouzied"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Jonathan Mevs"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Quantstamp",
+        "logo_square": "quantstamp_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Canton Coin, an implementation of Splice Amulet",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

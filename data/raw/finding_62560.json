@@ -1,0 +1,45 @@
+{
+    "id": 62560,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 16,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3420,
+    "title": "[L-02] Zero prize locking for single prizes due to implicit condition",
+    "content": "\n_Resolved_\n\nIn the SpinLottery contract, the logic for handling single prize requests contains an implicit condition that could lead to unintended outcomes.\n\n```solidity\n    function calculatePendingPrizesForRarity(uint256 _prizeCount, uint8 rarity) internal view returns (uint256) {\n        // Handle special case for single prize\n        if (_prizeCount == 1) {\n            // For single prizes, prioritize first active rarity\n            return rarity == 1 && rarityConfigs[1].active ? 1 : 0;\n        }\n        \n        if (!rarityConfigs[rarity].active) return 0;\n        \n        // Calculate based on weight distribution\n        uint256 weight = rarityConfigs[rarity].weight;\n        uint256 pendingCount = (_prizeCount * weight) / totalRarityWeight;\n        \n        // Ensure at least some prizes are allocated if weights allow it\n        if (_prizeCount > 1 && pendingCount == 0 && weight > 0) {\n            pendingCount = 1;\n        }\n        \n        return pendingCount;\n    }\n```\n\nSpecifically, when `_prizeCount` is set to `1`, the function returns `rarity == 1 && rarityConfigs[1].active ? 1 : 0`. This means that if the first `rarity` is `inactive`(`rarityConfigs[1]`), users will be unable to lock any prizes, even if he has already paid the spin fee.\n\n\n\n",
+    "summary": "",
+    "report_date": "2025-09-11T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/pashov/audits/blob/master/team/md/RipIt-security-review_2025-04-25.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "l-02-zero-prize-locking-for-single-prizes-due-to-implicit-condition-pashov-audit-group-none-ripit_2025-04-25-markdown",
+    "firm_name": "Pashov Audit Group",
+    "firm_logo_square": "Pashov_square.png",
+    "protocol_name": "RipIt_2025-04-25",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Pashov Audit Group"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Pashov Audit Group",
+        "logo_square": "Pashov_square.png"
+    },
+    "protocols_protocol": {
+        "name": "RipIt_2025-04-25",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

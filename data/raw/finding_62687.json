@@ -1,0 +1,45 @@
+{
+    "id": 62687,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 23,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3435,
+    "title": "Volatility Fee Ratio Calculated from The Wrong Denominator",
+    "content": "##### Description\nThis issue has been identified within the `_updateMultiplierForToken` function of the `SelfPeggingAsset` contract.\n\nThe contract calculates the volatility ratio as follows:\n```solidity\nuint256 ratio = (diff * FEE_DENOMINATOR) / oldRate;\n```\nwhere `diff = |newRate – oldRate|`. The ratio is incorrectly calculated using only the `oldRate` as a denominator, regardless of whether the rate has increased or decreased. Specifically, when the rate increases significantly, dividing by the smaller `oldRate` artificially inflates the ratio.\n\nFor example, if the rate triples from 1 to 3, the correct ratio should be:\n\n```\n(3 - 1) / 3 ≈ 0.66\n```\n\nHowever, the current code calculates it as:\n\n```\n(3 - 1) / 1 = 2\n```\n\nThis results in an exaggerated volatility fee, unfairly increasing costs for users after upward rate movements.\n\nThe issue is classified as *low* severity as it does not critically affect protocol operations but results in slightly inflated fees during specific rate movements.\n\n##### Recommendation\nWe recommend computing the volatility ratio using the higher of the two rates:\n\n```solidity\nuint256 ratio = (diff * FEE_DENOMINATOR) / max(oldRate, newRate);\n```\n",
+    "summary": "",
+    "report_date": "2025-09-19T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/mixbytes/audits_public/blob/master/NUTS%20Finance/Tapio/README.md#17-volatility-fee-ratio-calculated-from-the-wrong-denominator",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "volatility-fee-ratio-calculated-from-the-wrong-denominator-mixbytes-none-nuts-finance-markdown",
+    "firm_name": "MixBytes",
+    "firm_logo_square": "mixbytes_square.png",
+    "protocol_name": "NUTS Finance",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "MixBytes"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "MixBytes",
+        "logo_square": "mixbytes_square.png"
+    },
+    "protocols_protocol": {
+        "name": "NUTS Finance",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

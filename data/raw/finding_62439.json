@@ -1,0 +1,45 @@
+{
+    "id": 62439,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 34,
+    "impact": "HIGH",
+    "finders_count": 1,
+    "protocol_id": 3408,
+    "title": "[UFARM1-4] Malicious User Could Deactivate Pool",
+    "content": "**Severity:** High\n\n**Description:** In the `UFarmPool:withdraw` function, the contract records a withdrawal request by storing the current block timestamp:\n```\nif (pendingWithdrawalsRequests[withdrawalRequestHash] == 0) {\n    // Set the withdrawal request timestamp\n    pendingWithdrawalsRequests[withdrawalRequestHash] = block.timestamp;\n    emit WithdrawRequestReceived(investor, withdrawalRequestHash, block.timestamp);\n} else {\n```\nLater, when the callback is executed, the contract  removes the request hash in two scenarios:\n\n1. User has insufficient shares:\n```\nif (sharesToBurn > availableToWithdraw) {\n    delete pendingWithdrawalsRequests[withdrawalRequestHash];\n\n    withdrawQueue.pop();\n    requestsLength = withdrawQueue.length;\n    continue;\n}\n```\n2. User withdraws a non-zero amount:\n```\nif (investor != ufarmFund && amountToWithdraw != 0) {\n    // Mark the request as used\n    __usedWithdrawalsRequests[withdrawalRequestHash] = true;\n\n    // Delete the request from the pending withdrawals\n    delete pendingWithdrawalsRequests[withdrawalRequestHash];\n}\n```\nThe issue arises when `amountToWithdraw` = 0, their `withdrawalRequestHash` is not deleted. This creates a problem:\n\nA malicious user can call the withdraw function again after the lockup period, using the same request hash, which forces the pool into a \"deactivating\" state.\n```\nif (config.withdrawalLockupPeriod > 0) {\n    if (pendingWithdrawalsRequests[withdrawalRequestHash] == 0) {\n        // Set the withdrawal request timestamp\n        pendingWithdrawalsRequests[withdrawalRequestHash] = block.timestamp;\n        emit WithdrawRequestReceived(investor, withdrawalRequestHash, block.timestamp);\n    } else {\n        // Check if the lockup period has passed\n        uint256 unlockTime = pendingWithdrawalsRequests[withdrawalRequestHash] +\n            config.withdrawalLockupPeriod;\n        if (block.timestamp < unlockTime) {\n            // Safe because of the check above\n            revert LockupPeriodNotPassed(unlockTime);\n        } else {\n @====>        _changeStatus(PoolStatus.Deactivating);\n        }\n    }\n    return;\n}\n```\n\n**Remediation:**  Consider deleting the request even when 0 shares are removed.\n```\n-- if (investor != ufarmFund && amountToWithdraw != 0) {\n++ if (investor != ufarmFund) {\n    // Mark the request as used\n    __usedWithdrawalsRequests[withdrawalRequestHash] = true;\n\n    // Delete the request from the pending withdrawals\n    delete pendingWithdrawalsRequests[withdrawalRequestHash];\n}\n```\n\n**Status:**  Fixed\n\n\n- - -",
+    "summary": "\nThe report discusses a bug in the `UFarmPool:withdraw` function where a request hash is not deleted in certain scenarios. This can be exploited by a malicious user to force the pool into a \"deactivating\" state. The suggested solution is to delete the request even when 0 shares are removed. The bug has been fixed.",
+    "report_date": "2025-06-10T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/solodit/solodit_content/blob/main/reports/Hexens/2025-06-10-Ufarm.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "ufarm1-4-malicious-user-could-deactivate-pool-hexens-none-ufarm-markdown",
+    "firm_name": "Hexens",
+    "firm_logo_square": "Hexens_square.png",
+    "protocol_name": "Ufarm",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Hexens"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Hexens",
+        "logo_square": "Hexens_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Ufarm",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

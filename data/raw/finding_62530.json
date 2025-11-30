@@ -1,0 +1,100 @@
+{
+    "id": 62530,
+    "kind": "GIT",
+    "auditfirm_id": 2,
+    "impact": "MEDIUM",
+    "finders_count": 12,
+    "protocol_id": 3373,
+    "title": "[M-02] Inconsistent balance accounting in stETH deposits leads to DOS of core functions and reward loss",
+    "content": "\n\n<https://github.com/code-423n4/2025-08-morpheus/blob/d275e9035b7e703efe26cdee6543e78f452774bb/contracts/capital-protocol/Distributor.sol# L295-L301>\n\n<https://github.com/code-423n4/2025-08-morpheus/blob/d275e9035b7e703efe26cdee6543e78f452774bb/contracts/capital-protocol/Distributor.sol# L384-L386>\n\n### Finding Description and Impact\n\nWhen stETH is staked, the `DepositPool::_stake()` function only stores the actual balance difference, which might be different from the amount that was provided for the transfer due to rounding down:\n```\n\n// https://docs.lido.fi/guides/lido-tokens-integration-guide/# steth-internals-share-mechanics\nuint256 balanceBefore_ = IERC20(depositToken).balanceOf(address(this));\nIERC20(depositToken).safeTransferFrom(_msgSender(), address(this), amount_);\nuint256 balanceAfter_ = IERC20(depositToken).balanceOf(address(this));\n\namount_ = balanceAfter_ - balanceBefore_;\n```\n\n<https://github.com/code-423n4/2025-08-morpheus/blob/a65c254e4c3133c32c05b80bf2bd6ff9eced68e2/contracts/capital-protocol/DepositPool.sol# L379-L384>\n\nThe link from the Lido documentation provided in the code comment explains that the “stETH balance calculation includes integer division, and there is a common case when the whole stETH balance can’t be transferred from the account while leaving the last 1-2 wei on the sender’s account. The same thing can actually happen at any transfer or deposit transaction. In the future, when the stETH/share rate becomes greater, the error can become a bit bigger. To avoid it, one can use transferShares to be precise.”\n\nThis means that the actual transferred amount could be lower than the amount that the transfer operation was called with due to rounding down. Hence, the actual balance difference is used in `DepositPool::_stake()`. This mechanism is also documented in the [Morpheus documentation](https://gitbook.mor.org/smart-contracts/documentation/distribution-protocol/v7-protocol/get-started/stake#:~:text=The%20user%E2%80%99s%20depositToken,the%20Distributor.).\n\nHowever, when `Distributor::supply()` is [called](https://github.com/code-423n4/2025-08-morpheus/blob/a65c254e4c3133c32c05b80bf2bd6ff9eced68e2/contracts/capital-protocol/DepositPool.sol# L386) within `DepositPool::_stake()`, which transfers the `amount_` it was called with from the deposit pool to the distributor, the `amount_` is stored in `depositPool.deposited` and `depositPool.lastUnderlyingBalance` instead of the actual balance difference:\n```\n\nIERC20(depositPool.token).safeTransferFrom(depositPoolAddress_, address(this), amount_);\n\ndepositPool.deposited += amount_;\ndepositPool.lastUnderlyingBalance += amount_;\n```\n\n<https://github.com/code-423n4/2025-08-morpheus/blob/a65c254e4c3133c32c05b80bf2bd6ff9eced68e2/contracts/capital-protocol/Distributor.sol# L295-L301>\n\nAs a result, the value stored in `depositPool.lastUnderlyingBalance` and `depositPool.deposited` could be larger than the actual balance of the contract. This leads to an issue in `Distributor::distributeRewards()` where this difference causes an underflow:\n```\n\nuint256 balance_ = IERC20(yieldToken_).balanceOf(address(this));\nuint256 decimals_ = IERC20Metadata(yieldToken_).decimals();\nuint256 underlyingYield_ = (balance_ - depositPool.lastUnderlyingBalance).to18(decimals_);\n```\n\n<https://github.com/code-423n4/2025-08-morpheus/blob/a65c254e4c3133c32c05b80bf2bd6ff9eced68e2/contracts/capital-protocol/Distributor.sol# L384-L386>\n\nWhen the strategy of the deposit pool is `Strategy.NONE` (which is the case for stETH according to [this](https://github.com/code-423n4/2025-08-morpheus/blob/a65c254e4c3133c32c05b80bf2bd6ff9eced68e2/contracts/interfaces/capital-protocol/IDistributor.sol# L26) code comment in `IDistributor`), the `yieldToken_` [will be](https://github.com/code-423n4/2025-08-morpheus/blob/a65c254e4c3133c32c05b80bf2bd6ff9eced68e2/contracts/capital-protocol/Distributor.sol# L378-L382) the `depositToken`.\n\nAs long as the yield that stETH accrued does not exceed this difference between the stored value and actual balance, this leads to a DOS of `Distributor::distributeRewards()` and all functions that call it, including [stake()](https://github.com/code-423n4/2025-08-morpheus/blob/d275e9035b7e703efe26cdee6543e78f452774bb/contracts/capital-protocol/DepositPool.sol# L259), [withdraw()](https://github.com/code-423n4/2025-08-morpheus/blob/d275e9035b7e703efe26cdee6543e78f452774bb/contracts/capital-protocol/DepositPool.sol# L273), [lockClaim()](https://github.com/code-423n4/2025-08-morpheus/blob/d275e9035b7e703efe26cdee6543e78f452774bb/contracts/capital-protocol/DepositPool.sol# L313), and [claim functions](https://github.com/code-423n4/2025-08-morpheus/blob/d275e9035b7e703efe26cdee6543e78f452774bb/contracts/capital-protocol/DepositPool.sol# L531).\n\nWhen stETH has accrued enough yield, this DOS will be resolved. However, the yield needed to balance out the values will not be recognized as actual yield. As a result, it will not be included in the [rewards calculation](https://github.com/code-423n4/2025-08-morpheus/blob/a65c254e4c3133c32c05b80bf2bd6ff9eced68e2/contracts/capital-protocol/Distributor.sol# L384-L408). This leads to a loss of rewards for the stakers of the stETH deposit pool.\n\nThis issue also exists during the migration flow, where `Distributor::supply()` is called:\n```\n\nuint256 remainder_ = IERC20(depositToken).balanceOf(address(this)) - totalDepositedInPublicPools;\nrequire(remainder_ > 0, \"DS: yield for token is zero\");\nIERC20(depositToken).transfer(distributor, remainder_);\n\nIDistributor(distributor).supply(rewardPoolIndex_, totalDepositedInPublicPools);\n\nisMigrationOver = true;\n```\n\n<https://github.com/code-423n4/2025-08-morpheus/blob/a65c254e4c3133c32c05b80bf2bd6ff9eced68e2/contracts/capital-protocol/DepositPool.sol# L151-L157>\n\nAccording to this [documentation](https://gitbook.mor.org/smart-contracts/documentation/distribution-protocol/v7-protocol/contracts/depositpool# migrate:~:text=Transfers%20pending%20stETH%20yield%20to%20the%20Distributor%20and%20run%20supply%20logic.%20Used%20once%20for%20old%20DistributionV5.), `migrate()` will be used for stETH. Furthermore, the `DepositPool.test.ts` also uses a deposit pool with stETH as the [depositToken](https://github.com/code-423n4/2025-08-morpheus/blob/a65c254e4c3133c32c05b80bf2bd6ff9eced68e2/test/capital-protocol/DepositPool.test.ts# L50) and [Strategy.NONE](https://github.com/code-423n4/2025-08-morpheus/blob/a65c254e4c3133c32c05b80bf2bd6ff9eced68e2/test/capital-protocol/DepositPool.test.ts# L64) as its strategy.\n\n### Recommended Mitigation Steps\n\nOnly store the balance difference every time stETH is transferred, similar to the approach used in `DepositPool::_stake()`.\n\n### Proof of Concept\n\nAdd the test to `POC.test.ts` and run `npx hardhat test --grep \"should expose lastUnderlyingBalance tracking issue due to stETH rounding during stake\"`\n```\n\n  describe('# stETH rounding behavior - lastUnderlyingBalance vs actual balance', () => {\n    let stETHDepositPool: DepositPool;\n\n    beforeEach(async () => {\n      // Create a deposit pool with stETH as the deposit token\n      const lib1 = await (await ethers.getContractFactory('ReferrerLib')).deploy();\n      const lib2 = await (await ethers.getContractFactory('LockMultiplierMath')).deploy();\n      const stETHDepositPoolFactory = await ethers.getContractFactory('DepositPool', {\n        libraries: {\n          ReferrerLib: await lib1.getAddress(),\n          LockMultiplierMath: await lib2.getAddress(),\n        },\n      });\n      const stETHDepositPoolImpl = await stETHDepositPoolFactory.deploy();\n      const proxyFactory = await ethers.getContractFactory('ERC1967Proxy');\n      const stETHDepositPoolProxy = await proxyFactory.deploy(await stETHDepositPoolImpl.getAddress(), '0x');\n      stETHDepositPool = stETHDepositPoolFactory.attach(await stETHDepositPoolProxy.getAddress()) as DepositPool;\n\n      await stETHDepositPool.DepositPool_init(await stETH.getAddress(), await distributor.getAddress());\n\n      // Add stETH deposit pool to distributor\n      await distributor.addDepositPool(\n        publicRewardPoolId,\n        await stETHDepositPool.getAddress(),\n        await stETH.getAddress(),\n        'ETH/USD',\n        Strategy.NONE,\n      );\n\n      // Complete migration\n      await stETHDepositPool.migrate(publicRewardPoolId);\n\n      // Setup reward pool timestamp (required before any staking)\n      await distributor.setRewardPoolLastCalculatedTimestamp(publicRewardPoolId, 1);\n\n      // Set up a realistic total pooled ether amount to trigger rounding\n      await stETH.setTotalPooledEther(wei('123456.789123456789'));\n\n      // Set time to start reward distribution\n      await setNextTime(oneDay * 11);\n    });\n\n    it('should expose lastUnderlyingBalance tracking issue due to stETH rounding during stake', async () => {\n      const testAmounts = [\n        wei('1.000000001'),      // Small fractional amount\n      ];\n\n      for (const amount of testAmounts) {\n        // Mint exact stETH amount to alice\n        await stETH.mint(alice.address, amount);\n        await stETH.connect(alice).approve(await stETHDepositPool.getAddress(), amount);\n\n        // Get initial balances\n        const distributorInitialBalance = await stETH.balanceOf(await distributor.getAddress());\n\n        // Get initial distributor pool state\n        const initialDepositPoolData = await distributor.depositPools(publicRewardPoolId, await stETHDepositPool.getAddress());\n        const initialLastUnderlyingBalance = initialDepositPoolData.lastUnderlyingBalance;\n\n        // Perform stake operation - this triggers supply() in distributor\n        // The distributor.supply() will update lastUnderlyingBalance with the amount parameter\n        // But the actual stETH transfer may round down due to stETH mechanics\n        await stETHDepositPool.connect(alice).stake(publicRewardPoolId, amount, 0, ZERO_ADDR);\n\n        // Get final balances\n        const distributorFinalBalance = await stETH.balanceOf(await distributor.getAddress());\n        expect(distributorFinalBalance).to.be.gt(distributorInitialBalance);\n\n        // Get final distributor pool state\n        const finalDepositPoolData = await distributor.depositPools(publicRewardPoolId, await stETHDepositPool.getAddress());\n        const finalLastUnderlyingBalance = finalDepositPoolData.lastUnderlyingBalance;\n        expect(finalLastUnderlyingBalance).to.be.gt(initialLastUnderlyingBalance);\n\n        // lastUnderlyingBalance > actual transferred stETH (distributor balance)\n        expect(finalLastUnderlyingBalance).to.be.gt(distributorFinalBalance);\n\n        // distributeRewards reverts due to 0x11 which is the panic code for underflow\n        await expect(\n          distributor.distributeRewards(publicRewardPoolId)\n        ).to.be.revertedWithPanic(0x11);\n\n        // the same goes for the functions where this is called (like stake and withdraw):\n        // Mint exact stETH amount to alice\n        await stETH.mint(alice.address, amount);\n        await stETH.connect(alice).approve(await stETHDepositPool.getAddress(), amount);\n\n        await expect(\n          stETHDepositPool.connect(alice).stake(publicRewardPoolId, amount, 0, ZERO_ADDR)\n        ).to.be.revertedWithPanic(0x11);\n      }\n    });\n  });\n```\n\n---\n\n",
+    "summary": "\nThis bug report discusses an issue with the code for a project called Morpheus. The issue is related to the way a certain type of token, called stETH, is handled when it is staked. The code only stores the difference in balance when the token is transferred, which can lead to a discrepancy between the actual amount transferred and the amount recorded. This can cause problems in the code that distributes rewards to users, as it may result in an underflow and loss of rewards. The report suggests a solution and provides a test to reproduce the issue.",
+    "report_date": "2025-09-11T00:00:00.000Z",
+    "contest_prize_txt": "20000",
+    "contest_link": "https://code4rena.com/reports/2025-08-morpheus",
+    "sponsor_name": "Morpheus",
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://code4rena.com/reports/2025-08-morpheus",
+    "github_link": "https://code4rena.com/audits/2025-08-morpheus/submissions/F-85",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "520",
+    "slug": "m-02-inconsistent-balance-accounting-in-steth-deposits-leads-to-dos-of-core-functions-and-reward-loss-code4rena-morpheus-morpheus-git",
+    "firm_name": "Code4rena",
+    "firm_logo_square": "code4rena_square.png",
+    "protocol_name": "Morpheus",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "newspacexyz"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "mrMorningstar"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Aristos"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Ivcho332"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "mishoko"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Avalance"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "0xDemon"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Olugbenga"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "KlosMitSoss"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Utsav"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Yaneca\\_b"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "SOPROBRO"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Code4rena",
+        "logo_square": "code4rena_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Morpheus",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

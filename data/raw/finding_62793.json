@@ -1,0 +1,55 @@
+{
+    "id": 62793,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 37,
+    "impact": "HIGH",
+    "finders_count": 3,
+    "protocol_id": 3446,
+    "title": "Transferred NFTs May Be Missing Royalty Vault",
+    "content": "**Update**\nMarked as \"Fixed\" by the client. Addressed in: `efb615e3aef4e38ad324b2e9be5c5da16f0e7c83`.\n\n**File(s) affected:**`IpNFT.sol`\n\n**Description:** The token owners receive royalty payments for subscriptions, and may also be rewarded for dispute settlements. These rewards are paid to the token owner, but not directly to avoid DoS attack vectors. Instead, each token owner is supposed to have a `RoyaltyVault` contract to receive these funds. These contracts are currently created during the minting process. However, when a token is transferred to a new owner, they may not have a vault registered in the `royaltyVaults` mapping. In this case, royalty payments will be transferred to the zero address, resulting in a loss of funds due to the following code:\n\n```\nif (token == address(0)) {\n    SafeTransferLib.safeTransferETH(ipToken.royaltyVaults(recipient), share);\n} else {\n    SafeTransferLib.safeTransferFrom(token, payer, ipToken.royaltyVaults(recipient), share);\n}\n```\n\nFurthermore, there's no way for the new owner or the contract owner to create and register a vault to solve this issue.\n\n**Exploit Scenario:**\n\n1.   Alice mints token 1. A vault is generated for Alice.\n2.   Alice transfers token 1 to Bob, who has no vault yet. \n3.   Charlie buys access for token 1.\n4.   The royalty payment is sent to the zero address, as there's no vault for Bob.\n\n**Recommendation:** There are various options to address this issue. We suggest implementing the factory pattern, which tracks the created vaults, and exposes a function `getOrCreateVault(address)` that retrieves or creates vaults for queried addresses. This would create vaults only when needed to receive funds, and the gas is paid by the user buying access in the marketplace.\n\nThis could be adopted in a minimized form inside the token contract. This could be achieved by making the vault mapping private and exposing a `getOrCreateVault()` function that attempts to retrieve the value from `_royaltyVaults`, and otherwise creates a new vault.\n\n```\nmapping(address => address) private _royaltyVaults;\nfunction getOrCreateRoyaltyVault(address tokenOwner) external returns (address vault) {\n    vault = _royaltyVaults[tokenOwner];\n    if (vault == address(0)) { // <-- Create a new vault if there is no map entry\n        vault = address(new RoyaltyVault(tokenOwner));\n        royaltyVaults[tokenOwner] = vault;\n    }\n}\n```",
+    "summary": "\nThe client has reported a bug in the `IpNFT.sol` file where token owners are not receiving their royalty payments and rewards for dispute settlements. This is because the contracts that are supposed to receive these funds are only created during the minting process, and when a token is transferred to a new owner, they may not have a contract registered in the `royaltyVaults` mapping. This results in the funds being sent to the zero address and lost. \n\nTo fix this issue, the report suggests implementing the factory pattern, which would create contracts only when needed and the user buying access would pay for the gas. This could be achieved by making the vault mapping private and exposing a function that retrieves or creates contracts for queried addresses. This would ensure that all token owners have a contract to receive their funds. ",
+    "report_date": "2025-09-15T14:18:47.035Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://certificate.quantstamp.com/full/camp-nft/94cdb738-1a01-4f6c-8632-3bdec427161e/index.html",
+    "sponsor_name": "",
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://certificate.quantstamp.com/full/camp-nft/94cdb738-1a01-4f6c-8632-3bdec427161e/index.html",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "transferred-nfts-may-be-missing-royalty-vault-quantstamp-camp-nft-markdown",
+    "firm_name": "Quantstamp",
+    "firm_logo_square": "quantstamp_square.png",
+    "protocol_name": "Camp - NFT",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Paul Clemson"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Gereon Mendler"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Tim Sigl"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Quantstamp",
+        "logo_square": "quantstamp_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Camp - NFT",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

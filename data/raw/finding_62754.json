@@ -1,0 +1,50 @@
+{
+    "id": 62754,
+    "kind": "PDF",
+    "auditfirm_id": 6,
+    "impact": "LOW",
+    "finders_count": 2,
+    "protocol_id": 3441,
+    "title": "Vulnerable NPM Dependencies may allow critical server-side impact",
+    "content": "## Vulnerability Report\n\n## Severity: Low Risk\n\n### Context\n(No context files were provided by the reviewers)\n\n### Description\nSeveral critical, moderate, and low-severity vulnerabilities were identified in third-party NPM dependencies used by the application. These issues affect cryptographic functions, input validation, file handling, and middleware operations. Vulnerabilities are present in both direct and transitive dependencies.\n\nThe most severe flaws affect the `pbkdf2` and `sha.js` packages, which can lead to weak cryptographic keys, predictable memory outputs, and bypasses in data hashing. Attackers could exploit these flaws to compromise user credentials or application integrity. Moderate vulnerabilities in the next package enable cache key confusion, content injection, and server-side request forgery (SSRF). Additional issues in packages such as `brace-expansion`, `tmp`, and `vite` may enable denial-of-service (DoS) attacks or unsafe file operations.\n\n#### Key exploitation risks:\n- Credential compromise via static or predictable keys.\n- Data integrity failures through hash function bypass.\n- Cache poisoning and SSRF in Next.js APIs.\n- DoS via regular expression or unsafe file handling.\n\nMost vulnerabilities are inherited through dependencies on build tools and development utilities (e.g., Storybook, Next.js, code generation). Unpatched dependencies could allow attackers to compromise authentication, escalate privileges, access sensitive data, or cause denial of service, with significant business and compliance impact.\n\n### Proof of Concept\nThe following is a summarized and properly escaped excerpt from the `pnpm audit` output:\n\n- **Severity**: critical  \n  **Description**: `pbkdf2` silently disregards `Uint8Array` input, returning static keys  \n  **Package**: `pbkdf2`  \n  **Vulnerable versions**: `<=3.1.2`  \n  **Patched versions**: `>=3.1.3`  \n  **Paths**: `.@storybook/nextjs>node-polyfill-webpack-plugin>crypto-browserify>pbkdf2`  \n  **More info**: [GHSA-v62p-rq8g-8h59](https://github.com/advisories/GHSA-v62p-rq8g-8h59)  \n\n- **Severity**: critical  \n  **Description**: `pbkdf2` returns predictable uninitialized/zero-filled memory for non-normalized or unimplemented algos  \n  **Package**: `pbkdf2`  \n  **Vulnerable versions**: `>=3.0.10 <=3.1.2`  \n  **Patched versions**: `>=3.1.3`  \n  **Paths**: `.@storybook/nextjs>node-polyfill-webpack-plugin>crypto-browserify>pbkdf2`  \n  **More info**: [GHSA-h7cp-r72f-jxh6](https://github.com/advisories/GHSA-h7cp-r72f-jxh6)  \n\n- **Severity**: critical  \n  **Description**: `sha.js` is missing type checks leading to hash rewind and passing on crafted data  \n  **Package**: `sha.js`  \n  **Patched versions**: `>=2.4.12`  \n  **Paths**: `.@storybook/nextjs>node-polyfill-webpack-plugin>crypto-browserify>create-hash>sha.js`  \n  **More info**: [GHSA-95m3-7q98-8xr5](https://github.com/advisories/GHSA-95m3-7q98-8xr5)  \n\n- **Severity**: moderate  \n  **Description**: Next.js Affected by Cache Key Confusion for Image Optimization API Routes  \n  **Package**: `next`  \n  **Vulnerable versions**: `>=15.0.0 <=15.4.4`  \n  **Patched versions**: `>=15.4.5`  \n  **More info**: [GHSA-g5qg-72qw-gw5v](https://github.com/advisories/GHSA-g5qg-72qw-gw5v)  \n\n- **Severity**: moderate  \n  **Description**: Next.js Content Injection Vulnerability for Image Optimization  \n  **Package**: `next`  \n  **Vulnerable versions**: `>=15.0.0 <=15.4.4`  \n  **Patched versions**: `>=15.4.5`  \n  **More info**: [GHSA-xv57-4mr9-wg8v](https://github.com/advisories/GHSA-xv57-4mr9-wg8v)  \n\n- **Severity**: moderate  \n  **Description**: Next.js Improper Middleware Redirect Handling Leads to SSRF  \n  **Package**: `next`  \n  **Vulnerable versions**: `>=15.0.0-canary.0 <15.4.7`  \n  **Patched versions**: `>=15.4.7`  \n  **More info**: [GHSA-4342-x723-ch2f](https://github.com/advisories/GHSA-4342-x723-ch2f)  \n\n(Additional low-severity advisories omitted for brevity)\n\n### Likelihood\nMedium\n\n### Impact\nHigh\n\n### Recommendation\n- Upgrade all vulnerable dependencies to their latest secure versions as specified in the audit output. Example: `pbkdf2` to `>=3.1.3`, `sha.js` to `>=2.4.12`, `next` to `>=15.4.7`, and others as required.\n- Review and update all direct and transitive dependencies using automated tools (`pnpm audit`, `npm audit`, `yarn audit`).\n- Utilize tools like `npm-check-updates` to identify outdated dependencies.\n- Implement automated vulnerability monitoring with GitHub Dependabot or similar services.\n- Enforce dependency pinning and lockfile usage to ensure reproducible builds.\n- Follow the OWASP Dependency-Check and OWASP Node.js Security Cheat Sheet for ongoing best practices.\n- Audit CI/CD pipelines to prevent introduction of outdated or insecure dependencies.\n\n### References\n- [GHSA-v62p-rq8g-8h59](https://github.com/advisories/GHSA-v62p-rq8g-8h59)\n- [GHSA-h7cp-r72f-jxh6](https://github.com/advisories/GHSA-h7cp-r72f-jxh6)\n- [GHSA-95m3-7q98-8xr5](https://github.com/advisories/GHSA-95m3-7q98-8xr5)\n- [OWASP Node.js Security Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Nodejs_Security_Cheat_Sheet.html)\n\n### Acknowledgements\n- **Steakhouse**: Fixed in PR 3.\n- **Spearbit**: Fix verified.",
+    "summary": "",
+    "report_date": "2025-09-25T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Steakhouse-App-Web2-Spearbit-Security-Review-September-2025.pdf",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Steakhouse-App-Web2-Spearbit-Security-Review-September-2025.pdf",
+    "github_link": "",
+    "pdf_link": "https://solodit-bucket.s3.amazonaws.com/storage/reports/spearbit/Steakhouse-App-Web2-Spearbit-Security-Review-September-2025.pdf",
+    "pdf_page_from": 10,
+    "contest_id": "",
+    "slug": "vulnerable-npm-dependencies-may-allow-critical-server-side-impact-spearbit-none-steakhouse-app-pdf",
+    "firm_name": "Spearbit",
+    "firm_logo_square": "spearbit_square.png",
+    "protocol_name": "Steakhouse App",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Dreyand"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Mikey96"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Spearbit",
+        "logo_square": "spearbit_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Steakhouse App",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

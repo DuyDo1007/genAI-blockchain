@@ -1,0 +1,50 @@
+{
+    "id": 62338,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 11,
+    "impact": "LOW",
+    "finders_count": 2,
+    "protocol_id": 3401,
+    "title": "Inconsistent unpause role in `onUSD`",
+    "content": "**Description:** [`onUSD::unpause`](https://github.com/ondoprotocol/rwa-internal/blob/a74d03f4a71bd9cac09e8223377b47f7d64ca8d4/contracts/globalMarkets/onUSD.sol#L200-L202) is restricted to `DEFAULT_ADMIN_ROLE`, unlike other contracts in the system that use a dedicated `UNPAUSER_ROLE`. This breaks consistency in access control design and limits flexibility in delegating unpause authority:\n```solidity\nfunction unpause() public override onlyRole(DEFAULT_ADMIN_ROLE) {\n  _unpause();\n}\n```\n\nConsider using `UNPAUSER_ROLE` for `onUSD::unpause` to align with the pattern used across other contracts.\n\n**Ondo:** Fixed in commit [`650c527`](https://github.com/ondoprotocol/rwa-internal/pull/470/commits/650c527100dbb655e9a485a5568c7796fdde3cc1)\n\n**Cyfrin:** Verified.`UNPAUSER_ROLE` used in `USDon::unpause` (renamed)",
+    "summary": "",
+    "report_date": "2025-07-14T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/solodit/solodit_content/blob/main/reports/Cyfrin/2025-07-14-cyfrin-ondo-global-markets-v2.0.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "inconsistent-unpause-role-in-onusd-cyfrin-none-ondo-global-markets-markdown",
+    "firm_name": "Cyfrin",
+    "firm_logo_square": "Cyfrin_square.jpg",
+    "protocol_name": "Ondo Global Markets",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Immeas"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Al-Qa'qa'"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Cyfrin",
+        "logo_square": "Cyfrin_square.jpg"
+    },
+    "protocols_protocol": {
+        "name": "Ondo Global Markets",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

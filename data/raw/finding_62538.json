@@ -1,0 +1,45 @@
+{
+    "id": 62538,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 16,
+    "impact": "HIGH",
+    "finders_count": 1,
+    "protocol_id": 3420,
+    "title": "[H-01] Funds in subscription may be drained",
+    "content": "\n_Resolved_\n\n## Severity\n\n**Impact:** High\n\n**Likelihood:** Medium\n\n## Description\nIn SpinLottery, users can participate in the spin activity to win one prize card. Users can choose their win possibility. If users choose one higher win possibility, users have to pay one higher payment for this spin.\n\nWhen users trigger one spin, we will request one randomness from Chainlink VRF. In RIP, we choose the Subscription mode. Chainlink VRF will charge the related fees from our subscription balance. Each time, we trigger one spin, Chainlink VRF will charge the related fees from our subscription balance.\n\nAccording to Chainlink VRF billing [formula](https://docs.chain.link/vrf/v2-5/billing), the fee for one random is `gasPrice * (callback gas used + Verification gas used) * ((100 + premium percentage)/100)`.\n\nThe problem here is that some malicious users can start one grief attack. The hacker can repeat triggering `spin` to consume our subscription balance. In a normal scenario, one spin's cost should be `gas used + spin cost`. However, the hacker can increase the `_totalSlots` to one very huge value to let the spit cost round down to 0. The only cost for this attack vector is the `gas used`. \n\nThis will cause Chainlink VRF will consume all balance in our subscription account.\n```solidity\n    function spin(uint256 _totalSlots, uint256 _prizeCount) external whenNotPaused returns (uint256) {\n        uint256 spinCost = calculateSpinCost(_totalSlots, _prizeCount);\n        \n        // Process payment\n        if (!usdcToken.transferFrom(msg.sender, address(this), spinCost)) {\n            revert USDCTransferFailed();\n        }\n        uint256 requestId = requestRandomness();\n        spinRequests[requestId] = SpinRequest({\n            player: msg.sender, \n            totalSlots: _totalSlots, \n            prizeCount: _prizeCount\n        });\n    }\n    function calculateSpinCost(uint256 _totalSlots, uint256 _prizeCount) public view returns (uint256) {\n        return (avgBasePrice * _prizeCount * 1000) / (_totalSlots * 1000);\n    }\n```\n\n## Recommendations\n\nAdd one minimum spin cost.\n\n\n\n",
+    "summary": "\nThe bug report is about a problem in the SpinLottery game where users can participate in a spin activity to win a prize card. The issue is that some malicious users can exploit the system and consume all the balance in the subscription account by triggering multiple spins. This is possible because the cost for each spin is calculated using a formula that can be manipulated by increasing the value of a variable. The report recommends adding a minimum spin cost to prevent this exploitation.",
+    "report_date": "2025-09-11T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/pashov/audits/blob/master/team/md/RipIt-security-review_2025-04-25.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "h-01-funds-in-subscription-may-be-drained-pashov-audit-group-none-ripit_2025-04-25-markdown",
+    "firm_name": "Pashov Audit Group",
+    "firm_logo_square": "Pashov_square.png",
+    "protocol_name": "RipIt_2025-04-25",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Pashov Audit Group"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Pashov Audit Group",
+        "logo_square": "Pashov_square.png"
+    },
+    "protocols_protocol": {
+        "name": "RipIt_2025-04-25",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

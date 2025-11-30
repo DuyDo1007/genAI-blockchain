@@ -1,0 +1,45 @@
+{
+    "id": 62186,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 16,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3389,
+    "title": "[L-13] Strategy losses can be masked by interest gains from other strategies",
+    "content": "\n_Acknowledged_\n\nThe `EulerEarn` vault aggregates yield across multiple strategies. However, when computing `lostAssets` in `_accruedFeeAndAssets()`, the implementation mistakenly assumes that any net increase in total assets means no losses occurred, and thus fails to properly track `lostAssets`.\n\n```solidity\n        // The assets that the Earn vault has on the strategy vaults.\n        uint256 realTotalAssets;\n        for (uint256 i; i < withdrawQueue.length; ++i) {\n            IERC4626 id = withdrawQueue[i];\n            realTotalAssets += _expectedSupplyAssets(id);\n        }\n\n        uint256 lastTotalAssetsCached = lastTotalAssets;\n        if (realTotalAssets < lastTotalAssetsCached - lostAssets) {\n            // If the vault lost some assets (realTotalAssets decreased), lostAssets is increased.\n            newLostAssets = lastTotalAssetsCached - realTotalAssets;\n        } else {\n            // If it did not, lostAssets stays the same.\n            newLostAssets = lostAssets;\n        }\n```\n\nTo better understand the issue, consider the following scenario:\n\n1. EulerEarn supports two strategies, S1 and S2, and has 1e18 deposited into each, so `totalAssets = 2e18`.\n2. After some time, S2 accrues 0.25e18 in interest, while S1 incurs a loss of 0.1e18.\n3. If `_accruedFeeAndAssets()` is triggered at this point, it will assume the total interest accrued is 0.15e18, and will **not** update `lostAssets`. This is incorrect — S1 did lose 0.1e18, but this loss will never be captured.\n\nThe impact of this vulnerability is significant since it causes major accounting inaccuracies in the `lostAssets` value, which only gets worse over time. Losses in individual strategies are not captured, leaving the `lostAssets` metric untrustworthy. Additionally, this leads to a fee under-collection for the `feeRecipient`. Since fees are minted based on net interest accrued, losses from one strategy reduce the apparent gains of another, ultimately lowering the protocol’s revenue. Due to this flaw, the intended differentiation between `lostAssets` (which should isolate user losses from vault underperformance) fails to hold.\n\nIn order to reproduce the issue, paste the following test in the `LostAssetsTest.sol` file and run `forge test --mt testLostAssetsMaskedByInterestGain -vvv` :\n\n```solidity\n    function testLostAssetsMaskedByInterestGain() public {\n        // Set up two strategies\n        _setCap(allMarkets[1], CAP); // Add a second strategy\n        \n        // Configure supply queue to use both strategies\n        IERC4626[] memory supplyQueue = new IERC4626[](2);\n        supplyQueue[0] = allMarkets[0]; // Strategy 1 - will lose assets\n        supplyQueue[1] = allMarkets[1]; // Strategy 2 - will gain interest\n        \n        vm.prank(ALLOCATOR);\n        vault.setSupplyQueue(supplyQueue);\n\n        // Initial deposit - will be split between strategies\n        uint256 totalDeposit = 2e18;\n        loanToken.setBalance(SUPPLIER, totalDeposit);\n\n        vm.prank(SUPPLIER);\n        vault.deposit(totalDeposit, ONBEHALF);\n\n        // Force allocation to both strategies via reallocation\n        MarketAllocation[] memory allocations = new MarketAllocation[](2);\n        allocations[0] = MarketAllocation(allMarkets[0], 1e18); // 1e18 to strategy 1\n        allocations[1] = MarketAllocation(allMarkets[1], 1e18); // 1e18 to strategy 2\n        \n        vm.prank(ALLOCATOR);\n        vault.reallocate(allocations);\n\n        // Record state before everything. This is the initial state. lostAssets: 0 and totalAssets: 2e18.\n        uint256 lostAssetsBefore = vault.lostAssets();\n        uint256 totalAssetsBefore = vault.totalAssets();\n\n        // Create borrowing activity on Strategy 2 to generate interest\n        uint256 collateralAmount = 2e18;\n        collateralToken.setBalance(BORROWER, collateralAmount);\n        vm.startPrank(BORROWER);\n        collateralVault.deposit(collateralAmount, BORROWER);\n        evc.enableController(BORROWER, address(allMarkets[1]));\n        _toEVault(allMarkets[1]).borrow(0.4e18, BORROWER); // Borrow from strategy 2\n        vm.stopPrank();\n        // Move time forward to accrue significant interest on Strategy 2\n        vm.warp(block.timestamp + 365 days); // 1 year for substantial interest\n        // We did this only to generate interest in the Strategy 2.\n        \n        // Strategy 1 loses 0.01e18 of its assets.\n        uint256 strategy1AssetsBefore = allMarkets[0].previewRedeem(allMarkets[0].balanceOf(address(vault)));\n        uint256 lossAmount = 0.01e18; // 0.01e18 loss\n        _toEVaultMock(allMarkets[0]).mockSetTotalSupply(uint112(strategy1AssetsBefore - lossAmount));\n\n        // Check that Strategy 2 has gained significant interest (should be > 0.1e18 to mask the loss)\n        uint256 strategy2AssetsAfter = allMarkets[1].previewRedeem(allMarkets[1].balanceOf(address(vault)));\n        uint256 interestGained = strategy2AssetsAfter - 1e18; // Interest = current - initial 1e18\n        \n        console.log(\"Strategy 1 loss:           \", lossAmount);\n        console.log(\"Strategy 2 interest gained:\", interestGained);\n        \n        // Trigger interest accrual\n        accrueInterestBySettingFeeRecipient();\n        \n        // Record state after accrual\n        uint256 lostAssetsAfter = vault.lostAssets();\n        uint256 totalAssetsAfter = vault.totalAssets();\n        \n        console.log(\"Lost assets before:\", lostAssetsBefore);\n        console.log(\"Lost assets after: \", lostAssetsAfter);\n        console.log(\"Total assets before:\", totalAssetsBefore);\n        console.log(\"Total assets after: \", totalAssetsAfter);\n\n        // The bug: If interest gained > loss, lostAssets won't be updated\n        if (interestGained > lossAmount) {\n            // This demonstrates the issue - lost assets should be tracked regardless of net gain\n            console.log(\"BUG DEMONSTRATED: Net gain masks individual strategy losses\");\n            console.log(\"Expected lostAssets to increase by:\", lossAmount);\n            console.log(\"Actual lostAssets change:\", lostAssetsAfter - lostAssetsBefore);\n            console.log(\"Expected interestAccrued to increase totalAssets by:\", interestGained);\n            console.log(\"Actual totalAssets change:                          \", totalAssetsAfter - totalAssetsBefore);\n            \n            // The vault shows a net gain but individual losses are hidden\n            assertEq(lostAssetsAfter, lostAssetsBefore, \"Lost assets not updated despite Strategy 1 loss\");\n            assertGt(totalAssetsAfter, totalAssetsBefore, \"Total assets increased due to net gain\");\n            // This is the problematic behavior and the impact of it is :\n            // 1. Curator doesn't know how many assets have been lost from strategies since lostAssets is wrong.\n            // 2. feeRecipient is taking less feeShares since the interestAccrued is being decreased from the loss of strategies.\n            // In reality, in metamorphov1.1, interest accrued and strategies losses must be differentiated.\n        }\n    }\n```\n\n**Recommendations**\n\nFixing this issue may not be trivial, but a solid approach is to track the last total assets per strategy. This way, it’s possible to clearly determine whether a specific strategy has lost assets or accrued yield independently.\n\n\n### Euler comments\n\nWe acknowledge the finding, but behaviour is by design, will keep as is.\n\n\n",
+    "summary": "",
+    "report_date": "2025-08-27T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/pashov/audits/blob/master/team/md/EulerEarn-security-review_2025-07-25.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "l-13-strategy-losses-can-be-masked-by-interest-gains-from-other-strategies-pashov-audit-group-none-eulerearn_2025-07-25-markdown",
+    "firm_name": "Pashov Audit Group",
+    "firm_logo_square": "Pashov_square.png",
+    "protocol_name": "EulerEarn_2025-07-25",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Pashov Audit Group"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Pashov Audit Group",
+        "logo_square": "Pashov_square.png"
+    },
+    "protocols_protocol": {
+        "name": "EulerEarn_2025-07-25",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

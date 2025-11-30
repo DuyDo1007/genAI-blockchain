@@ -1,0 +1,55 @@
+{
+    "id": 62002,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 37,
+    "impact": "MEDIUM",
+    "finders_count": 3,
+    "protocol_id": 3365,
+    "title": "Absence of `CI/CD` Pipeline Scripts in Repository",
+    "content": "**Update**\nMarked as \"Fixed\" by the client. Addressed in: `7d4f2cf92191e7c7603df5cec6ca5c20c51a359d`. The client provided the following explanation:\n\n> Fix TypeScript compilation errors across multiple files\n\n**Description:** The repository lacks any Continuous Integration/Continuous Deployment (CI/CD) pipeline scripts or configuration files (e.g., GitHub Actions workflows, Jenkinsfiles, GitLab CI YAML, CircleCI config). This absence indicates that the project may not be benefiting from automated build, test, and deployment processes.\n\nWithout CI/CD automation:\n\n*   Code quality may suffer due to lack of enforced automated testing and static analysis.\n*   Deployment processes are prone to manual errors and inconsistencies.\n*   Security checks (e.g., dependency scanning, linting, secret detection) may be skipped or inconsistently applied.\n*   Development velocity and feedback loops slow down, increasing the chance of regressions.\n*   Collaboration and release management become harder, especially as the team or codebase scales.\n\nIn modern software development, CI/CD pipelines are considered best practice for ensuring repeatable, auditable, and secure software delivery.\n\n**Recommendation:** Implement CI/CD pipelines using your preferred tools (e.g., GitHub Actions, Jenkins, GitLab CI, CircleCI):\n\n*   Automate build steps to compile and package code.\n*   Run unit, integration, and security tests on every push or pull request.\n*   Include static code analysis and dependency vulnerability scanning as part of the pipeline. Automate deployment to staging and production environments where feasible.\n\nIntroducing CI/CD will improve code quality, reduce manual errors, accelerate releases, and enhance security posture.",
+    "summary": "\nThe client has marked a bug as \"Fixed\" in the code. The issue was related to TypeScript compilation errors in multiple files. However, the project is still lacking a Continuous Integration/Continuous Deployment (CI/CD) pipeline, which can automate build, test, and deployment processes. This absence can lead to lower code quality, manual errors, slower development, and security vulnerabilities. It is recommended to implement a CI/CD pipeline using tools like GitHub Actions, Jenkins, GitLab CI, or CircleCI to improve code quality, reduce errors, and enhance security.",
+    "report_date": "2025-08-26T12:12:16.438Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://certificate.quantstamp.com/full/saucer-swap-wallet/d30efab8-8abd-46b1-bba5-6360b87e3aa3/index.html",
+    "sponsor_name": "",
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://certificate.quantstamp.com/full/saucer-swap-wallet/d30efab8-8abd-46b1-bba5-6360b87e3aa3/index.html",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "absence-of-cicd-pipeline-scripts-in-repository-quantstamp-saucerswap-wallet-markdown",
+    "firm_name": "Quantstamp",
+    "firm_logo_square": "quantstamp_square.png",
+    "protocol_name": "SaucerSwap Wallet",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Albert Heinle"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Darren Jensen"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Jonathan Mevs"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Quantstamp",
+        "logo_square": "quantstamp_square.png"
+    },
+    "protocols_protocol": {
+        "name": "SaucerSwap Wallet",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

@@ -1,0 +1,45 @@
+{
+    "id": 62855,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 30,
+    "impact": "MEDIUM",
+    "finders_count": 1,
+    "protocol_id": 3449,
+    "title": "[M-05] Insufficient Check in `updateCachedPrice()` Can Lead to Read Stale Prices as Valid Prices",
+    "content": "\n## Severity\n\nMedium Risk\n\n## Description\n\nIn `GasTankPaymaster`, when updating the price of a trading asset, in case the price was already new, and the time passed from the last update does not exceed the MaxAge, we return the current cached price.\n\nThis is an acceptable behaviour, and in case we pass, we read from the main ChainLink oracles to store the new price.\n\nThe problem comes in the first check, where we are only checking the `cachedAge` against the native age without checking for the tokenMaxAge too. So, in case the ERC20 token `maxAge` differs from the native currency age (this depends on the Feed and can change from blockchain to another), the tokenPrice will be read as valid, although it is a stale price as `cacheAge` is greater than the MaxAge for the token.\n\n## Location of Affected Code\n\nFile: [GasTankPaymaster.sol#L391-L393](https://github.com/etherspot/etherspot-modular-accounts/blob/9019f2a78c36e74bdb1df4029672998cb4631162/src/paymaster/GasTankPaymaster.sol#L391-L393)\n\n```solidity\nfunction updateCachedPrice(bool force) public returns (uint256) {\n    GasTankPaymasterConfig storage gtpConfig = paymasterConfig;\n    uint256 cacheAge = block.timestamp - gtpConfig.cachedPriceTimestamp;\n>>  if (!force && cacheAge <= gtpConfig.nativeMaxAge && gtpConfig.cachedTokenPrice > 0) {\n        return gtpConfig.cachedTokenPrice;\n    }\n    // Try to get and validate prices\n    (bool success, uint256 newPrice) = _tryGetFreshPrice(gtpConfig);\n    if (success) {\n        // code\n    } else {\n      // code\n    }\n}\n```\n\n## Impact\n\nThe `cachedTokenPrice` will be read as a valid price, although `cacheAge` can be greater than `gtpConfig.tokenMaxAge`, leading to incorrect calculations when performing a top-up.\n\n## Proof of Concept\n\n- native Oracle has a MaxAge of 1 day\n- token oracle has a MaxAge of 1 hour\n- The last update happened 6 hours ago\n- Now the price should be considered stale as the `tokenMaxAge` (1 hour) is smaller than the cachedAge (6 hours)\n- Calling `updateCachedPrice()` will return `cachedTokenPrice` without reading the new price from Chainlink Oracle\n\n## Recommendation\n\nIn the if condition, we should add another restriction so that `cacheAge <= gtpConfig.tokenMaxAge`, so that we only return the cachedPrice if neither Token nor native has stale prices\n\n## Team Response\n\nFixed.\n\n",
+    "summary": "\nThis bug report discusses an issue in the `GasTankPaymaster` code where the cached price of a trading asset may be considered valid even if it is actually stale. This can happen if the `tokenMaxAge` (the maximum time allowed without updating the price) is different from the `nativeMaxAge` (the maximum time allowed without updating the price for the native currency). This can lead to incorrect calculations when performing a top-up. The team has identified the issue and has fixed it by adding an additional restriction in the code. ",
+    "report_date": "2025-10-03T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/shieldify-security/audits-portfolio-md/blob/main/Etherspot-GasTankPaymasterModule-Extended-Security-Review.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "m-05-insufficient-check-in-updatecachedprice-can-lead-to-read-stale-prices-as-valid-prices-shieldify-none-etherspot-gastankpaymastermodule-extended-markdown",
+    "firm_name": "Shieldify",
+    "firm_logo_square": "Shieldify_square.png",
+    "protocol_name": "Etherspot Gastankpaymastermodule Extended",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Shieldify Security"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Shieldify",
+        "logo_square": "Shieldify_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Etherspot Gastankpaymastermodule Extended",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

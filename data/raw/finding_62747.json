@@ -1,0 +1,45 @@
+{
+    "id": 62747,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 30,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3440,
+    "title": "[L-04] Lack of Practical Upper Threshold for Commission Percentage",
+    "content": "\n## Severity\n\nLow Risk\n\n## Description\n\nThe function `setCommissionPercent()` currently allows the admin to set `commissionPercent` to any value up to `10000` (representing 100%).  \nWhile technically valid, setting a very high commission (e.g., 80–100%) would result in **significant user losses** and make participation economically unviable.  \nThis is not a direct security vulnerability but poses a **severe economic risk**, as users would lose trust and abandon the protocol if commissions become unreasonable.\n\n## Location of Affected Code\n\nFile: [contracts/Revolver.sol#680](https://github.com/xgrisha666x/revolver-contract/blob/b9c318f97f10a4f496bda8959aeb90696402e114/contracts/Revolver.sol#L680)\n\n```solidity\nfunction setCommissionPercent(uint256 percent) external onlyAdmin {\n    if (percent > 10000) revert TooHighCommission();\n    commissionPercent = percent;\n}\n```\n\n## Recommendation\n\nIntroduce a **practical upper bound** for `commissionPercent` (e.g., 5–15%) to ensure commissions remain fair and sustainable for users, while still providing revenue to the protocol.\n\n## Team Response\n\nFixed.\n\n",
+    "summary": "",
+    "report_date": "2025-09-24T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/shieldify-security/audits-portfolio-md/blob/main/SoulsClub-Revolver-Security-Review.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "l-04-lack-of-practical-upper-threshold-for-commission-percentage-shieldify-none-soulsclub-revolver-markdown",
+    "firm_name": "Shieldify",
+    "firm_logo_square": "Shieldify_square.png",
+    "protocol_name": "Soulsclub Revolver",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Shieldify Security"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Shieldify",
+        "logo_square": "Shieldify_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Soulsclub Revolver",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

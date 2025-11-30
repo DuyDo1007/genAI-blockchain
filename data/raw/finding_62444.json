@@ -1,0 +1,45 @@
+{
+    "id": 62444,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 34,
+    "impact": "MEDIUM",
+    "finders_count": 1,
+    "protocol_id": 3408,
+    "title": "[UFARM1-8] USDC Blacklist Can Trigger DoS in quexCallback() Function",
+    "content": "**Severity:** Medium\n\n**Path:** contracts/main/contracts/pool/UFarmPool.sol#L554 \n\n**Description:** The `UFarmPool.quexCallback()` function is responsible for processing all pending deposit and withdrawal requests from users. It iterates through the `depositQueue[]` and `withdrawQueue[]` arrays, handling all requests within a single transaction. However, this design introduces a flaw: if any individual deposit or withdrawal reverts, the entire transaction fails, preventing all other requests from being processed.\n\nThis issue becomes particularly problematic in scenarios involving certain token behaviors. Consider a pool where the `valueToken` is USDC, and USDT is also accepted as a whitelisted token. In this setup, users are permitted to deposit and withdraw using either USDC or USDT.\n\nUSDC introduces a unique complication due to its blacklist mechanism. Addresses flagged by the USDC issuer cannot receive USDC transfers. An attacker who controls such a blacklisted address can exploit this behavior to disrupt the system:\n\n1. The attacker deposits USDT into the pool to receive shares.\n\n2. They later use those shares to initiate a withdrawal, which receives USDC as the `bearerToken`. \n\n3. Since the attacker is blacklisted by USDC, the transfer in `_processWithdrawal()` fails on the line 554:\n```\nIERC20(bearerToken).safeTransfer(investor, burnedAssetsCost);\n```\nThis transfer reverts, and because all deposit and withdrawal logic is processed in a single transaction via `quexCallback()`, all other user requests in that batch are also reverted, even if they were valid.\n\nThe same type of denial-of-service vector exists when dealing with ERC777 tokens. An attacker can implement a malicious `tokensReceived` hook that intentionally reverts, thereby sabotaging transfers to their address and causing the entire `quexCallback()` execution to fail.\n\nIn summary, the core issue lies in the lack of isolation in request processing - a single failing operation can block the execution of all others, creating a vector for targeted denial-of-service attacks using blacklisted tokens or malicious ERC777 hooks.\n```\nfunction _processWithdrawal(\n    address investor,\n    uint256 sharesToBurn,\n    uint256 _totalcost,\n    bytes32 withdrawalRequestHash,\n    address bearerToken\n) private keepWithdrawalHash(withdrawalRequestHash) returns (uint256 burnedAssetsCost) {\n    uint256 _totalSupply = totalSupply();\n    burnedAssetsCost = (_totalcost * sharesToBurn) / _totalSupply;\n\n    if (IERC20(bearerToken).balanceOf(address(this)) >= burnedAssetsCost) {\n        _burn(investor, sharesToBurn);\n        \n        /// @audit the following line will revert if the bearerToken = USDC and investor is a blacklisted address \n        IERC20(bearerToken).safeTransfer(investor, burnedAssetsCost); \n        emit Withdraw(investor, bearerToken, burnedAssetsCost, withdrawalRequestHash);\n\n        highWaterMark -= highWaterMark > burnedAssetsCost ? burnedAssetsCost : highWaterMark;\n\n        emit WithdrawRequestExecuted(investor, sharesToBurn, withdrawalRequestHash);\n    } else {\n        burnedAssetsCost = 0;\n    }\n\n    return burnedAssetsCost;\n}\n```\n\n\n**Remediation:**  Consider using a try-catch block when transferring tokens to the investor in the `_processWithdrawal` function. If an error occurs, do not burn shares and return 0 instead.\n\n**Status:** Fixed\n\n- - -",
+    "summary": "\nThe report describes a bug in the UFarmPool smart contract, which causes all deposit and withdrawal requests to fail if any individual request fails. This can be exploited by an attacker who controls a blacklisted address or implements a malicious hook, resulting in a denial-of-service attack. The bug can be fixed by using a try-catch block in the affected function. The issue has been resolved.",
+    "report_date": "2025-06-10T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/solodit/solodit_content/blob/main/reports/Hexens/2025-06-10-Ufarm.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "ufarm1-8-usdc-blacklist-can-trigger-dos-in-quexcallback-function-hexens-none-ufarm-markdown",
+    "firm_name": "Hexens",
+    "firm_logo_square": "Hexens_square.png",
+    "protocol_name": "Ufarm",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Hexens"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Hexens",
+        "logo_square": "Hexens_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Ufarm",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

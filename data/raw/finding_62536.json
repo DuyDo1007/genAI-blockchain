@@ -1,0 +1,38 @@
+{
+    "id": 62536,
+    "kind": "GIT",
+    "auditfirm_id": 2,
+    "impact": "LOW",
+    "finders_count": 0,
+    "protocol_id": 3373,
+    "title": "[04] If a deposit pool has more than 1 public pools connected to it, issues will occur for some users after migration",
+    "content": "\nDeposit pools can have more than 1 reward pools attached to it. In the case whereby we have 2 reward `rewardPoolIndex_` for Deposit pool A, and there is some staked tokens in each of these reward pool indexes, after migration, some users will be locked out of withdrawing.\n\n<https://github.com/code-423n4/2025-08-morpheus/blob/main/contracts/capital-protocol/DepositPool.sol# L137-L160>\n```\n\nfunction migrate(uint256 rewardPoolIndex_) external onlyOwner {\n        require(!isMigrationOver, \"DS: the migration is over\");\n        if (totalDepositedInPublicPools == 0) {\n            isMigrationOver = true;\n            emit Migrated(rewardPoolIndex_);\n\n            return;\n        }\n\n        IRewardPool rewardPool_ = IRewardPool(IDistributor(distributor).rewardPool());\n        rewardPool_.onlyExistedRewardPool(rewardPoolIndex_);\n        rewardPool_.onlyPublicRewardPool(rewardPoolIndex_);\n\n        // Transfer yield to prevent the reward loss\n        uint256 remainder_ = IERC20(depositToken).balanceOf(address(this)) - totalDepositedInPublicPools;\n        require(remainder_ > 0, \"DS: yield for token is zero\");\n\n        IERC20(depositToken).transfer(distributor, remainder_);\n\n        IDistributor(distributor).supply(rewardPoolIndex_, totalDepositedInPublicPools);\n\n        isMigrationOver = true;\n\n        emit Migrated(rewardPoolIndex_);\n    }\n```\n\nSuppose there are 2 public reward pool indexes of 0 & 1. And we have DepositPool A where users have staked stETH.\n\n1. stETH staked on reward pool index 0 is 500\n2. stETH staked on reward pool index 1 is also 500. The `totalDepositedInPublicPools` in this case would be 1000 stETH\n3. When we call the `migrate()` function, it would send 1000 stETH to the Distributor contract on behalf of whatever `rewardPoolIndex_` we call the `migrate()` function with. That is to say, if we call the function with `rewardPoolIndex_` args of 0, then it will deposit all 1k stETH for users of `rewardPoolIndex_` 0. But the total staked by those users is 500 stETH where the users of `rewardPoolIndex_` 1 contributed the rest 500 stETH.\n4. In this case, 500 stETH will be lost by users of `rewardPoolIndex_` 1 as these cannot be withdrawn since we supplied all 1k stETH on `rewardPoolIndex_` 0 in the Distributor contract.\n\nIt is better to migrate the amount deposited by users of `rewardPoolIndex_` x when the `migrate` function is called. This way, the migrations of 0 & 1 will accurately supply 500 stETH each in the Distributor contract for users.\n\n",
+    "summary": "",
+    "report_date": "2025-09-11T00:00:00.000Z",
+    "contest_prize_txt": "20000",
+    "contest_link": "https://code4rena.com/reports/2025-08-morpheus",
+    "sponsor_name": "Morpheus",
+    "sponsor_link": "",
+    "quality_score": 2,
+    "general_score": 4,
+    "source_link": "https://code4rena.com/reports/2025-08-morpheus",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "520",
+    "slug": "04-if-a-deposit-pool-has-more-than-1-public-pools-connected-to-it-issues-will-occur-for-some-users-after-migration-code4rena-morpheus-morpheus-git",
+    "firm_name": "Code4rena",
+    "firm_logo_square": "code4rena_square.png",
+    "protocol_name": "Morpheus",
+    "bookmarked": false,
+    "read": false,
+    "auditfirms_auditfirm": {
+        "name": "Code4rena",
+        "logo_square": "code4rena_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Morpheus",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

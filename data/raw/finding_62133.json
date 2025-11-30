@@ -1,0 +1,60 @@
+{
+    "id": 62133,
+    "kind": "PDF",
+    "auditfirm_id": 6,
+    "impact": "MEDIUM",
+    "finders_count": 4,
+    "protocol_id": 3380,
+    "title": "Signature replay possible with shared signers",
+    "content": "## Medium Risk Report\n\n## Severity\nMedium Risk\n\n## Context\n(No context files were provided by the reviewer)\n\n## Description\nIn the function `KeystoreAccount.isValidSignature`, we pass the provided hash and deconstructed signature to the verifier, returning the corresponding value accordingly:\n\n```solidity\nfunction isValidSignature(bytes32 hash, bytes memory signature)\n    public\n    view\n    virtual\n    override\n    returns (bytes4 magicValue)\n{\n    (bytes memory proof, bytes memory node, bytes memory data) = abi.decode(signature, (bytes, bytes, bytes));\n    \n    ValidateAction memory action = ValidateAction({refHash: _refHash, message: hash, proof: proof, node: node, data: data});\n    \n    if (IKeystore(_keystore).validate(action) == SIG_VALIDATION_FAILED) {\n        return ERC1271_INVALID_VALUE;\n    }\n    return ERC1271_VALID_VALUE;\n}\n```\n\nIn case the hash doesn't specify this contract address (which is common for many applications, e.g., Permit2), and the same signer is used for another account, the signature, once broadcast from one account, could be replayed on the other account unexpectedly. \n\nThis may not only occur in the case of shared `UserOpECDSAVerifier` signers, but it also affects multisig signers. For example, if an EOA is a signer on multiple multisigs or a multisig and an individual ECDSA verifier, their signature can be replayed on each of them.\n\n## Recommendation\nImplement a defensive rehashing scheme as specified by ERC-7739.\n\n## Stackup\nFixed in PR 48.\n\n## Spearbit\nFix verified.",
+    "summary": "\nThis bug report discusses a medium risk issue in the function `KeystoreAccount.isValidSignature` where a signature can be replayed unexpectedly on another account. This can happen if the hash doesn't specify the contract address and the same signer is used for another account. The recommendation is to implement a defensive rehashing scheme as specified by ERC-7739. The issue has been fixed in PR 48 and verified by Spearbit.",
+    "report_date": "2025-08-18T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Stackup-Spearbit-Security-Review-July-2025.pdf",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Stackup-Spearbit-Security-Review-July-2025.pdf",
+    "github_link": "",
+    "pdf_link": "https://solodit-bucket.s3.amazonaws.com/storage/reports/spearbit/Stackup-Spearbit-Security-Review-July-2025.pdf",
+    "pdf_page_from": 7,
+    "contest_id": "",
+    "slug": "signature-replay-possible-with-shared-signers-spearbit-none-stackup-keystore-pdf",
+    "firm_name": "Spearbit",
+    "firm_logo_square": "spearbit_square.png",
+    "protocol_name": "Stackup Keystore",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Tnch"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Kaden"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Hake"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Gerard Persoon"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Spearbit",
+        "logo_square": "spearbit_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Stackup Keystore",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

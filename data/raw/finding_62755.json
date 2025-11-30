@@ -1,0 +1,50 @@
+{
+    "id": 62755,
+    "kind": "PDF",
+    "auditfirm_id": 6,
+    "impact": "LOW",
+    "finders_count": 2,
+    "protocol_id": 3441,
+    "title": "Improper Client-Side Validation allows querying internal-Whisk API data unauthenticated",
+    "content": "## Severity: Low Risk\n\n## Description\n\nThe application’s client-side enforcement of wallet connection within `src/hooks/useMarketPositions.ts` prevents users from querying other users’ market positions via the UI. However, this restriction is not enforced server-side, allowing unauthenticated requests to the internal market positions API endpoint. By directly querying the endpoint with any wallet address, an attacker can bypass UI restrictions and trigger backend calls to the Whisk GraphQL API:\n\n```\nGET /api/account/0x6Ce5437E8372059BA18D729c99c27795Aa7bCdB0/market-positions HTTP/2\nHost: test.shfin.app\n```\n\n### Key points:\n\n- The API does not require authentication to fetch any address’s market positions data.\n- The internal Whisk GraphQL API is queried for each such request, regardless of client authentication state.\n- While the queried data is ultimately sourced from public on-chain information, unauthenticated programmatic access via the backend can be automated at scale.\n- This could lead to excessive backend API traffic, resulting in unnecessary operational costs or potential rate-limiting issues for the Whisk API provider.\n\nThe primary risk is elevated infrastructure cost and resource utilization due to uncontrolled, unauthenticated access to internal API endpoints, rather than unauthorized data disclosure.\n\n## Likelihood: High\n\n## Impact: Low\n\n## Proof of Concept\n\nThe following client-side code restricts UI access based on wallet connection but does not prevent unauthenticated API requests:\n\n```javascript\nexport function useMarketPositions() {\n    const { address } = useAccount();\n    return useQuery({\n        queryKey: [\"market-positions\", address],\n        queryFn: async () =>\n            fetchJsonResponse<MarketPositionMap>(`/grave.ts1/api/account/${address}/market-positions/grave.ts1`),\n        enabled: !!address,\n    });\n}\n```\n\nThis restriction is bypassed by sending a direct HTTP request, with or without wallet connection:\n\n```\nGET /api/account/0x6Ce5437E8372059BA18D729c99c27795Aa7bCdB0/market-positions HTTP/2\nHost: test.shfin.app\n```\n\n## Recommendation\n\n- Implement server-side validation to ensure that only authenticated users with a connected wallet can access the `/api/account/[address]/market-positions` endpoint.\n- Enforce authorization checks to ensure that a user can only query their own account’s market positions, unless there is a business requirement for broader access.\n- Rate limit or throttle requests to the API endpoint to prevent automated enumeration or abuse.\n- Monitor backend usage patterns for spikes in traffic to the market positions endpoint that could indicate abuse or excessive usage.\n- Review internal API proxying logic to ensure only necessary data is exposed and backend calls are minimized.\n- Refer to the OWASP API Security Top 10, specifically API2:2019 Broken User Authentication and API4:2019 Lack of Resources & Rate Limiting, for further guidance.\n\n## Steakhouse: Acknowledged.\n\n## Spearbit: Acknowledged.",
+    "summary": "",
+    "report_date": "2025-09-25T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Steakhouse-App-Web2-Spearbit-Security-Review-September-2025.pdf",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Steakhouse-App-Web2-Spearbit-Security-Review-September-2025.pdf",
+    "github_link": "",
+    "pdf_link": "https://solodit-bucket.s3.amazonaws.com/storage/reports/spearbit/Steakhouse-App-Web2-Spearbit-Security-Review-September-2025.pdf",
+    "pdf_page_from": 12,
+    "contest_id": "",
+    "slug": "improper-client-side-validation-allows-querying-internal-whisk-api-data-unauthenticated-spearbit-none-steakhouse-app-pdf",
+    "firm_name": "Spearbit",
+    "firm_logo_square": "spearbit_square.png",
+    "protocol_name": "Steakhouse App",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Dreyand"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Mikey96"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Spearbit",
+        "logo_square": "spearbit_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Steakhouse App",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

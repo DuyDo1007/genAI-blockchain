@@ -1,0 +1,45 @@
+{
+    "id": 62721,
+    "kind": "PDF",
+    "auditfirm_id": 9,
+    "impact": "MEDIUM",
+    "finders_count": 1,
+    "protocol_id": 3439,
+    "title": "Fragmented voting power across chains",
+    "content": "## Difficulty: High\n\n## Type: Data Validation\n\n### Description\nThe governance mechanism of the $SHAPE token fails to account for tokens bridged to follower chains, resulting in inaccurate voting power distribution and potential governance manipulation.\n\nThe Superchain ERC-20 implementation allows $SHAPE tokens to be transferred across multiple chains in the Superchain ecosystem while maintaining their financial fungibility. When tokens are bridged from the leader chain to follower chains, the bridge mechanism mints equivalent tokens on the destination chain while burning them on the source chain. However, the current implementation only considers token balances on the leader chain when calculating voting power for governance decisions. This creates a disconnect between the total token supply and actual governance representation, as tokens on follower chains maintain their financial utility but lose their governance rights. Consequently, governance decisions can be made by a minority of token holders who keep their tokens on the leader chain, undermining the democratic principles of the governance system.\n\n### Exploit Scenario\nA malicious actor could monitor the distribution of $SHAPE tokens across chains and strategically time a governance proposal when a significant portion of tokens have been bridged to follower chains. For example, if 60% of the total token supply is bridged to other networks for DeFi activities, the attacker could pass a harmful proposal with only 21% of the total token supply (becoming a majority of the 40% remaining on the leader chain). This allows for governance capture with a minority position of the total token supply.\n\n### Recommendations\n- **Short term:** Add clear warnings in the UI and documentation about the governance implications of bridging tokens away from the leader chain.\n- **Long term:** Redesign the governance mechanism to account for token balances across all chains in the Superchain ecosystem.",
+    "summary": "\nThis bug report discusses a problem with the governance system of the $SHAPE token. The token is designed to be able to move across different chains in the Superchain ecosystem, but when it is moved to follower chains, its voting power is not properly accounted for. This means that decisions can be made by a minority of token holders, undermining the democratic principles of the governance system. A malicious actor could take advantage of this by timing a proposal when a significant portion of tokens have been moved to other networks, allowing them to pass a harmful proposal with only a small portion of the total token supply. The report recommends adding warnings about this issue in the user interface and documentation, and redesigning the governance mechanism in the long term to account for tokens across all chains.",
+    "report_date": "2025-05-02T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://github.com/trailofbits/publications/blob/master/reviews/2025-05-shapenetwork-token-securityreview.pdf",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/trailofbits/publications/blob/master/reviews/2025-05-shapenetwork-token-securityreview.pdf",
+    "github_link": "",
+    "pdf_link": "https://solodit-bucket.s3.amazonaws.com/storage/reports/trailofbits/2025-05-shapenetwork-token-securityreview.pdf",
+    "pdf_page_from": 12,
+    "contest_id": "",
+    "slug": "fragmented-voting-power-across-chains-trailofbits-none-shape-token-contract-pdf",
+    "firm_name": "TrailOfBits",
+    "firm_logo_square": "trailofbits_square.png",
+    "protocol_name": "Shape Token Contract",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Quan Nguyen Trail of Bits PUBLIC"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "TrailOfBits",
+        "logo_square": "trailofbits_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Shape Token Contract",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

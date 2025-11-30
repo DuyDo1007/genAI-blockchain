@@ -1,0 +1,45 @@
+{
+    "id": 62953,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 16,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3464,
+    "title": "[L-07] Malicious `variableAsset` token griefing attack",
+    "content": "\n_Acknowledged_\n\nThe protocol allows the creation of Vaults where the `variableAsset` is a user-supplied ERC20 token address. There are no enforced on-chain validations (e.g., whitelisting of trusted tokens) to ensure the token's behavior is compliant and safe.\n```solidity\n  function initializeVault(\n    uint256 vaultId,\n    uint256 fixedSideCapacity,\n    uint256 variableSideCapacity,\n    uint256 duration,\n    address variableAsset\n  ) public {\n    // Get vault info for the vault we want to initialize and make sure msg.sender is the creator\n    require(vaultInfo[vaultId].creatorAddress == msg.sender, \"CMI\");\n\n    // Initialize vault and assign its corresponding adapter\n>>  IVault(vaultInfo[vaultId].addr).initialize(vaultId, duration, vaultInfo[vaultId].adapterAddress, fixedSideCapacity, variableSideCapacity, variableAsset, feeBps, feeReceiver);\n...\n```\n\n```solidity\n  function initialize(\n    uint256 _vaultId,\n    uint256 _duration,\n    address _adapter,\n    uint256 _fixedSideCapacity,\n    uint256 _variableSideCapacity,\n    address _variableAsset,\n    uint256 _feeBps,\n    address _feeReceiver\n  ) public virtual override notInitialized {\n    // Validate args\n    // vaultId and feeBps are already checked in the VaultFactory\n    require(msg.sender == factory, \"NF\");\n    require(_duration != 0, \"NEI\");\n    require(_adapter != address(0), \"NEI\");\n    require(_variableSideCapacity != 0, \"NEI\");\n    require(_fixedSideCapacity != 0, \"NEI\");\n>>  require(_variableAsset != address(0), \"NEI\");\n...\n>>  variableAsset = _variableAsset;\n...\n  }\n```\nAn attacker can deploy a malicious ERC20-compliant token that:\n\n* Passes basic ERC20 interface checks (`totalSupply`, `balanceOf`).\n* Implements a honeypot behavior where `transfer()` or `transferFrom()` functions **selectively** revert under certain conditions (e.g., only when called during withdrawals).\n\n**Attack scenario:**\n\n1. The attacker creates a Vault using a malicious `variableAsset` token.\n2. The attacker fulfills the variable side capacity using their honeypot token.\n3. An unsuspecting fixed side investor deposits real assets (e.g., USDC/DAI) into the Vault, seeing seemingly normal capacity and yield.\n4. Fixed side investor tries to invoke `claim()` to receive `variableAsset` tokens.\n5. The malicious token reverts on the transfer, causing the entire transaction to fail.\n6. Upon Vault settlement/maturity, the attacker can receive yeild from the pool.\n7. **Fixed Side funds remain locked indefinitely**, as the Vault logic assumes token transfers succeed and fixed side investor has nonzero amount of `fixedBearerToken`.\n\nThis vector can result in a **Denial of Service (DoS) for withdrawals**, making Fixed Side investors' funds unrecoverable unless a protocol upgrade or manual intervention occurs. The impact is critical for Fixed Side investors as their principal becomes permanently locked. \n\nWhile the attack vector is straightforward and low-cost, its success depends on Fixed Side investors willingly interacting with Vaults that use untrusted variableAsset tokens. This makes the likelihood Low under the assumption that:\n\n* The frontend filters or flags vaults using unknown tokens.\n\n* Experienced users perform due diligence on the Vault’s asset composition.\n\nHowever, in permissionless systems, with the presence of automated bots and social engineering (e.g., vaults offering unusually high yields), there remains a tangible risk of exploitation.\n\n**Recommendations**\n\nTo mitigate this attack vector:\n\n**Enforce an On-Chain Whitelist for Variable Assets:**\n\n   * Only allow Vault creation with pre-approved ERC20 tokens.\n   * Governance or admin-controlled process for token approval.\n\n\n\n",
+    "summary": "",
+    "report_date": "2025-10-13T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/pashov/audits/blob/master/team/md/Saffron-security-review_2025-07-31.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "l-07-malicious-variableasset-token-griefing-attack-pashov-audit-group-none-saffron_2025-07-31-markdown",
+    "firm_name": "Pashov Audit Group",
+    "firm_logo_square": "Pashov_square.png",
+    "protocol_name": "Saffron_2025-07-31",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Pashov Audit Group"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Pashov Audit Group",
+        "logo_square": "Pashov_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Saffron_2025-07-31",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

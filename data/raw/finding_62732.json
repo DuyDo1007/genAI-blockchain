@@ -1,0 +1,110 @@
+{
+    "id": 62732,
+    "kind": "GIT",
+    "auditfirm_id": 3,
+    "impact": "MEDIUM",
+    "finders_count": 13,
+    "protocol_id": 3324,
+    "title": "M-9: The rebalancing system is broken when everclear bridge contract is used",
+    "content": "\nSource: https://github.com/sherlock-audit/2025-07-malda-judging/issues/304 \n\n## Found by \n0xmechanic, 10ap17, Angry\\_Mustache\\_Man, Cybrid, ExtraCaterpillar, PeterSR, ZanyBonzy, bube, bulgari, dan\\_\\_vinci, elolpuer, farismaulana, oxwhite\n\n### Summary\n\nThe [sendMsg](https://github.com/sherlock-audit/2025-07-malda/blob/798d00b879b8412ca4049ba09dba5ae42464cfe7/malda-lending/src/rebalancer/bridges/EverclearBridge.sol#L110) in EverclearBridge contract only approves the **transfer amount** (not including the fee) for the **FeeAdapter** when calling `newIntent`. However, the **FeeAdapter** attempts to pull **both the amount and the fee** from the bridge contract. This results in a revert due to insufficient allowance causing cross-chain rebalancing to fail. \n\n### Root Cause\n\nThe root case stem from  a mismatch between the **approved amount** and the **actual amount required** by the `FeeAdaptor`.\n\nThe sendMsg() in everclearBridge.sol is as follows: \n```solidity\n function sendMsg(\n        uint256 _extractedAmount,\n        address _market,\n        uint32 _dstChainId,\n        address _token,\n        bytes memory _message,\n        bytes memory // unused\n    ) external payable onlyRebalancer {\n        IntentParams memory params = _decodeIntent(_message);\n\n        require(params.inputAsset == _token, Everclear_TokenMismatch());\n        require(_extractedAmount >= params.amount, BaseBridge_AmountMismatch());\n\n        uint256 destinationsLength = params.destinations.length;\n        require(destinationsLength > 0, Everclear_DestinationsLengthMismatch());\n\n        bool found;\n        for (uint256 i; i < destinationsLength; ++i) {\n            if (params.destinations[i] == _dstChainId) {\n                found = true;\n                break;\n            }\n        }\n        require(found, Everclear_DestinationNotValid());\n\n        if (_extractedAmount > params.amount) {\n            uint256 toReturn = _extractedAmount - params.amount;\n @>           IERC20(_token).safeTransfer(_market, toReturn);//@audit-info the excess is sent back to the market\n            emit RebalancingReturnedToMarket(_market, toReturn, _extractedAmount);\n        }\n\n @>       SafeApprove.safeApprove(params.inputAsset, address(everclearFeeAdapter), params.amount);//@audit approve is done for amount\n        (bytes32 id,) = everclearFeeAdapter.newIntent(\n            params.destinations,\n            params.receiver,\n            params.inputAsset,\n            params.outputAsset,\n            params.amount,\n            params.maxFee,\n            params.ttl,\n            params.data,\n            params.feeParams\n        );\n        emit MsgSent(_dstChainId, _market, params.amount, id);\n    }\n```\nThe [newIntent](https://etherscan.io/address/0x15a7cA97D1ed168fB34a4055CEFa2E2f9Bdb6C75#code) method in  feeAdaptor contract is  defined as: \n```solidity\n/// @inheritdoc IFeeAdapter\n  function newIntent(\n    uint32[] memory _destinations,\n    bytes32 _receiver,\n    address _inputAsset,\n    bytes32 _outputAsset,\n    uint256 _amount,\n    uint24 _maxFee,\n    uint48 _ttl,\n    bytes calldata _data,\n    IFeeAdapter.FeeParams calldata _feeParams\n  ) external payable returns (bytes32 _intentId, IEverclear.Intent memory _intent) {\n    // Transfer from caller\n@>    _pullTokens(msg.sender, _inputAsset, _amount + _feeParams.fee);//@audit amount+fee is pulled from bridge contract\n\n    // Create intent\n    (_intentId, _intent) =\n      _newIntent(_destinations, _receiver, _inputAsset, _outputAsset, _amount, _maxFee, _ttl, _data, _feeParams);\n  }\n```\nAs shown, `_amount + _feeParams.fee` is pulled from bridge contract, which will  result in revert as the approve was done only for the specified amount. \n\n### Internal Pre-conditions\nThere is an imbalance and `sendMsg` is invoked in the  rebalancer contract.  \n\n### External Pre-conditions\nMarket B requires rebalancing\nAssets are available in Market A\n\n\n### Attack Path\n\n1. Market A on X chain has **12,000 USDC** extractable value.\n2. Market B on Y chain  needs **10,000 USDC**.\n3. The `sendMsg()` function is invoked in the `Rebalancer` contract with `_amount = 12,000 USDC`.\n4. The **12,000 USDC** is sent to the `EverclearBridge` contract. Since the extracted amount is greater than the amount specified in the message, the excess **2,000 USDC** is sent back to Market A.\n5. The `FeeAdaptor` contract is **approved** for only **10,000 USDC**.\n6. The `newIntent()` function is called on the `FeeAdaptor`. This function attempts to **pull `10,000 USDC + fee`**, but it **reverts** due to insufficient approval.\nAs result, the rebalancing will not succeed.\n\n**Additinal Notes:** \nAccording to the [FeeAdaptor](https://etherscan.io/address/0x15a7cA97D1ed168fB34a4055CEFa2E2f9Bdb6C75#code) and [Spoke](https://etherscan.io/address/0xd18c19169e7c87e7d84f27ad412a56c5d743d560#code) contract logic in everclear platform, the fee is not deducted from the specified transfer amount but instead added on top during token transfer. Therefore, the fee cannot be zero, and any under-approval results in failure.\nIf the fee were instead deducted from the approved amount, Market B would receive less than 10,000 USDC, potentially leading to issues like insufficient liquidity.\n\n### Impact\nAll cross-chain rebalancing operations using EverclearBridge  will fail.\n\n### PoC\nSee the function flow and contract state change given above\n\n### Mitigation\n\nUpdate the allowance logic in EverclearBridge to approve enough amount for the FeeAdapter.\n\n\n\n## Discussion\n\n**sherlock-admin2**\n\nThe protocol team fixed this issue in the following PRs/commits:\nhttps://github.com/malda-protocol/malda-lending/pull/114/files\n\n\n**CergyK**\n\nFix looks good\n\n\n\n",
+    "summary": "\nSummary:\n\nThe bug report discusses an issue with the EverclearBridge contract in the Malda Protocol. The sendMsg function in the contract only approves the transfer amount for the FeeAdapter, but the FeeAdapter attempts to pull both the amount and the fee from the bridge contract. This results in a revert due to insufficient allowance, causing cross-chain rebalancing to fail. The root cause is a mismatch between the approved amount and the actual amount required by the FeeAdapter. This can be fixed by updating the allowance logic in the EverclearBridge contract. The impact of this bug is that all cross-chain rebalancing operations using EverclearBridge will fail. The protocol team has fixed this issue in a recent PR. ",
+    "report_date": "2025-08-14T17:00:00.000Z",
+    "contest_prize_txt": "80000 USDC",
+    "contest_link": "https://app.sherlock.xyz/audits/contests/1029",
+    "sponsor_name": "",
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "",
+    "github_link": "https://github.com/sherlock-audit/2025-07-malda-judging/issues/304",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "1029",
+    "slug": "m-9-the-rebalancing-system-is-broken-when-everclear-bridge-contract-is-used-sherlock-malda-git",
+    "firm_name": "Sherlock",
+    "firm_logo_square": "sherlock_square.png",
+    "protocol_name": "Malda",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "ExtraCaterpillar"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "0xmechanic"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "ZanyBonzy"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "bulgari"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "elolpuer"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "dan\\_\\_vinci"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "10ap17"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "farismaulana"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Cybrid"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Angry\\_Mustache\\_Man"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "dan\\_\\_vinci"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "PeterSR"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "bube"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "oxwhite"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Sherlock",
+        "logo_square": "sherlock_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Malda",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

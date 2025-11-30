@@ -1,0 +1,55 @@
+{
+    "id": 62285,
+    "kind": "PDF",
+    "auditfirm_id": 6,
+    "impact": "MEDIUM",
+    "finders_count": 3,
+    "protocol_id": 3396,
+    "title": "Updating reserve factor should update interest rates",
+    "content": "## Security Audit Report\n\n## Severity\n**Medium Risk**\n\n## Context\n- **Files:** \n  - `LendingPoolConfigurator.sol#L443-L455`\n  - `MiniPoolConfigurator.sol#L167-L178`\n  - `MiniPoolConfigurator.sol#L463-L474`\n\n## Description\nThe reserve factor is the percentage of borrow interest which is attributed to the protocol (goes to reserve). It directly influences the ratio between borrow rate and liquidity rate as can be seen in the `getLiquidityRate` implementation:\n\n```solidity\n// BasePiReserveRateStrategy.sol#L291-L299\nfunction getLiquidityRate(\n  uint256 currentVariableBorrowRate,\n  uint256 utilizationRate,\n  uint256 reserveFactor\n) internal pure returns (uint256) {\n  return currentVariableBorrowRate.rayMul(utilizationRate).percentMul(\n    PercentageMath.PERCENTAGE_FACTOR - reserveFactor // <<<\n  );\n}\n```\n\nIt can be changed directly by the admin by calling `setCod3xReserveFactor`:\n\n```solidity\n// LendingPoolConfigurator.sol#L443-L455\nfunction setCod3xReserveFactor(address asset, bool reserveType, uint256 reserveFactor)\n  external\n  onlyPoolAdmin\n{\n  DataTypes.ReserveConfigurationMap memory currentConfig =\n    pool.getConfiguration(asset, reserveType);\n  currentConfig.setCod3xReserveFactor(reserveFactor);\n  pool.setConfiguration(asset, reserveType, currentConfig.data);\n  emit ReserveFactorChanged(asset, reserveType, reserveFactor);\n}\n```\n\nHowever, since calling this function does not update interest rates, this could lead to insolvency towards lenders in the case where the reserve factor is increased. Indeed, during the next accrual, the current liquidity rate will be applied to the liquidity index, and at the same time, the new reserve factor will be taken out of accrued borrow interest:\n\n```solidity\n// ReserveLogic.sol#L284-L304\nfunction _updateIndexes(\n  DataTypes.ReserveData storage reserve,\n  uint256 scaledVariableDebt,\n  uint256 liquidityIndex,\n  uint256 variableBorrowIndex,\n  uint40 timestamp\n) internal returns (uint256, uint256) {\n  uint256 currentLiquidityRate = reserve.currentLiquidityRate;\n  uint256 newLiquidityIndex = liquidityIndex;\n  uint256 newVariableBorrowIndex = variableBorrowIndex;\n\n  // Only cumulating if there is any income being produced.\n  if (currentLiquidityRate != 0) {\n    uint256 cumulatedLiquidityInterest =\n      MathUtils.calculateLinearInterest(currentLiquidityRate, timestamp);\n    newLiquidityIndex = cumulatedLiquidityInterest.rayMul(liquidityIndex);\n    require(newLiquidityIndex <= type(uint128).max, Errors.RL_LIQUIDITY_INDEX_OVERFLOW);\n    reserve.liquidityIndex = uint128(newLiquidityIndex);\n  }\n  // ...\n}\n```\n\n```solidity\n// MiniPoolReserveLogic.sol#L251-L269\nfunction _mintToTreasury(\n  DataTypes.MiniPoolReserveData storage reserve,\n  uint256 scaledVariableDebt,\n  uint256 previousVariableBorrowIndex,\n  uint256 newLiquidityIndex,\n  uint256 newVariableBorrowIndex,\n  uint40\n) internal {\n  MintToTreasuryLocalVars memory vars;\n  vars.cod3xReserveFactor = reserve.configuration.getCod3xReserveFactor(); // <<<\n  vars.minipoolOwnerReserveFactor = reserve.configuration.getMinipoolOwnerReserveFactor();\n  if (vars.cod3xReserveFactor == 0 && vars.minipoolOwnerReserveFactor == 0) {\n    return;\n  }\n  // Calculate the last principal variable debt.\n  vars.previousVariableDebt = scaledVariableDebt.rayMul(previousVariableBorrowIndex);\n  // ...\n}\n```\n\n## Recommendation\nThe pool should be touched when updating reserve factors (Cod3x and MinipoolOwner):\n\n```solidity\n// LendingPoolConfigurator.sol#L443-L455\nfunction setCod3xReserveFactor(address asset, bool reserveType, uint256 reserveFactor)\n  external\n  onlyPoolAdmin\n{\n  //@audit please note that this function needs to be implemented, because there is no endpoint\n  // which can be called with zero amount, !\n  pool.updateState();\n\n  DataTypes.ReserveConfigurationMap memory currentConfig =\n    pool.getConfiguration(asset, reserveType);\n  currentConfig.setCod3xReserveFactor(reserveFactor);\n  pool.setConfiguration(asset, reserveType, currentConfig.data);\n  emit ReserveFactorChanged(asset, reserveType, reserveFactor);\n}\n```\n\n## Acknowledgements\n- **Astera:** Fixed in commit `4bbb4351`.\n- **Spearbit:** Fix verified.",
+    "summary": "\nThis report highlights a bug in the LendingPoolConfigurator and MiniPoolConfigurator smart contracts. The bug allows the reserve factor, which determines the amount of interest that goes to the protocol, to be changed without updating the interest rates. This could lead to insolvency for lenders if the reserve factor is increased. The report recommends updating the pool when changing the reserve factors to prevent this issue. The bug has been fixed in the latest code commit. ",
+    "report_date": "2025-08-29T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Astera-Spearbit-Security-Review-December-2024.pdf",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Astera-Spearbit-Security-Review-December-2024.pdf",
+    "github_link": "",
+    "pdf_link": "https://solodit-bucket.s3.amazonaws.com/storage/reports/spearbit/Astera-Spearbit-Security-Review-December-2024.pdf",
+    "pdf_page_from": 18,
+    "contest_id": "",
+    "slug": "updating-reserve-factor-should-update-interest-rates-spearbit-none-astera-pdf",
+    "firm_name": "Spearbit",
+    "firm_logo_square": "spearbit_square.png",
+    "protocol_name": "Astera",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Saw-mon and Natalie"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Cergyk"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Jonatas Martins"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Spearbit",
+        "logo_square": "spearbit_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Astera",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

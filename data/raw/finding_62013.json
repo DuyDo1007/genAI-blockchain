@@ -1,0 +1,55 @@
+{
+    "id": 62013,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 37,
+    "impact": "MEDIUM",
+    "finders_count": 3,
+    "protocol_id": 3363,
+    "title": "Overleveraging After Allocator's Stablecoins Are Reclaimed",
+    "content": "**Update**\nThe client fixed the issue in commit `4515deffff5b816ea0069ab842b71794ea1d398b` and provided the following explanation:\n\n> Added a condition in allocate_stablecoins() when deallocating\n\n**File(s) affected:**`contracts/AMM.vy`, `contracts/LT.vy`\n\n**Description:** If the `Factory` contract `admin` were to reclaim the `Factory`'s allocated crvUSD from the `AMM` contract via `LT.allocate_stablecoins()`, the `LT` contract debt could become higher than half of the available crvUSD. In such a case, the protocol could become insolvent, resulting in halted deposits and imbalanced reserves, potentially preventing the execution of the `AMM.exchange()` function.\n\n**Recommendation:** Consider adding a check in the `LT.allocate_stablecoins()` function that verifies the maximum debt will not be reached after stablecoins are unallocated from the `AMM` contract.",
+    "summary": "A bug was found in the `AMM` and `LT` contracts where the `LT` contract debt could become higher than half of the available crvUSD. This could potentially lead to the protocol becoming insolvent, resulting in halted deposits and imbalanced reserves. The client has fixed the issue and recommended adding a check in the `LT.allocate_stablecoins()` function to prevent this from happening in the future.",
+    "report_date": "2025-08-14T16:12:11.589Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://certificate.quantstamp.com/full/yield-basis/e07ecad3-524c-4609-b4f6-71ed7fdc3281/index.html",
+    "sponsor_name": "",
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://certificate.quantstamp.com/full/yield-basis/e07ecad3-524c-4609-b4f6-71ed7fdc3281/index.html",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "overleveraging-after-allocators-stablecoins-are-reclaimed-quantstamp-yield-basis-markdown",
+    "firm_name": "Quantstamp",
+    "firm_logo_square": "quantstamp_square.png",
+    "protocol_name": "Yield Basis",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Gereon Mendler"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Cameron Biniamow"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Jonathan Mevs"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Quantstamp",
+        "logo_square": "quantstamp_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Yield Basis",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

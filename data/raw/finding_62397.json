@@ -1,0 +1,45 @@
+{
+    "id": 62397,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 34,
+    "impact": "HIGH",
+    "finders_count": 1,
+    "protocol_id": 3405,
+    "title": "[LOGLAB-10] Unable to redeem all user shares or sell all products and close the hedge when the decreaseSizeMax config is different from type(uint256).max",
+    "content": "**Severity:** High\n\n**Path:** src/strategy/BasisStrategy.sol#L577-L584, src/strategy/BasisStrategy.sol#L743-L758 \n\n**Description:** To process the withdrawal of assets for users, the operator needs to call the `BasisStrategy::deutilize()` function to sell the spot product and send a decrease collateral request to the agent via the `OffChainPositionManager::_adjustPosition()` function. After that, the agent will execute the off-chain order and call the `OffChainPositionManager::reportStateAndExecuteRequest()` function, sending the decreased collateral (assets) to the manager contract and triggering the `BasisStrategy::afterAdjustPosition()` function. Then, the `BasisStrategy::_afterDecreasePosition()` function will be triggered, which pulls funds from the manager contract, attempts to balance both the spot and hedge positions, and processes the withdrawal of the vault by transferring all existing assets.\n\nHowever, there is a special case when the user attempts to withdraw all assets, or when the operator attempts to sell all products and close the hedge. In this case, the `spotSellCallback()` function will set the `sizeDeltaInTokens` and `collateralDeltaAmount` of the request to `type(uint256).max`.\n```\nfunction spotSellCallback(uint256 assetDelta, uint256 productDelta) external authCaller(spotManager()) {\n    [...]\n    if (!processingRebalanceDown()) {\n        if ($.vault.totalSupply() == 0 || ISpotManager(_msgSender()).exposure() == 0) {\n            // in case of redeeming all by users,\n            // or selling out all product\n            // close hedge position\n            sizeDeltaInTokens = type(uint256).max;\n            collateralDeltaAmount = type(uint256).max;\n            $.pendingDecreaseCollateral = 0;\n        }\n```\n`_afterDecreasePosition` function also handles this case by resetting the value of `requestParams` to `responseParams` (the actual delta amount executed by the agent):\n```\nfunction _afterDecreasePosition(IHedgeManager.AdjustPositionPayload calldata responseParams)\n    private\n    returns (bool shouldPause)\n{\n    BasisStrategyStorage storage $ = _getBasisStrategyStorage();\n    IHedgeManager.AdjustPositionPayload memory requestParams = $.requestParams;\n    if (requestParams.sizeDeltaInTokens == type(uint256).max) {\n        // when closing hedge\n        requestParams.sizeDeltaInTokens = responseParams.sizeDeltaInTokens;\n        requestParams.collateralDeltaAmount = responseParams.collateralDeltaAmount;\n    }\n    [...]\n}\n```\nThe problem is that the `requestParams` variables are capped by the hedge manager’s min-max config in the `BasisStrategy::_adjustPosition()` function.\n```\nfunction _adjustPosition(uint256 sizeDeltaInTokens, uint256 collateralDeltaAmount, bool isIncrease)\n    [...]\n    if (sizeDeltaInTokens > 0) {\n        uint256 min;\n        uint256 max;\n        if (isIncrease) (min, max) = $.hedgeManager.increaseSizeMinMax();\n        else (min, max) = $.hedgeManager.decreaseSizeMinMax();\n\n        sizeDeltaInTokens = _clamp(min, sizeDeltaInTokens, max);\n    }\n```\nTherefore, if the `decreaseSizeMax` config of the hedge manager is set to something other than type`(uint256).max`, it never enters the branch in the `_afterDecreasePosition` function. This means that `requestParams` will not be reset to `responseParams` in the case of closing the hedge or redeeming all assets.\n\nIn this case, the `_afterDecreasePosition` function always calculates a large deviation between `responseParams.sizeDeltaInTokens` (the actual decreased size by the agent from off-chain) and `requestParams.sizeDeltaInTokens` (which is capped by the `decreaseSizeMax` config). As a result, the deviation exceeds the threshold significantly, leading to a large amount of assets being returned to the spot manager and the product being bought again.\n```\nfunction _afterDecreasePosition(IHedgeManager.AdjustPositionPayload calldata responseParams)\n    [...]\n    if (requestParams.sizeDeltaInTokens > 0) {\n        uint256 _pendingDeutilizedAssets = $.pendingDeutilizedAssets;\n        delete $.pendingDeutilizedAssets;\n        (bool exceedsThreshold, int256 sizeDeviation) = _checkDeviation(\n            responseParams.sizeDeltaInTokens, requestParams.sizeDeltaInTokens, _responseDeviationThreshold\n        );\n        if (exceedsThreshold) {\n            shouldPause = true;\n            if (sizeDeviation < 0) {\n                uint256 sizeDeviationAbs = uint256(-sizeDeviation);\n                uint256 assetsToBeReverted;\n                if (sizeDeviationAbs == requestParams.sizeDeltaInTokens) {\n                    assetsToBeReverted = _pendingDeutilizedAssets;\n                } else {\n                    assetsToBeReverted =\n                        _pendingDeutilizedAssets.mulDiv(sizeDeviationAbs, requestParams.sizeDeltaInTokens);\n                }\n                if (assetsToBeReverted > 0) {\n                    ISpotManager _spotManager = $.spotManager;\n                    _asset.safeTransfer(address(_spotManager), assetsToBeReverted);\n                    _spotManager.buy(assetsToBeReverted, ISpotManager.SwapType.MANUAL, \"\");\n                }\n            }\n        }\n```\nAs a consequence, only a few assets from the spot will be sent to the vault, while the hedge position reduces significantly in size and collateral, leading to an imbalanced and unsafe situation between the spot and hedge positions. As a result, it becomes impossible to sell all of the spot products to process the withdrawal of assets for redeeming all shares.\n\n**Remediation:**  The `BasisStrategy::_adjustPosition` function shouldn’t cap the `sizeDeltaInTokens` value if it is equal to `type(uint256).max`. The condition should be updated as follows:\n```\nif (sizeDeltaInTokens > 0 && sizeDeltaInTokens != type(uint256).max) {\n```\n\n**Status:**  Fixed\n\n- - -",
+    "summary": "\nThis bug report describes a problem with the withdrawal process for users in the BasisStrategy smart contract. When the operator tries to sell all assets and close the hedge, the contract does not handle this special case correctly. This results in a large amount of assets being returned to the spot manager and the hedge position being significantly reduced. This creates an unsafe situation and makes it impossible to sell all assets to process the withdrawal. To fix this, the contract needs to be updated so that the `sizeDeltaInTokens` value is not capped when it is equal to `type(uint256).max`. This issue has been fixed.",
+    "report_date": "2024-11-25T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/solodit/solodit_content/blob/main/reports/Hexens/2024-11-25-BasisOS.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "loglab-10-unable-to-redeem-all-user-shares-or-sell-all-products-and-close-the-hedge-when-the-decreasesizemax-config-is-different-from-typeuint256max-hexens-none-basisos-markdown",
+    "firm_name": "Hexens",
+    "firm_logo_square": "Hexens_square.png",
+    "protocol_name": "Basisos",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Hexens"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Hexens",
+        "logo_square": "Hexens_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Basisos",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

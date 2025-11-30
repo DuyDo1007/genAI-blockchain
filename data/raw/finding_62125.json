@@ -1,0 +1,50 @@
+{
+    "id": 62125,
+    "kind": "PDF",
+    "auditfirm_id": 9,
+    "impact": "HIGH",
+    "finders_count": 2,
+    "protocol_id": 3383,
+    "title": "Wallet interface fails to display critical transaction parameters for user veriﬁcation",
+    "content": "## Diﬃculty: Medium\n\n## Type: Data Validation\n\n## Description\nThe wallet interface does not display critical transaction parameters, including `data`, `gas limit`, `maxFeePerGas`, `maxPriorityFeePerGas`, and `nonce`, preventing users from manually verifying complete transaction details before signing. Users can see only basic information like `recipient address` and `amount`, but lack visibility into essential transaction mechanics that could indicate malicious behavior or allow for proper transaction verification. This represents a significant security gap compared to established wallets like MetaMask, which display all these parameters for user review.\n\n**Figure 5.1:** Gemini wallet validation window (left) compared to Metamask (right)\n\n## Exploit Scenario\nA malicious dapp presents what appears to be a simple ETH transfer to the user, showing only the recipient address and amount in the wallet interface. However, the transaction includes a hidden data payload that contains smart contract function calls. Since the wallet does not display the transaction data field, the user believes they are making a simple ETH transfer and approves the transaction. The hidden data payload executes additional malicious actions beyond the apparent ETH transfer, potentially compromising the user’s entire wallet.\n\n## Recommendations\n**Short term:** Implement a comprehensive transaction parameter display in the wallet approval interface to show `data`, `gas limit`, `maxFeePerGas`, `maxPriorityFeePerGas`, and `nonce` fields matching industry standards.\n\n**Long term:** Add transaction parameter validation and warnings for unusual values (such as extremely high gas limits or fees) to help users identify potentially malicious transactions before signing.",
+    "summary": "\nThe report discusses a bug in the wallet interface that prevents users from seeing important transaction details before signing. This can make it difficult for users to verify the transaction and leaves them vulnerable to malicious attacks. The report recommends implementing a comprehensive display of transaction parameters and adding validation and warning features in the long term to help users identify potentially harmful transactions.",
+    "report_date": "2025-08-15T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://github.com/trailofbits/publications/blob/master/reviews/2025-08-gemini-smartwallet-securityreview.pdf",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/trailofbits/publications/blob/master/reviews/2025-08-gemini-smartwallet-securityreview.pdf",
+    "github_link": "",
+    "pdf_link": "https://solodit-bucket.s3.amazonaws.com/storage/reports/trailofbits/2025-08-gemini-smartwallet-securityreview.pdf",
+    "pdf_page_from": 20,
+    "contest_id": "",
+    "slug": "wallet-interface-fails-to-display-critical-transaction-parameters-for-user-verification-trailofbits-none-gemini-smart-wallet-pdf",
+    "firm_name": "TrailOfBits",
+    "firm_logo_square": "trailofbits_square.png",
+    "protocol_name": "Gemini Smart Wallet",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Coriolan Pinhas Trail of Bits PUBLIC"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Anish Naik"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "TrailOfBits",
+        "logo_square": "trailofbits_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Gemini Smart Wallet",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

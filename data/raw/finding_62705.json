@@ -1,0 +1,45 @@
+{
+    "id": 62705,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 23,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3435,
+    "title": "Use `require` Instead of `if (condition) revert`",
+    "content": "##### Description\nThis finding has been identified in areas where the contract uses `if (condition) revert Error();` instead of `require(condition, Error());`. As of Solidity 0.8.26, `require` statements can accept custom error messages, making them more concise and consistent with typical revert patterns.\n\nWhile the current usage does not introduce a direct vulnerability, adopting `require` for simple checks can enhance code readability and alignment with Solidity conventions.\n\n##### Recommendation\nWe recommend replacing `if (condition) revert Error();` patterns with `require(!condition, Error());` statements wherever possible. This change maintains clear error messages and offers a more idiomatic revert pattern.\n",
+    "summary": "",
+    "report_date": "2025-09-18T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/mixbytes/audits_public/blob/master/NUTS%20Finance/Pike/README.md#8-use-require-instead-of-if-condition-revert",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "use-require-instead-of-if-condition-revert-mixbytes-none-nuts-finance-markdown",
+    "firm_name": "MixBytes",
+    "firm_logo_square": "mixbytes_square.png",
+    "protocol_name": "NUTS Finance",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "MixBytes"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "MixBytes",
+        "logo_square": "mixbytes_square.png"
+    },
+    "protocols_protocol": {
+        "name": "NUTS Finance",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

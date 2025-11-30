@@ -1,0 +1,170 @@
+{
+    "id": 62736,
+    "kind": "GIT",
+    "auditfirm_id": 3,
+    "impact": "MEDIUM",
+    "finders_count": 26,
+    "protocol_id": 3324,
+    "title": "M-13: ```WrapAndSupply::wrapAndSupplyOnExtensionMarket```  preventes users from supplying on host",
+    "content": "\nSource: https://github.com/sherlock-audit/2025-07-malda-judging/issues/741 \n\n## Found by \n0xDemon, 0xKann, 0xlucky, 7, BADROBINX, Cybrid, ExtraCaterpillar, IvanFitro, Richard796, TECHFUND-inc, WillyCode20, Yaneca\\_b, ZanyBonzy, Ziusz, bube, dany.armstrong90, dimah7, elolpuer, farismaulana, gh0xt, harry, molaratai, mussucal, sakibcy, teoslaf1, weblogicctf\n\n### Summary\n\n[```WrapAndSupply::wrapAndSupplyOnExtensionMarket```](https://github.com/sherlock-audit/2025-07-malda/blob/798d00b879b8412ca4049ba09dba5ae42464cfe7/malda-lending/src/utils/WrapAndSupply.sol#L78) first calls ```deposit``` to the ```underlying``` token contract implementation via the [``_wrap()`` function](https://github.com/sherlock-audit/2025-07-malda/blob/798d00b879b8412ca4049ba09dba5ae42464cfe7/malda-lending/src/utils/WrapAndSupply.sol#L93-L100) , which takes all the ``msg.value`` provided in the transaction, and turns it into the minted tokens. As a result, the subsequent call to ``supplyOnHost`` [can potentialy always lead to revert if gasFee is set](https://github.com/sherlock-audit/2025-07-malda/blob/798d00b879b8412ca4049ba09dba5ae42464cfe7/malda-lending/src/mToken/extension/mTokenGateway.sol#L235), since all of the ``msg.value`` is used AND since all of this happens in single transactoin. There is no amount left for the ``gasFee``. This is a problem because it disrupts the implementation of the crucial functionality for setting gas fees. Transactions passing through the ``WrapAndSupply`` service for extension markets are only successful when gasFee = 0.\n\n### Root Cause\n\n[The functionality that wraps a native coint into its wrapped version](https://github.com/sherlock-audit/2025-07-malda/blob/798d00b879b8412ca4049ba09dba5ae42464cfe7/malda-lending/src/utils/WrapAndSupply.sol#L94-L97) uses all of the msg.value provided by the user without taking into account the possible requirement of additional value for gas fees.\n\n### Internal Pre-conditions\n\n1. WrappedNative implementation and mToken market with ``underlying`` set to it have to exist \n2. Onwer needs to [set gasFee](https://github.com/sherlock-audit/2025-07-malda/blob/798d00b879b8412ca4049ba09dba5ae42464cfe7/malda-lending/src/mToken/extension/mTokenGateway.sol#L185) to the ``mTokenGateway`` contract.\n\n### External Pre-conditions\n\n1. User has to call the wrap and supply utility provided by the protocol.\n\n### Attack Path\n\n.\n\n### Impact\n\nBreaks core contract functionality\n\n### PoC\n\n- Used test file: \"test/unit/mTokenGateway/mTokenGateway_supplyOnHost.sol\"\n - added optional console logs for clarity \n  ```solidity \n  import {console} from \"forge-std/console.sol\";\n  contract mTokenGateway_supplyOnHost is mToken_Unit_Shared {\n  ...\n```\n```solidity \n function test_WrapAndSupply() external {\n        // set gas fee\n        vm.startPrank(address(mWethExtension.owner()));\n        mWethExtension.setGasFee(1 wei);\n        // console.log(\"gasFee: \", mWethExtension.gasFee());\n        vm.stopPrank();\n\n        // wrap and supply \n        vm.startPrank(address(this));\n        // 10000000000000000000 10e18\n        vm.deal(address(this), SMALL);\n        // console.log(address(this).balance);\n        WrapAndSupply wrapAndSupply = new WrapAndSupply(address(weth));\n        vm.label(address(wrapAndSupply), \"WrapAndSupply Helper\");\n\n        uint256 accAmountInBefore = mWethExtension.accAmountIn(address(this));\n        // console.log(accAmountInBefore);\n        \n        wrapAndSupply.wrapAndSupplyOnExtensionMarket{value: SMALL}(\n            address(mWethExtension), address(this), mTokenGateway_supplyOnHost.test_RevertWhen_AmountIs0.selector\n        );\n        vm.stopPrank();\n\n    }\n```\n\nThe test reverts with the \"mTokenGateway_NotEnoughGasFee()\" error as expected \n```bash \n[FAIL: mTokenGateway_NotEnoughGasFee()] test_WrapAndSupply() (gas: 565393)\n```\n\n### Mitigation\n\nPossible solution is to fetch the gasFee price before calling the wrap and supply function, so he can provide enough amount to pass. And then within the ``_wrap()`` calculate the new amount to wrap.\n\n- add view function to the gateway interface\n```solidity\n  function gasFee() external view returns (uint256);\n```\n- recalculate mint amount \n```solidity\n  uint256 _gasFee = ImTokenGateway(wrappedNative).gasFee();\n        uint256 amount = msg.value - _gasFee;\n```\n\n## Discussion\n\n**sherlock-admin2**\n\nThe protocol team fixed this issue in the following PRs/commits:\nhttps://github.com/malda-protocol/malda-lending/pull/111\n\n\n**CergyK**\n\nChanges requested on the fix\n\n**Barnadrot**\n\nchanges have been added\n\n\n**CergyK**\n\nFix looks good\n\n\n\n",
+    "summary": "\nThis bug report is about a problem found in the code of a lending protocol called Malda. The problem was discovered by a group of people and it can potentially cause the protocol to not work properly. The root cause of the problem is that a function called \"WrapAndSupply\" uses all the money provided by the user without leaving any for gas fees, which are necessary for the protocol to function correctly. To exploit this bug, the attacker would need to call the \"WrapAndSupply\" function and set the gas fee to 0. The impact of this bug is that it breaks the core functionality of the protocol. The protocol team has already fixed this issue in their code. The fix involves fetching the gas fee before calling the \"WrapAndSupply\" function and recalculating the amount to be wrapped. The fix has been reviewed and approved by the team. ",
+    "report_date": "2025-08-14T17:00:00.000Z",
+    "contest_prize_txt": "80000 USDC",
+    "contest_link": "https://app.sherlock.xyz/audits/contests/1029",
+    "sponsor_name": "",
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "",
+    "github_link": "https://github.com/sherlock-audit/2025-07-malda-judging/issues/741",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "1029",
+    "slug": "m-13-wrapandsupplywrapandsupplyonextensionmarket-preventes-users-from-supplying-on-host-sherlock-malda-git",
+    "firm_name": "Sherlock",
+    "firm_logo_square": "sherlock_square.png",
+    "protocol_name": "Malda",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "TECHFUND-inc"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "mussucal"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "dany.armstrong90"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "0xDemon"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "ZanyBonzy"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "elolpuer"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "weblogicctf"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "farismaulana"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "7"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "WillyCode20"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "IvanFitro"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "ExtraCaterpillar"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "BADROBINX"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "bube"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Yaneca\\_b"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "0xKann"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "sakibcy"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "harry"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "molaratai"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "dimah7"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Cybrid"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "teoslaf1"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Richard796"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Ziusz"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "0xlucky"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "gh0xt"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Sherlock",
+        "logo_square": "sherlock_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Malda",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

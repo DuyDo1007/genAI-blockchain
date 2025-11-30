@@ -1,0 +1,45 @@
+{
+    "id": 62569,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 16,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3420,
+    "title": "[L-11] Deterministic selection with one available card",
+    "content": "\n_Resolved_\n\nIn the `CardAllocationPool` contract, the logic for selecting a card from `availableCardBundles` only checks that the length of the array is greater than zero.\n\n```solidity\n    function selectRandomCards(CardBundle[] storage availableCardBundles, uint256 randomSeed)\n        private\n        returns (uint256[] memory selectedCardBundle)\n    {\n        if (availableCardBundles.length == 0) {\n            revert NoAvailableCardBundles();\n        }\n        uint256 index = uint256(keccak256(abi.encode(randomSeed, 1))) % availableCardBundles.length;\n        selectedCardBundle = availableCardBundles[index].cardIds;\n\n        // Swap selected card bundle with last unselected card bundle and pop\n        availableCardBundles[index] = availableCardBundles[availableCardBundles.length - 1];\n        availableCardBundles.pop();\n\n        return selectedCardBundle;\n    }\n```\n\n**However, if the length is exactly one, the selection becomes deterministic, as there is only one card available to choose from. In this scenario, the randomness introduced by the random seed is irrelevant, and the outcome is predetermined.**\n\nThis undermines the purpose of using randomness in the selection process, as it does not provide any variability or uncertainty when only one option exists.\n\nNote: This finding also applies for `SpinLottery`\n\n```solidity\n    function _claimPrize(uint8 rarity, uint256 randomValue) internal returns (address nftAddress, uint88 tokenId) {\n        PrizePool storage pool = prizePools[rarity];\n        if (pool.nextPrizeId <= pool.firstPrizeId) revert NoPrizesAvailable();\n        \n        // Calculate prize count and random index\n        uint256 prizeCount = pool.nextPrizeId - pool.firstPrizeId;\n        uint256 index = randomValue % prizeCount;\n        uint256 prizeId = pool.firstPrizeId + index;\n        ...\n    }\n```\n\nTo address this issue, it is important to acknowledge that when the length of `availableCardBundles` is one, the selection should be treated as deterministic.  Maybe some additional checks could be added.\n\n\n\n",
+    "summary": "",
+    "report_date": "2025-09-11T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/pashov/audits/blob/master/team/md/RipIt-security-review_2025-04-25.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "l-11-deterministic-selection-with-one-available-card-pashov-audit-group-none-ripit_2025-04-25-markdown",
+    "firm_name": "Pashov Audit Group",
+    "firm_logo_square": "Pashov_square.png",
+    "protocol_name": "RipIt_2025-04-25",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Pashov Audit Group"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Pashov Audit Group",
+        "logo_square": "Pashov_square.png"
+    },
+    "protocols_protocol": {
+        "name": "RipIt_2025-04-25",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

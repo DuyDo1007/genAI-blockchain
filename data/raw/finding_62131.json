@@ -1,0 +1,60 @@
+{
+    "id": 62131,
+    "kind": "PDF",
+    "auditfirm_id": 6,
+    "impact": "MEDIUM",
+    "finders_count": 4,
+    "protocol_id": 3380,
+    "title": "What if a wrong rootHash is used?",
+    "content": "## Security Analysis Report\n\n## Severity\n**Medium Risk**\n\n## Context\n- Keystore.sol#L17\n- Keystore.sol#L33\n\n## Description\nAssume a wrong `rootHash` is created, for example due to a bug in the creation script. Once that is updated via `handleUpdates()`, there is no way to do any more updates or validations, and the account would be bricked.\n\n## Recommendation\nConsider creating a recovery mechanism for this situation.\n\n## Stackup\nFixed in PR 57.\n\n## Spearbit\nFix verified.",
+    "summary": "\nThe bug report discusses a medium risk issue in Keystore.sol, a file used to store data. The bug occurs when the wrong `rootHash` is created due to a bug in the creation script. This can result in the account becoming unusable and unable to receive updates or validations. The report recommends creating a recovery mechanism for this situation. The issue has been fixed in PR 57 and the fix has been verified.",
+    "report_date": "2025-08-18T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Stackup-Spearbit-Security-Review-July-2025.pdf",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Stackup-Spearbit-Security-Review-July-2025.pdf",
+    "github_link": "",
+    "pdf_link": "https://solodit-bucket.s3.amazonaws.com/storage/reports/spearbit/Stackup-Spearbit-Security-Review-July-2025.pdf",
+    "pdf_page_from": 6,
+    "contest_id": "",
+    "slug": "what-if-a-wrong-roothash-is-used-spearbit-none-stackup-keystore-pdf",
+    "firm_name": "Spearbit",
+    "firm_logo_square": "spearbit_square.png",
+    "protocol_name": "Stackup Keystore",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Tnch"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Kaden"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Hake"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Gerard Persoon"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Spearbit",
+        "logo_square": "spearbit_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Stackup Keystore",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

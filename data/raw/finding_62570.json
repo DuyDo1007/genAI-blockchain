@@ -1,0 +1,45 @@
+{
+    "id": 62570,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 16,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3420,
+    "title": "[L-12] Validation issues in `authorizedOpenPacket()`",
+    "content": "\n_Acknowledged_\n\nIn the `CardAllocationPool` contract, the `authorizedOpenPacket` function allows for the opening of packets using specified cards.\n\n```solidity\n    /**\n     * @notice Allows authorized managers to open packets with specific cards\n     * @dev Used for physical packet redemption or administrative purposes\n     * @param packetId The ID of the packet to open\n     * @param packetType The type of packet being opened\n     * @param cards Array of specific card IDs to be included in the packet\n     * @param openMetadata metadata for card opening\n     * @custom:access Redeem Manager Role\n     * @custom:example\n     * ```typescript\n     * const openPacket = await walletClient.writeContract({\n     *   address: cardAllocationPoolAddress,\n     *   abi: cardAllocationPoolABI,\n     *   functionName: 'authorizedOpenPacket',\n     *   args: [\n     *     packetId,\n     *     packetType,\n     *     [1, 2, 3], // Array of card IDs\n     *     \"https://example.com/metadata\" // metadata for card opening\n     *   ]\n     * })\n     *\n     * // Wait for transaction\n     * const receipt = await publicClient.waitForTransactionReceipt({\n     *   hash: openPacket\n     * })\n     * ```\n     */\n    function authorizedOpenPacket(\n        uint256 packetId,\n        uint256 packetType,\n        uint256[] memory cards,\n        string memory openMetadata\n    ) external onlyRole(redeemManagerRoleId) {\n        address packetOwner = RipFunPacks(packetNFTAddress).ownerOf(packetId);\n        // Transfer cards to owner\n        for (uint256 i = 0; i < cards.length; i++) {\n            IERC721(cardNFTAddress).transferFrom(msg.sender, packetOwner, cards[i]);\n        }\n\n        // Finalize packet opening\n        RipFunPacks(packetNFTAddress).finalizeOpen(packetId, openMetadata);\n\n        emit PhysicalPacketOpened(packetId, packetType, packetOwner, cards);\n    }\n```\n\nHowever, there are critical validation issues that need to be addressed:\n1. First, the cards used in `authorizedOpenPacket` should not include any cards that have already been added through `addCardBundlesToPacketPool`. If they do, it could lead to failures for other users attempting to execute `instantOpenPacket` operations, as the state of the card bundles would be altered unexpectedly without any notice.\n2. Secondly, there should be a validation check to ensure that the` burnType` associated with the corresponding `packetId` is specifically `BurnType.OPEN_PACKET` but not `BurnType.INSTANT_OPEN_PACKET`.\n\nTo enhance the integrity of the `authorizedOpenPacket` function, it is recommended to implement corresponding checks.\n\n\n\n",
+    "summary": "",
+    "report_date": "2025-09-11T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/pashov/audits/blob/master/team/md/RipIt-security-review_2025-04-25.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "l-12-validation-issues-in-authorizedopenpacket-pashov-audit-group-none-ripit_2025-04-25-markdown",
+    "firm_name": "Pashov Audit Group",
+    "firm_logo_square": "Pashov_square.png",
+    "protocol_name": "RipIt_2025-04-25",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Pashov Audit Group"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Pashov Audit Group",
+        "logo_square": "Pashov_square.png"
+    },
+    "protocols_protocol": {
+        "name": "RipIt_2025-04-25",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

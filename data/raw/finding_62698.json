@@ -1,0 +1,45 @@
+{
+    "id": 62698,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 23,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3435,
+    "title": "Oracle Ownership Vulnerability During Deployment",
+    "content": "##### Description\nThis issue has been identified within the deployment flow of `OracleEngine`, `ChainlinkOracleProvider`, and `PythOracleProvider` contracts. \n\nBecause of the Cannon execution flow, there is a brief moment where ownership is not fully restricted. During this time, a malicious actor could attempt to acquire ownership of any of the oracle contracts. While such an attempt would likely revert the deployment and be obvious, if the upgrade process continues despite a partial failure, the attacker could manipulate oracle prices or disrupt protocol operations.\n\nThe issue is classified as **low** severity because it occurs only during a short deployment or upgrade window. However, if overlooked, it may have significant consequences (e.g., price manipulation).\n\n##### Recommendation\nWe recommend locking down the ownership of oracle contracts immediately upon deployment to prevent any unauthorized ownership claims. Additionally, perform any upgrade processes in a single atomic transaction, ensuring that a partial failure reverts the entire upgrade rather than leaving the system in a vulnerable state.\n",
+    "summary": "",
+    "report_date": "2025-09-18T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/mixbytes/audits_public/blob/master/NUTS%20Finance/Pike/README.md#1-oracle-ownership-vulnerability-during-deployment",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "oracle-ownership-vulnerability-during-deployment-mixbytes-none-nuts-finance-markdown",
+    "firm_name": "MixBytes",
+    "firm_logo_square": "mixbytes_square.png",
+    "protocol_name": "NUTS Finance",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "MixBytes"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "MixBytes",
+        "logo_square": "mixbytes_square.png"
+    },
+    "protocols_protocol": {
+        "name": "NUTS Finance",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

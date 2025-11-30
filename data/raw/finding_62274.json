@@ -1,0 +1,55 @@
+{
+    "id": 62274,
+    "kind": "PDF",
+    "auditfirm_id": 6,
+    "impact": "LOW",
+    "finders_count": 3,
+    "protocol_id": 3395,
+    "title": "currentTokenSupply() may not represent actual circulating available supply for voting",
+    "content": "## Severity: Low Risk\n\n## Context\n`LockToVotePlugin.sol#L249`\n\n## Description\n`currentTokenSupply()` varies largely in different contexts, for example:\n- If tokens are minted but are in a vesting or staking contract, they can't be used but are counted.\n- Similarly, if tokens are already owned by DAO/Treasury, they can't contribute to voting.\n- If two standard proposals are live in parallel, tokens used for one can't be used for others.\n\nThis implies that the \"Minimum Participation\" formula from specifications does not accurately represent and interpret the supply available for voting. This can mislead users by incorrectly gauging their voting weight in participation.\n\nVarious thresholds in vote settings reduce the risk to some extent, but they don't fully mitigate the core problem of the unknown part of the supply that can't be used in voting.\n\n## Recommendation\n- Do not rely on `currentTokenSupply()`, and, if possible, determine the \"usable supply\" that should be used instead.\n- Consider making such cases explicit in the documentation.\n\n## Aragon\nFixed in PR 34.\n\n## Spearbit\nFix verified.",
+    "summary": "",
+    "report_date": "2025-08-28T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Aragon-Spearbit-Security-Review-July-2025.pdf",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 5,
+    "general_score": 5,
+    "source_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Aragon-Spearbit-Security-Review-July-2025.pdf",
+    "github_link": "",
+    "pdf_link": "https://solodit-bucket.s3.amazonaws.com/storage/reports/spearbit/Aragon-Spearbit-Security-Review-July-2025.pdf",
+    "pdf_page_from": 22,
+    "contest_id": "",
+    "slug": "currenttokensupply-may-not-represent-actual-circulating-available-supply-for-voting-spearbit-none-aragon-dao-gov-plugin-pdf",
+    "firm_name": "Spearbit",
+    "firm_logo_square": "spearbit_square.png",
+    "protocol_name": "Aragon DAO Gov Plugin",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Om Parikh"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Emanuelle Ricci"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Patrick Drotleff"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Spearbit",
+        "logo_square": "spearbit_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Aragon DAO Gov Plugin",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

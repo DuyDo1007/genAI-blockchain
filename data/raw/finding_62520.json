@@ -1,0 +1,45 @@
+{
+    "id": 62520,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 16,
+    "impact": "MEDIUM",
+    "finders_count": 1,
+    "protocol_id": 3417,
+    "title": "[M-02] Missing slippage protection on sellCredits()",
+    "content": "\n## Severity\n\n**Impact:** Medium\n\n**Likelihood:** Medium\n\n## Description\n\nUsers trading credit tokens are prone to slippage by bots. Since VisibilityCredits.sol utilises a bonding curve, the price of credit tokens increase and decrease as the total supply increases and decreases. \n\n\n**Slippage on sell:**\n - Alice submits sellCredits() transaction.\n - The transaction remains the mempool for sometime.\n - During this period, another sellCredits() transaction executes (unintentionally by other users or intentionally by bots), thus decreasing the trading cost.\n - Alice's transaction goes through but receives lesser native tokens than intended.\n\n## Recommendations\n\nProvide the users with the option to pass in a `minAmountOut` parameter on sells. Check the trading cost against this parameter to ensure the user receives what they intended to.\n\n\n\n",
+    "summary": "\nThe report states that users who trade credit tokens are experiencing an issue with bots causing slippage. This is because the price of credit tokens changes as the total supply changes. The report also explains that this issue can occur when a user submits a transaction to sell credit tokens and another transaction is executed before theirs, causing them to receive less native tokens than intended. To prevent this, the report suggests adding an option for users to specify a minimum amount they want to receive when selling credit tokens. This will help ensure that users receive the amount they intended.",
+    "report_date": "2025-09-09T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/pashov/audits/blob/master/team/md/Noodles-security-review_2025-03-11.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "m-02-missing-slippage-protection-on-sellcredits-pashov-audit-group-none-noodles_2025-03-11-markdown",
+    "firm_name": "Pashov Audit Group",
+    "firm_logo_square": "Pashov_square.png",
+    "protocol_name": "Noodles_2025-03-11",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Pashov Audit Group"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Pashov Audit Group",
+        "logo_square": "Pashov_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Noodles_2025-03-11",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

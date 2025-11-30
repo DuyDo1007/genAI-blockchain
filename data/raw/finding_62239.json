@@ -1,0 +1,50 @@
+{
+    "id": 62239,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 11,
+    "impact": "LOW",
+    "finders_count": 2,
+    "protocol_id": 3393,
+    "title": "Enable whitelist in `RequestsManager::constructor`",
+    "content": "**Description:** Currently `RequestsManager::constructor` has the whitelist enablement commented out:\n```solidity\n  constructor(\n    address _issueTokenAddress,\n    address _treasuryAddress,\n    address _providersWhitelistAddress,\n    address[] memory _allowedTokenAddresses\n  ) AccessControlDefaultAdminRules(1 days, msg.sender) {\n    // *snip : irrelevant stuff* //\n\n    // @audit commented out, starts in permissionless state\n    // isWhitelistEnabled = true;\n  }\n```\n\nIt is more defensive to enable the whitelist in the constructor to start in a restricted state, rather than starting in a permissionless state.\n\n**Avant:**\nAcknowledged: The whitelisting feature was not on Avant's short-term roadmap, hence the comment. We agree that starting with it adds marginal defense, but since minting and redeeming are two-step request/complete processes that we control, we accepted the tradeoff.",
+    "summary": "",
+    "report_date": "2025-08-28T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/solodit/solodit_content/blob/main/reports/Cyfrin/2025-08-28-cyfrin-avant-max-v2.0.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "enable-whitelist-in-requestsmanagerconstructor-cyfrin-none-avant-max-markdown",
+    "firm_name": "Cyfrin",
+    "firm_logo_square": "Cyfrin_square.jpg",
+    "protocol_name": "Avant Max",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Dacian"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Jorge"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Cyfrin",
+        "logo_square": "Cyfrin_square.jpg"
+    },
+    "protocols_protocol": {
+        "name": "Avant Max",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

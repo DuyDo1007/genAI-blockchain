@@ -1,0 +1,45 @@
+{
+    "id": 62589,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 16,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3420,
+    "title": "[L-31] Use of `_mint` instead of `_safeMint()` in minting",
+    "content": "\n_Resolved_\n\nThe `_mintNextPacket` function in the `RipFunPacks` contract utilizes the `_mint` method to create new tokens. \n\n```solidity\n    function _mintNextPacket(PacketMintParams calldata params, address receiver) internal {\n        if (!_packetTypes[params.packetTypeId].isRegistered) {\n            revert PacketTypeNotRegistered();\n        }\n\n        uint256 tokenId = _nextTokenId++;\n        _packetUris[tokenId] = params.packetMetadata;\n        _packetTypeIds[tokenId] = params.packetTypeId;\n        _mint(receiver, tokenId);\n\n        emit PacketMinted(tokenId, receiver, params.packetTypeId, params.packetMetadata, params.packetSerialNumber);\n    }\n```\n\nAccording to [OpenZeppelin's documentation](https://docs.openzeppelin.com/contracts/5.x/api/token/erc721#ERC721-_mint-address-uint256-), the use of `_mint` is discouraged in favor of `_safeMint`. The `_safeMint` method includes additional checks to ensure that the `recipient` address is capable of receiving ERC721 tokens, which helps prevent scenarios where tokens could be locked if sent to a contract that does not implement the required interface. \n\nNote: This is the same for `Card` contract, which also uses `_mint` in the function `_mintNextCard`.\n\nRecommendations:\n\nTo align with best practices and enhance the safety of token minting, replace the `_mint` call with `_safeMint` in the `_mintNextPacket` function. \n\n\n\n",
+    "summary": "",
+    "report_date": "2025-09-11T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/pashov/audits/blob/master/team/md/RipIt-security-review_2025-04-25.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "l-31-use-of-_mint-instead-of-_safemint-in-minting-pashov-audit-group-none-ripit_2025-04-25-markdown",
+    "firm_name": "Pashov Audit Group",
+    "firm_logo_square": "Pashov_square.png",
+    "protocol_name": "RipIt_2025-04-25",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Pashov Audit Group"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Pashov Audit Group",
+        "logo_square": "Pashov_square.png"
+    },
+    "protocols_protocol": {
+        "name": "RipIt_2025-04-25",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

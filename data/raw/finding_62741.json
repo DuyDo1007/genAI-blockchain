@@ -1,0 +1,45 @@
+{
+    "id": 62741,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 30,
+    "impact": "MEDIUM",
+    "finders_count": 1,
+    "protocol_id": 3440,
+    "title": "[M-02] Inefficient Payout Distribution Due to Quadratic Gas Complexity",
+    "content": "\n## Severity\n\nMedium Risk\n\n## Description\n\nThe `_distributeProportionalPayouts()` function uses nested for-loops with a linear search to find whether a player already exists in the `uniquePlayers` array.  \nThis creates **quadratic gas complexity (O(p²))** with respect to the number of participants across all cells.\n\nAs the participant count grows, gas usage increases disproportionately. In large rounds, the protocol may end up spending **more on gas fees than it earns in commission**, leading to economic inefficiency and making the protocol vulnerable to denial-of-service scenarios if a larger number of participants inflate participation.\n\n## Location of Affected Code\n\nFile: [contracts/Revolver.sol#L826](https://github.com/xgrisha666x/revolver-contract/blob/b9c318f97f10a4f496bda8959aeb90696402e114/contracts/Revolver.sol#L826)\n\n```solidity\nfunction _distributeWinnerPayouts( Round storage round, uint256 payoutPool, uint256 roundId ) private returns (address[] memory) {\n  // code\n  unchecked {\n    // Single pass: collect active stakes and unique players\n    for (uint256 i = 1; i <= NUM_CELLS; ++i) {\n        Cell storage cell = round.cells[i];\n        if (!cell.isActive) continue;\n\n        uint256 playersLength = cell.players.length;\n        for (uint256 j = 0; j < playersLength; ++j) {\n            address player = cell.players[j];\n            uint256 stakeInCell = cell.stakeByPlayer[player];\n            if (stakeInCell == 0) continue;\n\n            // Find or add player to unique list\n            uint256 playerIndex = type(uint256).max;\n            for (uint256 k = 0; k < uniquePlayerCount; ++k) {\n                if (uniquePlayers[k] == player) {\n                    playerIndex = k;\n                    break;\n                }\n            }\n\n            if (playerIndex == type(uint256).max) {\n                // New player\n                playerIndex = uniquePlayerCount;\n                uniquePlayers[uniquePlayerCount] = player;\n                playerTotalStakes[uniquePlayerCount] = stakeInCell;\n                uniquePlayerCount++;\n            } else {\n                // Existing player - add to their stake\n                playerTotalStakes[playerIndex] += stakeInCell;\n            }\n\n            totalActiveStake += stakeInCell;\n        }\n    }\n    return winners;\n}\n```\n\n## Recommendation\n\n- Use libraries like iterable mapping to store all the Unique players\n- Instead of linear search, implement better and efficient algorithms like binary search or Graph search\n- Limit the number of users per cell\n\n## Team Response\n\nFixed.\n\n",
+    "summary": "\nThe report describes a bug in the `_distributeProportionalPayouts()` function of the Revolver contract. This function uses nested for-loops with a linear search to find whether a player already exists in the `uniquePlayers` array. This causes quadratic gas complexity, which means that as the number of participants increases, the gas usage also increases disproportionately. This can lead to economic inefficiency and make the protocol vulnerable to denial-of-service attacks. The affected code can be found in the `Revolver.sol` file, specifically at line 826. The team recommends using libraries like iterable mapping and implementing more efficient algorithms like binary search or graph search. They also suggest limiting the number of users per cell. The team has fixed the issue.",
+    "report_date": "2025-09-24T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/shieldify-security/audits-portfolio-md/blob/main/SoulsClub-Revolver-Security-Review.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "m-02-inefficient-payout-distribution-due-to-quadratic-gas-complexity-shieldify-none-soulsclub-revolver-markdown",
+    "firm_name": "Shieldify",
+    "firm_logo_square": "Shieldify_square.png",
+    "protocol_name": "Soulsclub Revolver",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Shieldify Security"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Shieldify",
+        "logo_square": "Shieldify_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Soulsclub Revolver",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

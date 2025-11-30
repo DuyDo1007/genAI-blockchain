@@ -1,0 +1,55 @@
+{
+    "id": 62652,
+    "kind": "PDF",
+    "auditfirm_id": 6,
+    "impact": "LOW",
+    "finders_count": 3,
+    "protocol_id": 3430,
+    "title": "Tasks may be fulfilled out of order",
+    "content": "## Vulnerability Report\n\n**Severity:** Low Risk  \n**Context:** Copium.sol#L151  \n\n## Description  \nSo long as a task is pending, and `_taskId < nextTaskId`, the AI may fulfil them out of order. The caller is a trusted account, however, order does matter in case of a tie for high scores and team leader.\n\n## Recommendation  \nEnforce task fulfilment order for fairness in tied scores. In lieu of enforcing on chain, consider handling and enforcement on the backend.\n\n## Semantic Layer  \nIn the backend, we have relevant measures to deal with all missed tasks (pending tasks); tasks can be completed out of order.\n\n## Semantic Layer  \nAcknowledged. We previously recommended handling all tasks in order, but later we changed to the current mode that allows unordered processing.\n\n## Spearbit  \nAcknowledged.",
+    "summary": "",
+    "report_date": "2025-07-27T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Semantic-Layer-Spearbit-Security-Review-May-2025.pdf",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Semantic-Layer-Spearbit-Security-Review-May-2025.pdf",
+    "github_link": "",
+    "pdf_link": "https://solodit-bucket.s3.amazonaws.com/storage/reports/spearbit/Semantic-Layer-Spearbit-Security-Review-May-2025.pdf",
+    "pdf_page_from": 15,
+    "contest_id": "",
+    "slug": "tasks-may-be-fulfilled-out-of-order-spearbit-none-semantic-layer-pdf",
+    "firm_name": "Spearbit",
+    "firm_logo_square": "spearbit_square.png",
+    "protocol_name": "Semantic Layer",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Tnch"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Mario Poneder"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Noah Marconi"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Spearbit",
+        "logo_square": "spearbit_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Semantic Layer",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

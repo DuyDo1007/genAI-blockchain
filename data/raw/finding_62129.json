@@ -1,0 +1,50 @@
+{
+    "id": 62129,
+    "kind": "PDF",
+    "auditfirm_id": 9,
+    "impact": "LOW",
+    "finders_count": 2,
+    "protocol_id": 3383,
+    "title": "Malicious listener can intercept messages",
+    "content": "## Security Vulnerability Report\n\n**Diﬃculty:** Low  \n**Type:** Conﬁguration  \n\n**File Path:** `apps/sdk-server/app/contexts/smartAccount/smartAccount.context.tsx`  \n\n## Description\nA malicious listener on the user’s device can intercept messages being sent from the SDK server to the dapp. The system uses the `window.postMessage` function to communicate between the dapp and the SDK server (Figure 12.1). When using the `postMessage` function, a target origin can be specified to ensure that only the window with the given origin can receive the event.\n\n```typescript\nconst postMessageToParent = <M extends GeminiSdkMessageResponse>({\n  message,\n  closeWindow = true,\n  isWalletConnect = false,\n}: {\n  message: M;\n  closeWindow?: boolean;\n  isWalletConnect?: boolean;\n}) => {\n  if (window.opener) {\n    // wallet loaded as iframe, post message and close\n    window.opener.postMessage(\n      {\n        data: message.data,\n        event: message.event,\n        requestId: message.requestId ?? window?.crypto?.randomUUID(),\n      },\n      \"*\",\n    );\n    if (closeWindow) window.close();\n    return;\n  }\n  // wallet not loaded inside iframe (i.e. via WC or direct url access)\n  // if wallet connect, route back to initial page\n  if (isWalletConnect) {\n    return router.push(\"/wc\");\n  }\n  // if not wallet connect and it was a connect message, route to settings\n  if (message.event === GeminiSdkEvent.SDK_CONNECT) {\n    return router.push(\"/settings\");\n  }\n};\n```\n\n**Figure 12.1:** A target origin is not specified when using `window.postMessage`. However, as highlighted in Figure 12.1, a wildcard (`*`) is used as the target origin, meaning that any listener can subscribe and intercept the events emitted by the SDK server. This would allow a malicious listener to intercept potentially sensitive data on a user’s device.\n\n## Recommendations\n- **Short term:** Use the stored app metadata to specify the target origin of the message.\n- **Long term:** Review the security guidelines of the Web APIs used to ensure that all critical functions are used correctly.",
+    "summary": "",
+    "report_date": "2025-08-15T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://github.com/trailofbits/publications/blob/master/reviews/2025-08-gemini-smartwallet-securityreview.pdf",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/trailofbits/publications/blob/master/reviews/2025-08-gemini-smartwallet-securityreview.pdf",
+    "github_link": "",
+    "pdf_link": "https://solodit-bucket.s3.amazonaws.com/storage/reports/trailofbits/2025-08-gemini-smartwallet-securityreview.pdf",
+    "pdf_page_from": 26,
+    "contest_id": "",
+    "slug": "malicious-listener-can-intercept-messages-trailofbits-none-gemini-smart-wallet-pdf",
+    "firm_name": "TrailOfBits",
+    "firm_logo_square": "trailofbits_square.png",
+    "protocol_name": "Gemini Smart Wallet",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Coriolan Pinhas Trail of Bits PUBLIC"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Anish Naik"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "TrailOfBits",
+        "logo_square": "trailofbits_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Gemini Smart Wallet",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

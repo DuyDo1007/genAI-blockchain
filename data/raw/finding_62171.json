@@ -1,0 +1,75 @@
+{
+    "id": 62171,
+    "kind": "GIT",
+    "auditfirm_id": 3,
+    "impact": "MEDIUM",
+    "finders_count": 7,
+    "protocol_id": 3130,
+    "title": "M-9: Missing slippage protection in liquidation allows unexpected collateral loss",
+    "content": "\nSource: https://github.com/sherlock-audit/2025-07-cap-judging/issues/542 \n\n## Found by \n0xsh, Drynooo, Tigerfrake, dobrevaleri, farismaulana, silver\\_eth, valuevalk\n\n### Summary\n\nLiquidators cannot specify a minimum amount of collateral to receive during liquidation, exposing them to potential losses when slashable collateral is less than expected.\n\n### Root Cause\n\nIn [LiquidationLogic::liquidate()](https://github.com/sherlock-audit/2025-07-cap/blob/main/cap-contracts/contracts/lendingPool/libraries/LiquidationLogic.sol#L61-L96), the function lacks a parameter for liquidators to specify a minimum acceptable amount of collateral to receive. The function contains a safety check that caps the liquidation value to the total slashable collateral:\n\n```solidity\n    function liquidate(ILender.LenderStorage storage $, ILender.RepayParams memory params)\n        external\n        returns (uint256 liquidatedValue)\n    {\n        (uint256 totalDelegation, uint256 totalSlashableCollateral, uint256 totalDebt,,, uint256 health) =\n            ViewLogic.agent($, params.agent);\n\n\n        ValidationLogic.validateLiquidation(\n            health,\n            totalDelegation * $.emergencyLiquidationThreshold / totalDebt,\n            $.liquidationStart[params.agent],\n            $.grace,\n            $.expiry\n        );\n\n\n        (uint256 assetPrice,) = IOracle($.oracle).getPrice(params.asset);\n        uint256 bonus = ViewLogic.bonus($, params.agent);\n        uint256 maxLiquidation = ViewLogic.maxLiquidatable($, params.agent, params.asset);\n        uint256 liquidated = params.amount > maxLiquidation ? maxLiquidation : params.amount;\n\n\n        liquidated = BorrowLogic.repay(\n            $,\n            ILender.RepayParams({ agent: params.agent, asset: params.asset, amount: liquidated, caller: params.caller })\n        );\n\n\n        (,,,,, health) = ViewLogic.agent($, params.agent);\n        if (health >= 1e27) _closeLiquidation($, params.agent);\n\n\n@>      liquidatedValue =\n            (liquidated + (liquidated * bonus / 1e27)) * assetPrice / (10 ** $.reservesData[params.asset].decimals);\n@>      if (totalSlashableCollateral < liquidatedValue) liquidatedValue = totalSlashableCollateral;\n\n\n        if (liquidatedValue > 0) IDelegation($.delegation).slash(params.agent, params.caller, liquidatedValue);\n\n\n        emit Liquidate(params.agent, params.caller, params.asset, liquidated, liquidatedValue);\n    }\n```\n\nHowever, there's no corresponding check to ensure liquidators receive at least a specified minimum amount. This means liquidators are forced to accept whatever collateral is available, which could be significantly less than what they paid to repay the debt.\n\nThe function calculates the expected liquidation value based on the repaid debt amount, asset price, and bonus.\n\nBut when `totalSlashableCollateral < liquidatedValue`, the liquidator receives less value than calculated, with no option to revert the transaction.\n\nThe issue is viable, because the `totalSlashableCollateral` is calcualted based on the epoch, which is calculated based on the timestamp. So the epoch can change between the off-chain calculation and the transaction execution, which could lead to lesser collateral available for seizing. Moreover, another liquidation (for another asset) could be executed first, which will reduce the `totalSlashableCollateral` and there is no mechanism for protecting agains such scenarios.\n\n\n### Internal Pre-conditions\n\n1. Agent's position must have less slashable collateral than what would be expected based on their debt\n2. Liquidator needs to call `liquidate()` with an amount parameter for an asset the agent has borrowed\n\n\n### External Pre-conditions\n\n1. Collateral value must have decreased since the agent's position was opened\n\n\n### Attack Path\n\n1. An agent's position becomes unhealthy\n2. Liquidator opens liquidation via `Lender::openLiquidation(agent)`\n3. After grace period, liquidator calls `Lender::liquidate(agent, asset, amount)`\n4. System calculates expected collateral to receive: `liquidatedValue`\n5. System checks if `totalSlashableCollateral < liquidatedValue`\n6. If true, liquidator receives `totalSlashableCollateral` instead of `liquidatedValue`\n7. Transaction completes successfully, but liquidator receives less collateral than expected\n8. Liquidator suffers unexpected losses\n\n### Impact\n\nThe liquidators can receive less than expected and there is no way to protect against such scenarios.\n\n\n### PoC\n\n_No response_\n\n### Mitigation\n\nAdd a minimum collateral received parameter to the liquidate function, which will act as a guard.\n\n",
+    "summary": "\nThis bug report discusses an issue found by multiple individuals in the code for a lending platform. The problem is that liquidators are not able to specify a minimum amount of collateral they want to receive during a liquidation. This means that they may end up receiving less than expected, leading to potential losses. The root cause of this issue is that the function responsible for liquidation does not have a parameter for liquidators to specify a minimum acceptable amount of collateral. This means that if the total slashable collateral is less than the expected amount, the liquidator will still receive the lower amount without any option to revert the transaction. This is a viable issue because the calculation of the total slashable collateral is based on the timestamp, which can change between the off-chain calculation and the transaction execution. Additionally, another liquidation for a different asset could occur before this one, further reducing the available collateral. This could result in unexpected losses for the liquidator. The impact of this issue is that liquidators may receive less than expected, and there is currently no way to protect against this scenario. The report suggests adding a minimum collateral received parameter to the liquidate function to mitigate this issue.",
+    "report_date": "2025-07-24T15:00:00.000Z",
+    "contest_prize_txt": "126000 USDC",
+    "contest_link": "https://app.sherlock.xyz/audits/contests/990",
+    "sponsor_name": "",
+    "sponsor_link": "",
+    "quality_score": 5,
+    "general_score": 0,
+    "source_link": "",
+    "github_link": "https://github.com/sherlock-audit/2025-07-cap-judging/issues/542",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "990",
+    "slug": "m-9-missing-slippage-protection-in-liquidation-allows-unexpected-collateral-loss-sherlock-cap-git",
+    "firm_name": "Sherlock",
+    "firm_logo_square": "sherlock_square.png",
+    "protocol_name": "Cap",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "farismaulana"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Drynooo"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "valuevalk"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "silver\\_eth"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Tigerfrake"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "0xsh"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "dobrevaleri"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Sherlock",
+        "logo_square": "sherlock_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Cap",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

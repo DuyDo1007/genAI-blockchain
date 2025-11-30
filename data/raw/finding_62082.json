@@ -1,0 +1,38 @@
+{
+    "id": 62082,
+    "kind": "GIT",
+    "auditfirm_id": 2,
+    "impact": "LOW",
+    "finders_count": 0,
+    "protocol_id": 2159,
+    "title": "[02] `get_market` may get dossed if there are too many reserves",
+    "content": "\n<https://github.com/code-423n4/2025-02-blend/blob/f23b3260763488f365ef6a95bfb139c95b0ed0f9/blend-contracts-v2/pool/src/contract.rs# L412-L421>\n\n### Finding description and impact\n\n`get_market` loops through amount of reserves, of which there are no ways to remove them and no limit to how many that can be set/add.\n```\n\n    fn get_market(e: Env) -> (PoolConfig, Vec<Reserve>) {\n        let pool_config = storage::get_pool_config(&e);\n        let res_list = storage::get_res_list(&e);\n        let mut reserves = Vec::<Reserve>::new(&e);\n        for res_address in res_list.iter() {\n            let res = Reserve::load(&e, &pool_config, &res_address);\n            reserves.push_back(res);\n        }\n        (pool_config, reserves)\n    }\n```\n\n### Recommended mitigation steps\n\nIntroduce a limit to how many reserves can be set. Also add a function to remove reserves.\n\n---\n\n",
+    "summary": "",
+    "report_date": "2025-08-13T00:00:00.000Z",
+    "contest_prize_txt": "125000",
+    "contest_link": "https://code4rena.com/reports/2025-02-blend-v2-audit-certora-formal-verification",
+    "sponsor_name": "Blend",
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://code4rena.com/reports/2025-02-blend-v2-audit-certora-formal-verification",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "492",
+    "slug": "02-get_market-may-get-dossed-if-there-are-too-many-reserves-code4rena-blend-blend-git",
+    "firm_name": "Code4rena",
+    "firm_logo_square": "code4rena_square.png",
+    "protocol_name": "Blend",
+    "bookmarked": false,
+    "read": false,
+    "auditfirms_auditfirm": {
+        "name": "Code4rena",
+        "logo_square": "code4rena_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Blend",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

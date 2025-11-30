@@ -1,0 +1,45 @@
+{
+    "id": 62944,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 16,
+    "impact": "MEDIUM",
+    "finders_count": 1,
+    "protocol_id": 3464,
+    "title": "[M-01] Vaults should use a factory for fee receiver instead of storing",
+    "content": "\n_Resolved_\n\n## Severity\n\n**Impact:** Medium\n\n**Likelihood:** Medium\n\n## Description\n\nCurrently, the `feeReceiver` address is stored as a state variable within each Vault contract during initialization. It is passed from the Vault Factory at deployment time via the `initializeVault(...)` function:\n\n```solidity\nIVault(vaultInfo[vaultId].addr).initialize(..., feeBps, feeReceiver);\n```\n\nThis design means that if the Factory’s `feeReceiver` address changes later (e.g., due to a governance update or operational reconfiguration), previously deployed Vaults will continue using the outdated address. As a result:\n\n* Fees may be sent to obsolete or incorrect recipients.\n* Fee routing becomes inconsistent across Vaults over time.\n\nThis approach tightly couples fee logic to a single deployment-time value, which undermines centralized or upgradable fee management.\n\n## Recommendations\n\nRather than persisting the `feeReceiver` in each Vault, Vaults should dynamically query the current address from the Factory. This ensures consistent behavior across the protocol. For example:\n\n```solidity\nfunction getFeeReceiver() public view returns (address) {\n    return IVaultFactory(factory).feeReceiver();\n}\n```\n\n\n\n",
+    "summary": "",
+    "report_date": "2025-10-13T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/pashov/audits/blob/master/team/md/Saffron-security-review_2025-07-31.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "m-01-vaults-should-use-a-factory-for-fee-receiver-instead-of-storing-pashov-audit-group-none-saffron_2025-07-31-markdown",
+    "firm_name": "Pashov Audit Group",
+    "firm_logo_square": "Pashov_square.png",
+    "protocol_name": "Saffron_2025-07-31",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Pashov Audit Group"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Pashov Audit Group",
+        "logo_square": "Pashov_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Saffron_2025-07-31",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

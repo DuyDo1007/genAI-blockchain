@@ -1,0 +1,55 @@
+{
+    "id": 62794,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 37,
+    "impact": "HIGH",
+    "finders_count": 3,
+    "protocol_id": 3446,
+    "title": "Possible Frontrunning of Buy Actions by Changing Token Terms",
+    "content": "**Update**\nMarked as \"Fixed\" by the client. Addressed in: `b09852d0c0cb9cae668cc523e1fc1e25a58da097`.\n\n**File(s) affected:**`Marketplace.sol`\n\n**Description:** Token access can be bought via the marketplace according to the conditions outlined in the token `terms`. These terms can be updated by the token owner at any point using the `updateTerms()` function. Despite classical frontrunning being mitigated by the private mempool of the Camp network, this can be exploited by speculatively or accidentally frontrunning a call to `buyAccess()` and changing the subscription price, duration, or payment token.\n\nPayment can be made in either native or wrapped wCAMP tokens. In the case of wrapped tokens, the `buyAccess()` function in the marketplace does not check if native tokens were sent as well. If the payment token is changed to use wCAMP before the buy operation is executed, the transaction may consume both native and wrapped assets if the marketplace has sufficient approval for payment in wrapped tokens. The transaction will not revert, and the native tokens are lost in the marketplace.\n\nSimilarly, the duration of the subscription could be lowered to extract more value per timeframe, or the price updated to the current approval between buyer and marketplace.\n\nFinally, when purchasing with ERC-20 tokens, the `_routeTokenPayment()` function transfers tokens directly from the buyer. IP owners may be able to expect incoming buy transactions, and exploit them by calling `updateTerms()` to increase the price to match the buyer's full token approval, effectively stealing all approved tokens rather than just the expected subscription price.\n\n**Exploit Scenario:**\n\n Exploit A, updating the payment token:\n\n1.   Mallory mints token 1 with payments in native token. \n2.   Bob submits transaction to buy access to token 1, sending along the payment in native tokens. \n3.   Mallory frontruns this transaction, and updates the terms to payment in wCAMP, with a price equal to the approval of Bob to the marketplace.\n4.   Bobs' transaction is executed, according to the new price all approved wCAMP are send to Mallory, and the original native payment is lost. \n\nExploit B, changing the price to exploit approvals:\n\n1.   Alice wants to buy access to Bob's IP priced at 100 USDC for 30 days \n2.   Alice approves 1000 USDC to the Marketplace contract (perhaps for multiple purchases) \n3.   Alice submits `buyAccess(alice, tokenId)` expecting to pay 100 USDC \n4.   Bob monitors the mempool and detects Alice's transaction \n5.   Bob front-runs with `updateTerms(tokenId, newTerms)` where `newTerms.price = 1000 USDC`\n6.   Alice's transaction executes with the manipulated terms \n7.   `_routeTokenPayment()` calls `SafeTransferLib.safeTransferFrom(token, msg.sender, treasury, protocolFee)` and transfers Alice's entire 1000 USDC approval \n8.   Bob receives the majority of the 1000 USDC as royalty payments instead of the expected 100 USDC\n\n**Recommendation:** This issue has two causes, firstly that the marketplace does not check native payments, and secondly that terms may change after a buy transaction has been submitted. Therefore, there's two parts:\n\n1.   In the `buyAccess()` function, ensure that `msg.value == 0` in case of wCAMP payments. \n2.   Additionally, implement term commitment by requiring buyers to specify expected terms and validate they haven't changed: \n\n```\nfunction buyAccess(\n    address buyer, \n    uint256 tokenId,\n    uint256 expectedPrice,\n    uint32 expectedDuration,\n    address expectedPaymentToken\n) external payable whenNotPaused {\n    ...\n    IpNFT.LicenseTerms memory terms = ipToken.getTerms(tokenId); // <-- retrieve and validate current terms\n    if (terms.price != expectedPrice ||\n        terms.duration != expectedDuration ||\n        terms.paymentToken != expectedPaymentToken) {\n        revert TermsMismatch();\n    }\n    ...\n}\n```",
+    "summary": "\nA bug has been found in the marketplace contract when buying token access. The terms for purchasing access can be changed by the token owner at any time, which can be exploited by changing the subscription price, duration, or payment token. This can result in the loss of native tokens and the potential for the token owner to receive more payment than expected. To fix this issue, the marketplace should check for native payments and implement term commitment by requiring buyers to specify expected terms and validating that they haven't changed. ",
+    "report_date": "2025-09-15T14:18:47.035Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://certificate.quantstamp.com/full/camp-nft/94cdb738-1a01-4f6c-8632-3bdec427161e/index.html",
+    "sponsor_name": "",
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://certificate.quantstamp.com/full/camp-nft/94cdb738-1a01-4f6c-8632-3bdec427161e/index.html",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "possible-frontrunning-of-buy-actions-by-changing-token-terms-quantstamp-camp-nft-markdown",
+    "firm_name": "Quantstamp",
+    "firm_logo_square": "quantstamp_square.png",
+    "protocol_name": "Camp - NFT",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Paul Clemson"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Gereon Mendler"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Tim Sigl"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Quantstamp",
+        "logo_square": "quantstamp_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Camp - NFT",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

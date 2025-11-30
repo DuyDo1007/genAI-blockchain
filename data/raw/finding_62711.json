@@ -1,0 +1,50 @@
+{
+    "id": 62711,
+    "kind": "PDF",
+    "auditfirm_id": 6,
+    "impact": "LOW",
+    "finders_count": 2,
+    "protocol_id": 3436,
+    "title": "Unnecessary DisputeGame/DelayedWETH redeploy when ASR is not new (U16 → U16a)",
+    "content": "## Severity: Low Risk\n\n## Context\n`OPContractsManager.sol#L846-L847`\n\n## Description\nIn the U16 → U16a upgrade context, the `AnchorStateRegistry` is not \"new\", yet the upgrade flow proceeds to redeploy a fresh `DelayedWETH` and a new `DisputeGame` implementation, while a comment suggests this is because \"the `AnchorStateRegistry` is new\".\n\nIn the U16a upgrader, the redeploy step happens unconditionally even when the `AnchorStateRegistry` was successfully retrieved from the existing portal and only its implementation was upgraded. As a result, on U16 → U16a upgrades, the system deploys a new `DelayedWETH` proxy and resets the game implementation in the `DisputeGame-Factory`, although the ASR reference didn't change. This creates address churn and fragments bond/liquidity across multiple `DelayedWETH` instances without a functional need tied to a \"new\" `AnchorStateRegistry`. It also increases operational overhead as there are new addresses to track, new validator configs to update, and gas usage for no change in semantics tied to `AnchorStateRegistry`.\n\n## Recommendation\nGate the redeploy behind concrete changes that require it, instead of assuming that the \"ASR is new\":\n- Only deploy a new `DisputeGame` implementation if any of the constructor parameters differ from the current game's params (e.g., vm changed, prestate override provided, or ASR address actually changed).\n- Only create a new `DelayedWETH` if policy requires new instances per major change. Otherwise, reuse the existing `DelayedWETH` (and skip the deploy/initialize).\n- Update the misleading comment to reflect the actual condition (e.g., \"Redeploy games when constructor params change (ASR/vm/prestate/WETH).\").\n\n## OP Labs\nFixed in PR 17406.\n\n## Spearbit\nFix verified.",
+    "summary": "",
+    "report_date": "2025-09-22T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Optimism-Verify-Upgrade16-Spearbit-Security-Review-September-2025.pdf",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Optimism-Verify-Upgrade16-Spearbit-Security-Review-September-2025.pdf",
+    "github_link": "",
+    "pdf_link": "https://solodit-bucket.s3.amazonaws.com/storage/reports/spearbit/Optimism-Verify-Upgrade16-Spearbit-Security-Review-September-2025.pdf",
+    "pdf_page_from": 5,
+    "contest_id": "",
+    "slug": "unnecessary-disputegamedelayedweth-redeploy-when-asr-is-not-new-u16-u16a-spearbit-none-optimism-u16-pdf",
+    "firm_name": "Spearbit",
+    "firm_logo_square": "spearbit_square.png",
+    "protocol_name": "Optimism u16",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "R0bert"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "MiloTruck"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Spearbit",
+        "logo_square": "spearbit_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Optimism u16",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

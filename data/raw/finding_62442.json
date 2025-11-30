@@ -1,0 +1,45 @@
+{
+    "id": 62442,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 34,
+    "impact": "MEDIUM",
+    "finders_count": 1,
+    "protocol_id": 3408,
+    "title": "[UFARM1-6] Protocol fees and management fees have not been deducted from the profit in the calculation of the performance fee",
+    "content": "**Severity:** Medium\n\n**Path:** contracts/main/contracts/pool/UFarmPool.sol#L748-L772\n\n**Description:** In the UFarmPool contract, `protocolFee` and `managementFee` are always charged whenever `_accrueFee` is called, regardless of whether the pool's totalCost is in profit or loss. These fees accumulate over time.\n\nOn the other hand, the `performanceFee` is only charged when the pool achieves a new profit, specifically when `totalCost > highWaterMark`. In this case, a percentage of the profit is taken as commission.\n\nHowever, the current profit calculation does not deduct protocolFee and managementFee, resulting in a higher-than-actual profit being used to compute performance fees.\n\nThis happens because `protocolFee` and `managementFee` are continuously accrued over time to mint shares for UFarm’s Core and UFarm’s funds. As such, they can be considered as a cost or loss to the pool. Therefore, to accurately calculate profit, the `totalCost` of the pool should exclude these fees.\n```\n{\n    uint256 protocolCommission = IUFarmCore(_ufarmCore).protocolCommission();\n    uint256 costInTime = (totalCost * accrualTime) / YEAR;\n\n    (protocolFee, managementFee) = (\n        (costInTime * protocolCommission) / ONE,\n        (costInTime * managementCommission) / ONE\n    );\n}\n\nif (totalCost > highWaterMark) {\n    uint256 profit = totalCost - highWaterMark;\n\n    performanceFee = (profit * PerformanceFeeLib.ONE_HUNDRED_PERCENT) / highWaterMark; // APY ratio\n    uint16 performanceCommission = performanceFee > PerformanceFeeLib.MAX_COMMISSION_STEP\n        ? PerformanceFeeLib.MAX_COMMISSION_STEP\n        : uint16(performanceFee); // Compare with max commission step, normalizing to MAX_COMMISSION_STEP\n\n    performanceCommission = PerformanceFeeLib._getPerformanceCommission(\n        packedPerformanceCommission,\n        performanceCommission\n    ); // Unpack commission percent for the step, where step is APY multiplier\n\n    performanceFee = (profit * performanceCommission) / PerformanceFeeLib.ONE_HUNDRED_PERCENT; // Profit * commission rate\n}\n```\n\n**Remediation:**  The profit calculation should be corrected by removing the protocol fee and management fee, as follows:\n```\n if (totalCost - protocolFee - managementFee > highWaterMark) {\n    uint256 profit = totalCost - protocolFee - managementFee - highWaterMark;\n    ...\n```\n\n**Status:** Fixed\n\n\n- - -",
+    "summary": "\nThis bug report is about a problem in the UFarmPool contract, specifically in the calculation of performance fees. The issue is that the current profit calculation does not take into account the protocol fee and management fee, resulting in a higher-than-actual profit being used to compute performance fees. This happens because these fees are continuously accrued over time, but they should be considered as a cost or loss to the pool. The solution to this problem is to remove the protocol fee and management fee from the profit calculation. This bug has been fixed.",
+    "report_date": "2025-06-10T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/solodit/solodit_content/blob/main/reports/Hexens/2025-06-10-Ufarm.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "ufarm1-6-protocol-fees-and-management-fees-have-not-been-deducted-from-the-profit-in-the-calculation-of-the-performance-fee-hexens-none-ufarm-markdown",
+    "firm_name": "Hexens",
+    "firm_logo_square": "Hexens_square.png",
+    "protocol_name": "Ufarm",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Hexens"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Hexens",
+        "logo_square": "Hexens_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Ufarm",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

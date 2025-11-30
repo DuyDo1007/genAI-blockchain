@@ -1,0 +1,50 @@
+{
+    "id": 62209,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 11,
+    "impact": "LOW",
+    "finders_count": 2,
+    "protocol_id": 3392,
+    "title": "Prefer explicit `uint` sizes",
+    "content": "**Description:** Prefer explicit `uint` sizes:\n* `Issuance`\n```solidity\ninterfaces/minter/IBridgeMinter.sol\n14:        uint id,\n29:        uint id;\n\ninterfaces/galactica/IVerificationSBT.sol\n45:        uint _expirationTime,\n55:        uint _expirationTime\n\ninterfaces/token/IMintableERC20.sol\n7:    function mint(address to, uint amount) external;\n8:    function burn(address from, uint amount) external;\n\nvault/StakingVault.sol\n143:        uint assetsRedeemed = _redeemTo(shares, address(tokensHolder));\n289:    ) internal returns (uint shares) {\n306:    ) internal returns (uint assets) {\n```\n\n* `Deposit-Registry`:\n```solidity\ninterfaces/ICompliantDepositRegistry.sol\n44:        uint indexed startIndex,\n45:        uint challengePeriodEnd,\n48:    event BatchChallengePeriodSet(uint newChallengePeriod);\n50:        uint indexed startIndex,\n51:        uint challengePeriodEnd,\n52:        uint batchLength\n100:        uint startIndex,\n101:        uint count\n116:    function setBatchChallengePeriod(uint newChallengePeriod) external;\n\nComplianceChecker.sol\n44:        for (uint i = 0; i < complianceOptions.length; i++) {\n58:            uint optionIndex = 0;\n65:                uint sbtIndex = 0;\n\nCompliantDepositRegistry.sol\n27:    uint public nextDepositAddressIndex;\n30:    uint public batchChallengePeriod;\n32:    uint public latestBatchUnlockTime;\n34:    uint public finalizedAddressesLength;\n44:        // Block the first deposit address so that the default uint does not point to a valid address\n124:        uint startIndex,\n125:        uint count\n127:        uint returnLength = count;\n133:            uint i = 0;\n156:        uint startIndex = depositAddresses.length;\n157:        for (uint i = 0; i < newDepositAddresses.length; i++) {\n174:    function _setBatchChallengePeriod(uint newChallengePeriod) internal {\n184:        uint newChallengePeriod\n199:        uint batchLength = depositAddresses.length - finalizedAddressesLength;\n200:        for (uint i = 0; i < batchLength; i++) {\n```\n\n**Syntetika:**\nFixed in commit [cb00843](https://github.com/SyntetikaLabs/monorepo/commit/cb0084368c85c4878dfd0af0fbca1c4924a36497).\n\n**Cyfrin:** Verified.",
+    "summary": "",
+    "report_date": "2025-08-01T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/solodit/solodit_content/blob/main/reports/Cyfrin/2025-08-01-cyfrin-syntetika-v2.0.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "prefer-explicit-uint-sizes-cyfrin-none-syntetika-markdown",
+    "firm_name": "Cyfrin",
+    "firm_logo_square": "Cyfrin_square.jpg",
+    "protocol_name": "Syntetika",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Dacian"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Jorge"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Cyfrin",
+        "logo_square": "Cyfrin_square.jpg"
+    },
+    "protocols_protocol": {
+        "name": "Syntetika",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

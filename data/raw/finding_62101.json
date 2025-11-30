@@ -1,0 +1,55 @@
+{
+    "id": 62101,
+    "kind": "GIT",
+    "auditfirm_id": 3,
+    "impact": "MEDIUM",
+    "finders_count": 3,
+    "protocol_id": 3050,
+    "title": "M-3: `autoDeployedVault` mapping is not updated after `unregisterOperatorVault`",
+    "content": "\nSource: https://github.com/sherlock-audit/2025-06-symbiotic-relay-judging/issues/362 \n\n## Found by \n0xShoonya, snjax, zark\n\n### Summary\n\n`unregisterOperatorVault` deletes a vault in `VotingPowerProvider` but it doesn't check the `_autoDeployedVault` mapping in `OpNetVaultAutoDeploy` extension, so an operator whose auto-deployed vault is removed remains flagged as owning that vault and can neither receive a fresh auto deployment nor rely on the old address.\n\n### Root Cause\n\nThe vault unregistration in `VotingPowerProviderLogic` updates only `_operatorVaults` and `_allOperatorVaults`. When the vault had originally been created by `OpNetVaultAutoDeploy.createVault`, its address was also stored in `_autoDeployedVault[operator]`. Because `unregisterOperatorVault` is not overridden in the extension and holds no hook back into it, that mapping key is left unchanged.\n\n```solidity\n// OpNetVaultAutoDeploy.sol\n    function _registerOperatorImpl(\n        address operator\n    ) internal virtual override {\n        super._registerOperatorImpl(operator);\n        if (isAutoDeployEnabled() && getAutoDeployedVault(operator) == address(0)) {\n            (address vault, address delegator,) = OpNetVaultAutoDeployLogic.createVault(operator);\n            _registerOperatorVault(operator, vault);\n            if (isSetMaxNetworkLimitHookEnabled()) {\n                ISetMaxNetworkLimitHook(NETWORK()).setMaxNetworkLimit(\n                    delegator, SUBNETWORK_IDENTIFIER(), type(uint256).max\n                );\n            }\n        }\n    }\n```\n[Link to code](https://github.com/sherlock-audit/2025-06-symbiotic-relay/blob/435a21fd81bcd588439feef3108580f535b9e5eb/middleware-sdk/src/contracts/modules/voting-power/extensions/OpNetVaultAutoDeploy.sol#L92C1-L105C6)\n\n```solidity\n// VotingPowerProviderLogic.sol\n    function unregisterOperatorVault(address operator, address vault) public {\n        IVotingPowerProvider.VotingPowerProviderStorage storage $ = _getVotingPowerProviderStorage();\n        if (!$._operatorVaults[operator].remove(Time.timestamp(), vault)) {\n            revert IVotingPowerProvider.VotingPowerProvider_OperatorVaultNotRegistered();\n        }\n        $._allOperatorVaults.remove(Time.timestamp(), vault);\n\n        emit IVotingPowerProvider.UnregisterOperatorVault(operator, vault);\n    }\n```\n[Link to code](https://github.com/sherlock-audit/2025-06-symbiotic-relay/blob/435a21fd81bcd588439feef3108580f535b9e5eb/middleware-sdk/src/contracts/modules/voting-power/logic/VotingPowerProviderLogic.sol#L481C1-L489C6)\n\nSo after all, calls to `getAutoDeployedVault(operator)` therefore return a vault that the core module now considers unregistered, and `_registerOperatorImpl` skips auto-deployment because it sees a non-zero pointer.\n\n### Internal Pre-conditions\n\nAuto deployment must be enabled, the configuration valid and an operator has previously registered, triggering `createVault` and populating `_autoDeployedVault`.\n\n### External Pre-conditions\n\n`unregisterOperatorVault(operator, vault)` being invoked for that vault created with auto deployment.\n\n### Attack Path\n\n1. An operator registers while auto-deployment is enabled, causing `createVault` to store vault in `_autoDeployedVault[operator]` and register it in the provider storage.\n2. A caller executes `unregisterOperatorVault(operator, vault)`, which removes the vault from `_operatorVaults` and `_allOperatorVaults` but leaves `_autoDeployedVault[operator]` unchanged.\n3. Because `getAutoDeployedVault(operator)` still returns a non-zero address, the system assumes the operator already has a vault and skips creating a new one, while the active vault lists no longer include that old address. Also, if someone queries the `getAutoDeployedVault` of the operator, an incorrect unregistered vault would be returned.\n\n### Impact\n\nThe impact of this issue is that the `OpNetVaultAutoDeploy::getAutoDeployedVault` of the operator would return an incorrect unregistered vault while in the same time the operator would never be able to create a new auto deployed vault. \n\n\n### PoC\n\nN/A\n\n### Mitigation\n\nIn order to mitigate this code \"asymmetry\", it is recommended to overwrite the `_unregisterOperator` in `OpNetVaultAutoDeploy` (as it is done with the `_registerOperatorImpl`) and if the operator and the vaults matches in `_autoDeployedVault`, then unregister it from there as well.\n\n## Discussion\n\n**sherlock-admin2**\n\nThe protocol team fixed this issue in the following PRs/commits:\nhttps://github.com/symbioticfi/relay-contracts/pull/33/commits/84fa428dbd8b113c56f92bf91481997d6eedc288\n\n\n\n\n",
+    "summary": "\nThe bug report discusses an issue with the `unregisterOperatorVault` function in the `VotingPowerProvider` contract. This function deletes a vault, but does not check the `_autoDeployedVault` mapping in the `OpNetVaultAutoDeploy` extension. This means that if an operator's vault is removed, they will still be flagged as owning that vault and will not be able to receive a new vault or rely on the old one. This is because the `unregisterOperatorVault` function only updates certain variables and does not have a hook back into the `OpNetVaultAutoDeploy` extension. This can lead to incorrect vault information being returned and the operator being unable to create a new vault. The bug can be mitigated by overwriting the `_unregisterOperator` function in the `OpNetVaultAutoDeploy` extension to also remove the vault from the `_autoDeployedVault` mapping. The protocol team has already fixed this issue in their code.",
+    "report_date": "2025-07-10T15:00:00.000Z",
+    "contest_prize_txt": "100000 USDC",
+    "contest_link": "https://app.sherlock.xyz/audits/contests/967",
+    "sponsor_name": "",
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "",
+    "github_link": "https://github.com/sherlock-audit/2025-06-symbiotic-relay-judging/issues/362",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "967",
+    "slug": "m-3-autodeployedvault-mapping-is-not-updated-after-unregisteroperatorvault-sherlock-symbiotic-relay-git",
+    "firm_name": "Sherlock",
+    "firm_logo_square": "sherlock_square.png",
+    "protocol_name": "Symbiotic Relay",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "0xShoonya"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "snjax"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "zark"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Sherlock",
+        "logo_square": "sherlock_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Symbiotic Relay",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

@@ -1,0 +1,50 @@
+{
+    "id": 62341,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 11,
+    "impact": "LOW",
+    "finders_count": 2,
+    "protocol_id": 3401,
+    "title": "Unnecessary boolean comparisons in `GMTokenManager`",
+    "content": "**Description:** Both in [`GMTokenManager::_verifyQuote#L329`](https://github.com/ondoprotocol/rwa-internal/blob/a74d03f4a71bd9cac09e8223377b47f7d64ca8d4/contracts/globalMarkets/tokenManager/GMTokenManager.sol#L329) and [`GMTokenManager::adminProcessMint#L389`](http://github.com/ondoprotocol/rwa-internal/blob/a74d03f4a71bd9cac09e8223377b47f7d64ca8d4/contracts/globalMarkets/tokenManager/GMTokenManager.sol#L389) there's a boolean comparison:\n```solidity\nif (gmTokenAccepted[gmToken] == false) revert GMTokenNotRegistered();\n```\nThis is redundant. Consider simplifying it to:\n```solidity\nif (!gmTokenAccepted[gmToken]) revert GMTokenNotRegistered();\n```\n\n**Ondo:** Fixed in commit [`1877211`](https://github.com/ondoprotocol/rwa-internal/pull/470/commits/1877211865727c6ae6e1587550266a43973d722c)\n\n**Cyfrin:** Verified.",
+    "summary": "",
+    "report_date": "2025-07-14T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/solodit/solodit_content/blob/main/reports/Cyfrin/2025-07-14-cyfrin-ondo-global-markets-v2.0.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "unnecessary-boolean-comparisons-in-gmtokenmanager-cyfrin-none-ondo-global-markets-markdown",
+    "firm_name": "Cyfrin",
+    "firm_logo_square": "Cyfrin_square.jpg",
+    "protocol_name": "Ondo Global Markets",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Immeas"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Al-Qa'qa'"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Cyfrin",
+        "logo_square": "Cyfrin_square.jpg"
+    },
+    "protocols_protocol": {
+        "name": "Ondo Global Markets",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

@@ -1,0 +1,45 @@
+{
+    "id": 62519,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 16,
+    "impact": "MEDIUM",
+    "finders_count": 1,
+    "protocol_id": 3417,
+    "title": "[M-01] Incorrect bonus percentages for partner and referrer",
+    "content": "\n## Severity\n\n**Impact:** Low\n\n**Likelihood:** High\n\n## Description\n\nIn the `VisibilityCredits` contract, the `PARTNER_FEE` and `PARTNER_REFERRER_BONUS` are incorrectly set to 250 ppm, which represents 0.025%. However, as per the comment in the contract, these values should be set to 0.25%. This misconfiguration will result in the partner and referrer receiving a less bonus from the total cost of the bought credits than intended.\n\n```solidity\nuint16 public constant PARTNER_FEE = 250; \n// 0.25% bonus for the partner/marketing agency \n// if linked to a referrer (deduced from protocol fee)\nuint16 public constant PARTNER_REFERRER_BONUS = 250; \n// 0.25% bonus for the referrer \n// if linked to a partner (deduced from protocol fee)\n```\n\n## Recommendations\n\nUpdate the values of `PARTNER_FEE` and `PARTNER_REFERRER_BONUS` to 2500 ppm (0.25%) to match the intended values.\n\n\n\n",
+    "summary": "\nThe report is about a bug in the `VisibilityCredits` contract. The severity of the bug is low, but the likelihood of it occurring is high. The bug is related to the incorrect setting of two values, `PARTNER_FEE` and `PARTNER_REFERRER_BONUS`, which are currently set to 250 ppm (0.025%) instead of the intended 0.25%. This means that partners and referrers will receive a lower bonus than intended from the total cost of bought credits. The recommendation is to update the values to 2500 ppm (0.25%) to fix the bug.",
+    "report_date": "2025-09-09T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/pashov/audits/blob/master/team/md/Noodles-security-review_2025-03-11.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "m-01-incorrect-bonus-percentages-for-partner-and-referrer-pashov-audit-group-none-noodles_2025-03-11-markdown",
+    "firm_name": "Pashov Audit Group",
+    "firm_logo_square": "Pashov_square.png",
+    "protocol_name": "Noodles_2025-03-11",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Pashov Audit Group"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Pashov Audit Group",
+        "logo_square": "Pashov_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Noodles_2025-03-11",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

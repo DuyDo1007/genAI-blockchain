@@ -1,0 +1,60 @@
+{
+    "id": 62164,
+    "kind": "GIT",
+    "auditfirm_id": 3,
+    "impact": "MEDIUM",
+    "finders_count": 4,
+    "protocol_id": 3130,
+    "title": "M-2: Utilization rate multiplier will not shift if oracle is consulted frequently",
+    "content": "\nSource: https://github.com/sherlock-audit/2025-07-cap-judging/issues/148 \n\n## Found by \nMatin, kangaroo, montecristo, valuevalk\n\n### Summary\n\nDue to round down issue in VaultAdapter's multiplier shift calculation, utilization rate will not increase/decrease if oracle is consulted frequently.\n\n### Root Cause\n\nRoot cause resides in multiplier calculation in `VaultAdapter.sol`:\n\n[File: cap-contracts/contracts/oracle/libraries/VaultAdapter.sol](https://github.com/sherlock-audit/2025-07-cap/blob/2bd34fa369d36af8ecc377090d3292ea74ccc669/cap-contracts/contracts/oracle/libraries/VaultAdapter.sol#L86-L105)\n```solidity\n86: if (_utilization > slopes.kink) {\n87:             uint256 excess = _utilization - slopes.kink;\n88:@>           utilizationData.multiplier = utilizationData.multiplier\n89:                 * (1e27 + (1e27 * excess / (1e27 - slopes.kink)) * (_elapsed * $.rate / 1e27)) / 1e27;\n90: \n91:             if (utilizationData.multiplier > $.maxMultiplier) {\n92:                 utilizationData.multiplier = $.maxMultiplier;\n93:             }\n94: \n95:             interestRate = (slopes.slope0 + (slopes.slope1 * excess / 1e27)) * utilizationData.multiplier / 1e27;\n96:         } else {\n97:@>           utilizationData.multiplier = utilizationData.multiplier * 1e27\n98:                 / (1e27 + (1e27 * (slopes.kink - _utilization) / slopes.kink) * (_elapsed * $.rate / 1e27));\n99: \n100:             if (utilizationData.multiplier < $.minMultiplier) {\n101:                 utilizationData.multiplier = $.minMultiplier;\n102:             }\n103: \n104:             interestRate = (slopes.slope0 * _utilization / slopes.kink) * utilizationData.multiplier / 1e27;\n105:         }\n```\n\nMore specifically, rounding issue happens in the following calculation:\n\n```solditiy\n(_elapsed * $.rate / 1e27)\n```\n\n`_elapsed` is diff between `block.timestamp` and `utilizationData.lastUpdate`.  This means one can consult rate oracle frequently to make this term 0.\n\nAs a result, `utilizationData.multiplier` will not shift in L88 and L97.\n\n### Internal Pre-conditions\n\nn/a\n\n### External Pre-conditions\n\nn/a\n\n### Attack Path\n\nAttacker calls `Oracle::utilizationRate` function frequently.\n\nThe interval depends on [rate parameter](https://github.com/sherlock-audit/2025-07-cap/blob/2bd34fa369d36af8ecc377090d3292ea74ccc669/cap-contracts/contracts/interfaces/IVaultAdapter.sol#L13) of `VaultAdapter` contract. \n\nFor example, if the rate is set so that multiplier is shifted fully in 24 hours window, the attacker can consult the oracle every 23 hours to prevent multiplier shifts.\n\n### Impact\n\nDebtToken's interest rate calculation will be affected. The attacker can prevent it from increasing during high LTV, or vice versa during low LTV.\n\n### PoC\n\n```solidity\npragma solidity ^0.8.28;\n\nimport { IOracle } from \"../contracts/interfaces/IOracle.sol\";\nimport { IVaultAdapter } from \"../contracts/interfaces/IVaultAdapter.sol\";\nimport { VaultAdapter } from \"../contracts/oracle/libraries/VaultAdapter.sol\";\nimport { TestDeployer } from \"./deploy/TestDeployer.sol\";\nimport { console } from \"forge-std/console.sol\";\n\ncontract POC is TestDeployer {\n    VaultAdapter adapter;\n    address user_agent;\n\n    function setUp() public {\n        _deployCapTestEnvironment();\n\n        _initTestVaultLiquidity(usdVault);\n        _initSymbioticVaultsLiquidity(env);\n\n        user_agent = _getRandomAgent();\n\n        vm.startPrank(env.symbiotic.users.vault_admin);\n        _symbioticVaultDelegateToAgent(symbioticWethVault, env.symbiotic.networkAdapter, user_agent, 2.385e18);\n        vm.stopPrank();\n\n        vm.startPrank(env.users.lender_admin);\n\n        uint256 reservesCount = lender.reservesCount();\n        console.log(\"Reserves Count\", reservesCount);\n\n        vm.stopPrank();\n\n        // setup vault adapter\n        vm.startPrank(env.users.access_control_admin);\n        VaultAdapter adapterImpl = new VaultAdapter();\n        adapter = VaultAdapter(_proxy(address(adapterImpl)));\n        adapter.initialize(address(accessControl));\n        accessControl.grantAccess(adapter.setSlopes.selector, address(adapter), env.users.access_control_admin);\n        accessControl.grantAccess(adapter.setLimits.selector, address(adapter), env.users.access_control_admin);\n        adapter.setSlopes(address(usdc), IVaultAdapter.SlopeData({ kink: 2e26, slope0: 0.01e27, slope1: 0.03e27 }));\n        adapter.setLimits({\n            _maxMultiplier: 1e27, // 100%\n            _minMultiplier: 1e25, // 1%\n            _rate: uint(1e27) / 1 days // 100% / day\n         });\n        vm.stopPrank();\n    }\n\n    function test_submissionValidity() public {\n        vm.startPrank(user_agent);\n        // utilization rate is set below than the kink ratio\n        lender.borrow(address(usdc), 100e6, user_agent);\n        assertLt(cUSD.utilization(address(usdc)), 2e26);\n        adapter.rate(env.usdVault.capToken, address(usdc));\n        // utilization rate is set above than the kink ratio\n        lender.borrow(address(usdc), 2600e6, user_agent);\n        assertGt(cUSD.utilization(address(usdc)), 2e26);\n\n        // due to rounding issue, utilization rate will not grow because multiplier is not shifted\n        _timeTravel(1 days / 2);\n        uint256 utilizationRateFirst = adapter.rate(env.usdVault.capToken, address(usdc));\n        _timeTravel(1 days / 2);\n        uint256 utilizationRateSecond = adapter.rate(env.usdVault.capToken, address(usdc));\n        assertEq(utilizationRateFirst, utilizationRateSecond);\n\n        // rounding issue happens for 1 day as well, so we need to advance 1 second further\n        _timeTravel(1 days + 1);\n        // now the utilization rate is increased\n        uint256 utilizationRateThird = adapter.rate(env.usdVault.capToken, address(usdc));\n        assertGt(utilizationRateThird, utilizationRateSecond);\n    }\n}\n\n```\n\n### Mitigation\n\n```diff\ndiff --git a/cap-contracts/contracts/oracle/libraries/VaultAdapter.sol b/cap-contracts/contracts/oracle/libraries/VaultAdapter.sol\nindex 0fff0f0..7bdf86b 100644\n--- a/cap-contracts/contracts/oracle/libraries/VaultAdapter.sol\n+++ b/cap-contracts/contracts/oracle/libraries/VaultAdapter.sol\n@@ -86,7 +86,7 @@ contract VaultAdapter is IVaultAdapter, UUPSUpgradeable, Access, VaultAdapterSto\n         if (_utilization > slopes.kink) {\n             uint256 excess = _utilization - slopes.kink;\n             utilizationData.multiplier = utilizationData.multiplier\n-                * (1e27 + (1e27 * excess / (1e27 - slopes.kink)) * (_elapsed * $.rate / 1e27)) / 1e27;\n+                * (1e27 + (1e27 * excess / (1e27 - slopes.kink)) * _elapsed * $.rate / 1e27) / 1e27;\n \n             if (utilizationData.multiplier > $.maxMultiplier) {\n                 utilizationData.multiplier = $.maxMultiplier;\n@@ -95,7 +95,7 @@ contract VaultAdapter is IVaultAdapter, UUPSUpgradeable, Access, VaultAdapterSto\n             interestRate = (slopes.slope0 + (slopes.slope1 * excess / 1e27)) * utilizationData.multiplier / 1e27;\n         } else {\n             utilizationData.multiplier = utilizationData.multiplier * 1e27\n-                / (1e27 + (1e27 * (slopes.kink - _utilization) / slopes.kink) * (_elapsed * $.rate / 1e27));\n+                / (1e27 + (1e27 * (slopes.kink - _utilization) / slopes.kink) * _elapsed * $.rate / 1e27);\n \n             if (utilizationData.multiplier < $.minMultiplier) {\n                 utilizationData.multiplier = $.minMultiplier;\n\n```\n\n## Discussion\n\n**sherlock-admin2**\n\nThe protocol team fixed this issue in the following PRs/commits:\nhttps://github.com/cap-labs-dev/cap-contracts/pull/187\n\n\n\n\n",
+    "summary": "\nThe bug report discusses an issue with the utilization rate not increasing or decreasing properly in the VaultAdapter contract. This is due to a rounding issue in the multiplier calculation, which can be exploited by frequently consulting the rate oracle. This can affect the interest rate calculation for DebtTokens and can be prevented by an attacker calling the Oracle::utilizationRate function frequently. A proof of concept has been provided to demonstrate this issue. The bug has been fixed in the latest PR/commit by the protocol team.",
+    "report_date": "2025-07-24T15:00:00.000Z",
+    "contest_prize_txt": "126000 USDC",
+    "contest_link": "https://app.sherlock.xyz/audits/contests/990",
+    "sponsor_name": "",
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "",
+    "github_link": "https://github.com/sherlock-audit/2025-07-cap-judging/issues/148",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "990",
+    "slug": "m-2-utilization-rate-multiplier-will-not-shift-if-oracle-is-consulted-frequently-sherlock-cap-git",
+    "firm_name": "Sherlock",
+    "firm_logo_square": "sherlock_square.png",
+    "protocol_name": "Cap",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Matin"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "montecristo"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "kangaroo"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "valuevalk"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Sherlock",
+        "logo_square": "sherlock_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Cap",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

@@ -1,0 +1,45 @@
+{
+    "id": 62574,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 16,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3420,
+    "title": "[L-16] Data integrity issue with `revertBurnRequest` in `RipFunPacks`",
+    "content": "\n_Acknowledged_\n\nIn the `RipFunPacks` function, if a packet of type `INSTANT_OPEN` undergoes a `revertBurnRequest`, it can lead to a failure when the `fulfillRandomWords` function is later called by the `Chainlink`.\n\n```solidity\n    function revertBurnRequest(uint256 packetId, string calldata revertBurnRequestMetadata)\n        external\n        onlyRole(REDEEM_MANAGER_ROLE)\n    {\n        if (_packetBurnType[packetId] == BurnType.NONE) {\n            revert PacketNotInBurnState();\n        }\n\n        BurnType previousBurnType = _packetBurnType[packetId];\n        _packetBurnType[packetId] = BurnType.NONE;\n\n        emit BurnRequestReverted(packetId, revertBurnRequestMetadata, previousBurnType, msg.sender);\n    }\n```\n\nHowever, in `CardAllocationPool` will call `finalizeOpen` in the function `fulfillRandomWords`.\n\n```solidity\n    function fulfillRandomWords(uint256 requestId, uint256[] memory randomWords) internal {\n        PacketOpenRequest storage request = requestIdToPacketOpen[requestId];\n        if (request.fulfilled) revert(\"Already fulfilled\");\n\n        // fetch the available card bundles\n        CardBundle[] storage cardBundles = packetTypeToCardBundles[request.packetType];\n\n        // Select random cards using the provided randomness\n        uint256[] memory selectedCards = selectRandomCards(cardBundles, randomWords[0]);\n\n        // Transfer cards to owner\n        for (uint256 i = 0; i < selectedCards.length; i++) {\n            IERC721(cardNFTAddress).transferFrom(address(this), request.owner, selectedCards[i]);\n        }\n\n        // Mark request as fulfilled\n        request.fulfilled = true;\n\n        // Call finalize open on packet contract\n        RipFunPacks(packetNFTAddress).finalizeOpen(request.packetId, \"\");\n\n        emit PacketOpenFulfilled(requestId, request.packetId, selectedCards);\n    }\n```\n\n This failure occurs because the state of the packet is not properly managed when the burn request is reverted.\n\n```solidity\n    function finalizeOpen(uint256 packetId, string memory openMetadata) external onlyRole(ALLOCATION_MANAGER_ROLE) {\n        BurnType burnType = _packetBurnType[packetId];\n        if (burnType != BurnType.OPEN_PACKET && burnType != BurnType.INSTANT_OPEN_PACKET) {\n            revert InvalidBurnStateForOpen();\n        } // <= revert here, due to status has been reset\n\n        _burn(packetId);\n        emit OpenFinalized(packetId, burnType, msg.sender, openMetadata);\n    }\n```\n\nAs a result, the `CardAllocationPool` may end up with inconsistent or \"dirty\" data, where the status of the packet does not accurately reflect its intended state.\n- The request will never be fulfilled.\n- The VRF subscription is still charged for the work done to generate your requested random values.\n\nTo mitigate this issue, it is crucial to implement proper state management to keep track of the status.\n\n\n\n",
+    "summary": "",
+    "report_date": "2025-09-11T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/pashov/audits/blob/master/team/md/RipIt-security-review_2025-04-25.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "l-16-data-integrity-issue-with-revertburnrequest-in-ripfunpacks-pashov-audit-group-none-ripit_2025-04-25-markdown",
+    "firm_name": "Pashov Audit Group",
+    "firm_logo_square": "Pashov_square.png",
+    "protocol_name": "RipIt_2025-04-25",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Pashov Audit Group"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Pashov Audit Group",
+        "logo_square": "Pashov_square.png"
+    },
+    "protocols_protocol": {
+        "name": "RipIt_2025-04-25",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

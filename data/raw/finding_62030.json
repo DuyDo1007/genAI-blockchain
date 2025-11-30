@@ -1,0 +1,55 @@
+{
+    "id": 62030,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 37,
+    "impact": "MEDIUM",
+    "finders_count": 3,
+    "protocol_id": 3367,
+    "title": "Inconsistent Lockup Period Calculation Allows Users to Game the System",
+    "content": "**Update**\nMarked as \"Fixed\" by the client. Addressed in: `b4c59bc4e68926746413e842fdaed3e6cd386934` and `cf36a2fac54e84904c51f8d419c04e215c7b35da`.\n\n**File(s) affected:**`SapienVault.sol`\n\n**Description:** The `SapienVault` contract exhibits an inconsistency in the `effectiveLockupPeriod` calculation methodology. When users stake multiple times, the contract calculates a new weighted start time and a new weighted effective lockup period. Also when users increase their stake amount, the contract calculates a new weighted start time. However, the `increaseLockup()` function bypasses this weighted calculation for a new lockup period, and instead uses a direct addition of the remaining lockup time and the additional lockup period.\n\nThis inconsistency allows users to game the system by strategically choosing whether to add new stakes or increase lockup on existing stakes to get the shortest lockup period, as the mathematical approach differs between these operations.\n\n**Recommendation:** Modify the `increaseLockup()` function to utilize the same weighted calculation approach as employed in the staking operation.",
+    "summary": "\nThe client has marked a bug in the `SapienVault` contract as \"Fixed\". The bug affected the calculation of the `effectiveLockupPeriod` in the contract, which was inconsistent when users staked multiple times or increased their stake amount. The `increaseLockup()` function did not use the same calculation method as the staking operation, allowing users to exploit the system by choosing the shortest lockup period. The recommendation is to modify the `increaseLockup()` function to use the same calculation method as the staking operation.",
+    "report_date": "2025-07-02T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://certificate.quantstamp.com/full/sapien-2/9f938662-5bf7-4dc3-8774-3e7a12204cc3/index.html",
+    "sponsor_name": "",
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://certificate.quantstamp.com/full/sapien-2/9f938662-5bf7-4dc3-8774-3e7a12204cc3/index.html",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "inconsistent-lockup-period-calculation-allows-users-to-game-the-system-quantstamp-sapien-2-markdown",
+    "firm_name": "Quantstamp",
+    "firm_logo_square": "quantstamp_square.png",
+    "protocol_name": "Sapien - 2",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Paul Clemson"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Julio Aguilar"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Tim Sigl"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Quantstamp",
+        "logo_square": "quantstamp_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Sapien - 2",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

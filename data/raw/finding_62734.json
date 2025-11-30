@@ -1,0 +1,60 @@
+{
+    "id": 62734,
+    "kind": "GIT",
+    "auditfirm_id": 3,
+    "impact": "MEDIUM",
+    "finders_count": 4,
+    "protocol_id": 3324,
+    "title": "M-11: There is no endpoint for triggering `liquidateExternal` from extension chain to be executed by proof forwarder",
+    "content": "\nSource: https://github.com/sherlock-audit/2025-07-malda-judging/issues/370 \n\n## Found by \nExtraCaterpillar, PeterSR, cergyk, mussucal\n\n### Description\n\nmErcHost has a `liquidateExternal` endpoint for using liquidity coming from other chains to perform a liquidation, but there's no equivalent endpoint in mTokenGateway to trigger the liquidation on host chain.\n\n> Please note that `supplyOnHost` can be used to increase `accAmountIn`, but there's no way to specify the borrower which should be liquidated.\n\n[mTokenGateway.sol#L224-L252](https://github.com/sherlock-audit/2025-07-malda/blob/main/malda-lending/src/mToken/extension/mTokenGateway.sol#L224-L252):\n```solidity\n    function supplyOnHost(uint256 amount, address receiver, bytes4 lineaSelector)\n        external\n        payable\n        override\n        notPaused(OperationType.AmountIn)\n        onlyAllowedUser(msg.sender)\n        ifNotBlacklisted(msg.sender)\n        ifNotBlacklisted(receiver)\n    {\n        // checks\n        require(amount > 0, mTokenGateway_AmountNotValid());\n        require(msg.value >= gasFee, mTokenGateway_NotEnoughGasFee());\n\n        IERC20(underlying).safeTransferFrom(msg.sender, address(this), amount);\n\n        // effects\n        accAmountIn[receiver] += amount;\n\n\n        emit mTokenGateway_Supplied(\n            msg.sender,\n            receiver,\n            accAmountIn[receiver],\n            accAmountOut[receiver],\n            amount,\n            uint32(block.chainid),\n            LINEA_CHAIN_ID,\n            //@audit can specify selector, but not borrower to liquidate on host chain\n>>          lineaSelector\n        );\n    }\n```\n\n### Impact\n\n`liquidateExternal` cannot be called from extension chains to be executed by proof forwarder. Since as we have seen in some issues such as [l1Inclusion issue](https://github.com/sherlock-audit/2025-07-malda-CergyK/issues/13), it is not possible to make some actions permissionlessly (when extension chain is Eth mainnet), this makes impossible to call `liquidateExternal` from Eth mainnet.\n\n### Recommendation\n\nEither add a new endpoint `liquidateOnHost`, or some extra data for `supplyOnHost` to be able to specify a borrower to liquidate and pass `liquidateExternal` as `lineaSelector`.\n\n## Discussion\n\n**sherlock-admin2**\n\nThe protocol team fixed this issue in the following PRs/commits:\nhttps://github.com/malda-protocol/malda-lending/pull/106/files\n\n\n**CergyK**\n\nFix looks good. The liquidate method has been added to mTokenGateway and the selector is now handled in BatchSubmitter\n\n\n\n",
+    "summary": "\nThe report discusses a bug found by several users in the mErcHost platform. The issue is related to the lack of an endpoint in mTokenGateway that allows for liquidation on the host chain. This means that it is not possible to trigger liquidation using liquidity from other chains. The impact of this bug is that it is not possible to call `liquidateExternal` from the main Ethereum chain. The recommendation is to either add a new endpoint or add additional data to an existing endpoint to specify a borrower for liquidation. The bug has been fixed by the protocol team in a recent PR.",
+    "report_date": "2025-08-14T17:00:00.000Z",
+    "contest_prize_txt": "80000 USDC",
+    "contest_link": "https://app.sherlock.xyz/audits/contests/1029",
+    "sponsor_name": "",
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "",
+    "github_link": "https://github.com/sherlock-audit/2025-07-malda-judging/issues/370",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "1029",
+    "slug": "m-11-there-is-no-endpoint-for-triggering-liquidateexternal-from-extension-chain-to-be-executed-by-proof-forwarder-sherlock-malda-git",
+    "firm_name": "Sherlock",
+    "firm_logo_square": "sherlock_square.png",
+    "protocol_name": "Malda",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "cergyk"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "mussucal"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "ExtraCaterpillar"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "PeterSR"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Sherlock",
+        "logo_square": "sherlock_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Malda",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

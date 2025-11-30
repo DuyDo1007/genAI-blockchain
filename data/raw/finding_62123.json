@@ -1,0 +1,50 @@
+{
+    "id": 62123,
+    "kind": "PDF",
+    "auditfirm_id": 9,
+    "impact": "LOW",
+    "finders_count": 2,
+    "protocol_id": 3383,
+    "title": "Missing notiﬁcation about chain switching capability during connection",
+    "content": "## Diﬃculty: Low\n\n## Type: Data Exposure\n\n### Description\nThe Gemini Wallet interface does not inform users that connected dapps can switch chains when establishing a connection. Unlike other wallets, which explicitly warn users about chain switching capabilities during the connection process, Gemini’s connection flow omits this critical information. This lack of transparency could lead to unexpected chain switches that users may not be aware they authorized.\n\n<div className=\"flex gap-8 items-center justify-start\">\n  <CircleCheckIcon size=\"lg\" />\n  <p className=\"text-sm\">Allows app to see your balances and activity</p>\n</div>\n<div className=\"flex gap-8 items-center justify-start\">\n  <CircleCheckIcon size=\"lg\" />\n  <p className=\"text-sm\">Allows app to request approval for transactions</p>\n</div>\n<div className=\"flex gap-8 items-center justify-start\">\n  <CircleInfoIcon size=\"lg\" />\n  <p className=\"text-sm\">Funds can't leave wallet without your approval</p>\n</div>\n\n**Figure 3.1:** Warning about what the user accepts when connecting their wallet.\n\n### Exploit Scenario\nA user connects their Gemini wallet to a dapp. The dapp, having received permission to switch chains, automatically changes the user’s network to a different chain without any explicit warning or confirmation from the user. The user may not realize this has happened until they notice their transactions are being processed on an unexpected network, potentially leading to confusion or unintended interactions.\n\n### Recommendations\n- **Short term:** Implement a clear warning message during the wallet connection process that explicitly informs users about the dapp’s ability to switch chains, similar to MetaMask’s implementation.\n- **Long term:** Establish a comprehensive UI/UX review process to ensure that all critical security and functionality information is properly communicated to users during wallet interactions.",
+    "summary": "",
+    "report_date": "2025-08-15T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://github.com/trailofbits/publications/blob/master/reviews/2025-08-gemini-smartwallet-securityreview.pdf",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/trailofbits/publications/blob/master/reviews/2025-08-gemini-smartwallet-securityreview.pdf",
+    "github_link": "",
+    "pdf_link": "https://solodit-bucket.s3.amazonaws.com/storage/reports/trailofbits/2025-08-gemini-smartwallet-securityreview.pdf",
+    "pdf_page_from": 16,
+    "contest_id": "",
+    "slug": "missing-notification-about-chain-switching-capability-during-connection-trailofbits-none-gemini-smart-wallet-pdf",
+    "firm_name": "TrailOfBits",
+    "firm_logo_square": "trailofbits_square.png",
+    "protocol_name": "Gemini Smart Wallet",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Coriolan Pinhas Trail of Bits PUBLIC"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Anish Naik"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "TrailOfBits",
+        "logo_square": "trailofbits_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Gemini Smart Wallet",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

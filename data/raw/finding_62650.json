@@ -1,0 +1,55 @@
+{
+    "id": 62650,
+    "kind": "PDF",
+    "auditfirm_id": 6,
+    "impact": "LOW",
+    "finders_count": 3,
+    "protocol_id": 3430,
+    "title": "Inconsistency between hook and supportedTokens[0] due to setHookAddressAndPoolId method",
+    "content": "## Vulnerability Report\n\n**Severity:** Low Risk\n\n**Context:** \n- `ChatPoints.sol#L43-L54`\n- `Master42.sol#L106-L110`\n\n**Description:**  \nThe `setHookAddressAndPoolId` method allows the owner to change the hook address after it has been added as `supportedTokens[0]` in the `_addPool` method. This creates an inconsistency between the hook and `supportedTokens[0]`, as the `supportedTokens[0]` value will still reference the old hook address, while the hook variable will point to the new address. This inconsistency can lead to unexpected behavior in methods that rely on `supportedTokens[0]` to represent the hook.\n\nFor example, if the hook is changed after being added as `supportedTokens[0]`, methods like `deposit` and `withdraw` will behave incorrectly because they rely on `supportedTokens[0]` to represent the hook.\n\n**Recommendation:**  \nIt is recommended to implement one of the following mitigation measures:\n\n1. **Prevent changing the hook after initialization:** Disallow the `setHookAddressAndPoolId` method from being called after the hook has been added as `supportedTokens[0]`. This ensures consistency between hook and `supportedTokens[0]`:\n\n    ```solidity\n    function setHookAddressAndPoolId(address _hook, PoolId _poolId) public onlyOwner noZeroAddress(_hook) {\n        if (supportedTokens.length > 0 && address(supportedTokens[0]) == address(hook)) {\n            revert HookAlreadySet();\n        }\n        emit SetHookAddressAndPoolId(_hook, _poolId);\n        hook = ISVFHook(_hook);\n        poolId = _poolId;\n    }\n    ```\n\n2. **Update `supportedTokens[0]` when changing the hook:** If changing the hook is necessary, implement functionality to update `supportedTokens[0]` to reflect the new hook address:\n\n    ```solidity\n    function setHookAddressAndPoolId(address _hook, PoolId _poolId) public onlyOwner noZeroAddress(_hook) {\n        emit SetHookAddressAndPoolId(_hook, _poolId);\n        hook = ISVFHook(_hook);\n        poolId = _poolId;\n        if (supportedTokens.length > 0) {\n            supportedTokens[0] = IERC20(_hook);\n        }\n    }\n    ```\n\n**Semantic Layer:** Fixed in PR 8.\n\n**Spearbit:** Fix verified.",
+    "summary": "",
+    "report_date": "2025-07-27T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Semantic-Layer-Spearbit-Security-Review-May-2025.pdf",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Semantic-Layer-Spearbit-Security-Review-May-2025.pdf",
+    "github_link": "",
+    "pdf_link": "https://solodit-bucket.s3.amazonaws.com/storage/reports/spearbit/Semantic-Layer-Spearbit-Security-Review-May-2025.pdf",
+    "pdf_page_from": 14,
+    "contest_id": "",
+    "slug": "inconsistency-between-hook-and-supportedtokens0-due-to-sethookaddressandpoolid-method-spearbit-none-semantic-layer-pdf",
+    "firm_name": "Spearbit",
+    "firm_logo_square": "spearbit_square.png",
+    "protocol_name": "Semantic Layer",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Tnch"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Mario Poneder"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Noah Marconi"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Spearbit",
+        "logo_square": "spearbit_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Semantic Layer",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

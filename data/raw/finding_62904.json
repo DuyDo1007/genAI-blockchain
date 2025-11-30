@@ -1,0 +1,60 @@
+{
+    "id": 62904,
+    "kind": "PDF",
+    "auditfirm_id": 6,
+    "impact": "MEDIUM",
+    "finders_count": 4,
+    "protocol_id": 3419,
+    "title": "read_multiple_buffer_sender::operator() reserves but not resizes vector before writing",
+    "content": "## Severity: Medium Risk\n\n## Context\n`io_senders.hpp#L196-L199`\n\n## Description\nThe code reserves sufficient elements in `temp` but does not resize `temp`. It then writes to all the elements it reserved. Reserving grows the memory capacity underlying the vector abstraction, but does not change the number of vector elements, and accessing any element beyond the vector's size is undefined behavior.\n\n## Proof of Concept\nMinimal proof of concept demonstrating the general issue:\n```cpp\n#include <vector>\nint main(void)\n{\n    std::vector<int> x;\n    x.reserve(1000);\n    x[100] = 1;\n    return 0;\n}\n```\nIf compiled with `-D_GLIBCXX_DEBUG`:\n```\n/usr/lib/gcc/x86_64-linux-gnu/14/../../../../include/c++/14/debug/vector:508:\nIn function:\nreference std::vector<int>::operator[](size_type) [_Tp = int, _Allocator\n= std::allocator<int>]\nError: attempt to subscript container with out-of-bounds index 100, but\ncontainer only holds 0 elements.\nObjects involved in the operation:\nsequence \"this\" @ 0x7fffffffdff0 {\n    type = std::debug::vector<int, std::allocator<int> >;\n}\nAborted (core dumped)\n```\n\n## Recommendation\nEither:\n- Change `temp.reserve(buffers_.size());` to `temp.resize(buffers_.size());`.\n- Use `emplace_back` to add elements to `temp`, rather than accessing elements directly via `temp[n] = ...`.\n\n## Category Labs\nFixed in PR 1607.\n\n**Spearbit:** Fix verified.",
+    "summary": "\nThe bug report is about a problem with the code in `io_senders.hpp` on lines 196-199. The code reserves enough space for elements in `temp` but does not resize it, causing undefined behavior when trying to access elements beyond the vector's size. This can be seen in the proof of concept provided, where trying to access the 100th element in a vector with 0 elements causes an error. The recommendation is to either change `temp.reserve(buffers_.size())` to `temp.resize(buffers_.size())` or use `emplace_back` to add elements to `temp`. The bug has been fixed in PR 1607 and has been verified. ",
+    "report_date": "2025-09-19T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Monad-Spearbit-Security-Review-September-2025.pdf",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Monad-Spearbit-Security-Review-September-2025.pdf",
+    "github_link": "",
+    "pdf_link": "https://solodit-bucket.s3.amazonaws.com/storage/reports/spearbit/Monad-Spearbit-Security-Review-September-2025.pdf",
+    "pdf_page_from": 31,
+    "contest_id": "",
+    "slug": "read_multiple_buffer_senderoperator-reserves-but-not-resizes-vector-before-writing-spearbit-none-monad-pdf",
+    "firm_name": "Spearbit",
+    "firm_logo_square": "spearbit_square.png",
+    "protocol_name": "Monad",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Haxatron"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Dtheo"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Guido Vranken"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Rikard Hjort"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Spearbit",
+        "logo_square": "spearbit_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Monad",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

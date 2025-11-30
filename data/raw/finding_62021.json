@@ -1,0 +1,55 @@
+{
+    "id": 62021,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 37,
+    "impact": "LOW",
+    "finders_count": 3,
+    "protocol_id": 3366,
+    "title": "Missing Expiration Checks in Onboarding and Action Confirmation Workflows",
+    "content": "**Update**\nMarked as \"Fixed\" by the client. Addressed in: `dab0bb4c252c24d8bd676bb292d1eb68778b728a`.\n\n**File(s) affected:**`daml/splice-dso-governance/daml/Splice/DsoRules.daml`, `daml/splice-dso-governance/daml/Splice/DsoRules.daml`, `daml/splice-dso-governance/daml/Splice/DsoRules.daml`, `daml/splice-validator-lifecycle/daml/Splice/ValidatorOnboarding.daml`\n\n**Description:** Several choices across the validator onboarding and DSO execution flows fail to validate contract expirations, potentially enabling stale or outdated inputs to influence system behavior:\n\n1.   **`DsoRules_AddConfirmedSv`**: This choice consumes the `SvOnboardingConfirmed` contract to promote a validator candidate to active SV status. However, it does not verify whether the confirmation has expired, allowing the onboarding of validators using outdated confirmations.\n2.   **`ValidatorOnboarding_Match`**: This choice allows an SV to confirm a validator candidate’s secret. There is no check to ensure the current time precedes the `expiresAt` deadline. This omission could result in onboarding validators after their onboarding window has closed.\n3.   **`DsoRules_ExecuteConfirmedAction`**: This choice executes actions based on a quorum of `Confirmation` contracts. However, it does not verify that each `Confirmation` is still valid at the time of execution. As a result, actions could be executed based on outdated consensus.\n\n**Recommendation:** Introduce expiration validation logic in all the affected choices to ensure:\n\n*   `SvOnboardingConfirmed` contracts in `DsoRules_AddConfirmedSv` are still valid.\n*   The secret has not expired when executing `ValidatorOnboarding_Match`.\n*   Each Confirmation is still valid in `DsoRules_ExecuteConfirmedAction`. The existence of a stale Confirmation should not block the submission of a new Confirmation for the same action in the Scala automation.",
+    "summary": "",
+    "report_date": "2025-08-14T13:19:40.214Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://certificate.quantstamp.com/full/canton-coin-an-implementation-of-splice-amulet/d95ae8a5-34b5-4245-8afc-bfd5435e4632/index.html",
+    "sponsor_name": "",
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://certificate.quantstamp.com/full/canton-coin-an-implementation-of-splice-amulet/d95ae8a5-34b5-4245-8afc-bfd5435e4632/index.html",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "missing-expiration-checks-in-onboarding-and-action-confirmation-workflows-quantstamp-canton-coin-an-implementation-of-splice-amulet-markdown",
+    "firm_name": "Quantstamp",
+    "firm_logo_square": "quantstamp_square.png",
+    "protocol_name": "Canton Coin, an implementation of Splice Amulet",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Gereon Mendler"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Ibrahim Abouzied"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Jonathan Mevs"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Quantstamp",
+        "logo_square": "quantstamp_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Canton Coin, an implementation of Splice Amulet",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

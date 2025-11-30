@@ -1,0 +1,45 @@
+{
+    "id": 62639,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 30,
+    "impact": "HIGH",
+    "finders_count": 1,
+    "protocol_id": 3429,
+    "title": "[H-01] Users with Level 5 Account May Bypass the Applied 12% Commissions",
+    "content": "\n## Severity\n\nHigh Risk\n\n## Description\n\nWhen having a Level 5 account, a user is obligated to pay a 12% commission rate to the `recipientComission` address. Now, let's imagine the following scenario:\n\n1. The user has such a Level 5 account, which is connected only to other Level 5 accounts or to accounts with a level equal to or lower than that of the child and makes a new account specifying the Level 5 account as his parent\n2. The user deposits all of his assets from the newly created account, hence paying the 12% commission rate to his own Level 5 account, resulting in him practically paying only 2% commissions (if `fiveLevelRecipientComission` address is different from `address(0)`)\n3. As a result of this, the Level 5 user robs the protocol of its commissions and generates 12% more assets than he should\n\n## Location of Affected Code\n\nFile: [src/BvtRewardVault.sol#L96](https://github.com/batoshidao/berabtc-vault-token/blob/c68f412b3c7dfd99d3f6302a42bdf772ededb2a3/src/BvtRewardVault.sol#L96)\n\n```solidity\nfunction deposit(uint256 amount) external nonReentrant {\n  // code\n  for (uint256 i = 0; i < commissionParents.length; i++) {\n      UserInfo memory parentInfo = commissionParents[i];\n      if (parentInfo.user == address(0)) {\n          continue;\n      }\n      uint256 commission = bondDealerContract.getCommission(\n          uint256(parentInfo.level)\n      );\n\n      uint256 commissionAmount = (amount *\n          (commission - totalHigherLevelCommissionAmountRate)) / 10000;\n      if (commissionAmount > 0) {\n          if (!isUserInDelegatedStakeList[msg.sender][parentInfo.user]) {\n              isUserInDelegatedStakeList[msg.sender][\n                  parentInfo.user\n              ] = true;\n              delegatedStakeUsers[msg.sender].push(parentInfo.user);\n          }\n          _delegateStake(msg.sender, parentInfo.user, commissionAmount);\n          userAmount -= commissionAmount;\n          totalHigherLevelCommissionAmountRate = commission;\n      }\n  }\n\n  if (recipientComission != address(0)) {\n      uint256 totalCommissionAmountRate = bondDealerContract\n          .getTotalCommission();\n      if (\n          totalCommissionAmountRate > totalHigherLevelCommissionAmountRate\n      ) {\n          uint256 recipientCommissionAmount = (amount *\n              (totalCommissionAmountRate -\n                  totalHigherLevelCommissionAmountRate)) /\n              MAX_COMMISSION_RATE;\n          if (\n              !isUserInDelegatedStakeList[msg.sender][recipientComission]\n          ) {\n              isUserInDelegatedStakeList[msg.sender][\n                  recipientComission\n              ] = true;\n              delegatedStakeUsers[msg.sender].push(recipientComission);\n          }\n          _delegateStake(\n              msg.sender,\n              recipientComission,\n              recipientCommissionAmount\n          );\n          userAmount -= recipientCommissionAmount;\n      }\n  }\n  // code\n}\n```\n\n## Impact\n\nUser steals the 12% commissions from the protocol\n\n## Recommendation\n\nDon't allow new accounts to directly attach to Level 5 accounts, as this is a possible outcome of the situation. Allow them to attach to accounts with 1-2 levels higher than their own.\n\n## Team Response\n\nAcknowledged.\n\n",
+    "summary": "\nSummary: \n\nThe bug report describes a high risk issue in the code where a user with a Level 5 account can exploit the system to pay only 2% commission instead of the required 12%. This results in the user stealing 12% of the commissions from the protocol. The affected code is in the deposit function and the team recommends not allowing new accounts to directly attach to Level 5 accounts to prevent this issue. The team has acknowledged the report.",
+    "report_date": "2025-09-17T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/shieldify-security/audits-portfolio-md/blob/main/Terplayer-BVT-Staking&Distribution-Security-Review.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "h-01-users-with-level-5-account-may-bypass-the-applied-12-commissions-shieldify-none-terplayer-bvt-stakingdistribution-markdown",
+    "firm_name": "Shieldify",
+    "firm_logo_square": "Shieldify_square.png",
+    "protocol_name": "Terplayer Bvt Staking&Distribution",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Shieldify Security"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Shieldify",
+        "logo_square": "Shieldify_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Terplayer Bvt Staking&Distribution",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

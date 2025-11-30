@@ -1,0 +1,45 @@
+{
+    "id": 62555,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 16,
+    "impact": "MEDIUM",
+    "finders_count": 1,
+    "protocol_id": 3420,
+    "title": "[M-11] Incorrect initial `tradeFee` in `marketPrice`",
+    "content": "\n_Resolved_\n\n## Severity\n\n**Impact:** Medium\n\n**Likelihood:** Medium\n\n## Description\nIn marketPrice contract, when users trade their NFTs via function `executeTrade`, the protocol will charge some trade fees from this trade.\n\nWhen we initialize the marketPrice contract, we will initialize the `tradeFee`. According to the comment, the initial trade fee is 1 USDC. The problem here is that we use the incorrect value `10e6` here. `10e6` USDC means 10 USDC. So traders have to pay 10X trade fees than expected.\n\n```solidity\n    function initialize(\n        address _rbac,\n        uint256 _marketplaceManagerRoleId,\n        address _whitelistRegistry,\n        address _acceptedCurrency,\n        address _feeReceiver\n    ) external initializer {\n        ...\n        tradeFee = 10e6; // 1 USDC\n    }\n\n```\n\n## Recommendations\nInitialize the trade fee with the correct value `1e6`.\n\n\n\n",
+    "summary": "\nThe bug report states that there is an issue with the marketPrice contract when users trade their NFTs using the `executeTrade` function. The protocol charges trade fees from this trade, but the problem is that the initial trade fee is set to 10 times the expected value. This means that traders have to pay 10 times more in trade fees than they should. The report recommends changing the value to the correct amount, which is `1e6` instead of `10e6`.",
+    "report_date": "2025-09-11T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/pashov/audits/blob/master/team/md/RipIt-security-review_2025-04-25.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "m-11-incorrect-initial-tradefee-in-marketprice-pashov-audit-group-none-ripit_2025-04-25-markdown",
+    "firm_name": "Pashov Audit Group",
+    "firm_logo_square": "Pashov_square.png",
+    "protocol_name": "RipIt_2025-04-25",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Pashov Audit Group"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Pashov Audit Group",
+        "logo_square": "Pashov_square.png"
+    },
+    "protocols_protocol": {
+        "name": "RipIt_2025-04-25",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

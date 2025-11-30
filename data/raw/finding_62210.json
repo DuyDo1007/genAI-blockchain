@@ -1,0 +1,50 @@
+{
+    "id": 62210,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 11,
+    "impact": "LOW",
+    "finders_count": 2,
+    "protocol_id": 3392,
+    "title": "Use named imports",
+    "content": "**Description:** Use named imports; this is already being done in some places but not others:\n* `Issuance`:\n```solidity\nminter/Minter.sol\n4:import \"@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol\";\n5:import \"@openzeppelin/contracts/access/AccessControl.sol\";\n6:import \"@openzeppelin/contracts/utils/ReentrancyGuard.sol\";\n\nvault/StakingVault.sol\n5:import \"../interfaces/vault/IStakingVault.sol\";\n7:import \"@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol\";\n\nhelpers/TokensHolder.sol\n4:import \"@openzeppelin/contracts/token/ERC20/IERC20.sol\";\n\ntoken/HilBTC.sol\n4:import \"@openzeppelin/contracts/access/AccessControl.sol\";\n```\n\n* `Deposit-Registry`:\n```solidity\ninterfaces/ICompliantDepositRegistry.sol\n4:import \"@openzeppelin/contracts/access/IAccessControl.sol\";\n5:import \"./IComplianceChecker.sol\";\n\ninterfaces/IComplianceChecker.sol\n4:import \"@openzeppelin/contracts/access/IAccessControl.sol\";\n5:import \"@galactica-net/zk-certificates/contracts/interfaces/IVerificationSBT.sol\";\n\nComplianceChecker.sol\n4:import \"@openzeppelin/contracts/access/AccessControl.sol\";\n5:import \"./interfaces/IComplianceChecker.sol\";\n\nCompliantDepositRegistry.sol\n4:import \"@openzeppelin/contracts/access/AccessControl.sol\";\n5:import \"./interfaces/IComplianceChecker.sol\";\n6:import \"./interfaces/ICompliantDepositRegistry.sol\";\n```\n\n**Syntetika:**\nFixed in commit [a8b4853](https://github.com/SyntetikaLabs/monorepo/commit/a8b485381ad97ffb01595e8e5cc3d479126fcee8).\n\n**Cyfrin:** Verified.",
+    "summary": "",
+    "report_date": "2025-08-01T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/solodit/solodit_content/blob/main/reports/Cyfrin/2025-08-01-cyfrin-syntetika-v2.0.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "use-named-imports-cyfrin-none-syntetika-markdown",
+    "firm_name": "Cyfrin",
+    "firm_logo_square": "Cyfrin_square.jpg",
+    "protocol_name": "Syntetika",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Dacian"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Jorge"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Cyfrin",
+        "logo_square": "Cyfrin_square.jpg"
+    },
+    "protocols_protocol": {
+        "name": "Syntetika",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

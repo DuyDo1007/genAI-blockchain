@@ -1,0 +1,45 @@
+{
+    "id": 62443,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 34,
+    "impact": "MEDIUM",
+    "finders_count": 1,
+    "protocol_id": 3408,
+    "title": "[UFARM1-7] Lack of Slippage Protection in UFarmPool Withdrawals and Deposits",
+    "content": "**Severity:** Medium\n\n**Path:** contracts/main/contracts/pool/UFarmPool.sol::quexCallback() \n\n**Description:** When depositing to or withdrawing from the `UFarmPool` contract, users must submit a request and wait for the `quexCallback()` function - called by `quexCore` - to process it.\n\nThe `quexCallback()` function receives an updated pool valuation via `response.value`, representing the pool’s total asset value at the time of processing. Since there may be a time gap between when the request is submitted and when it is fulfilled, the value of the pool’s shares could fluctuate. This introduces the risk of users receiving significantly more or fewer assets or shares than they initially expected.\n\nExample:\nSuppose the value per share is $10 at time `T`, and Alice submits a request to burn 100 shares expecting to receive $1,000. However, if the protocol incurs a loss before her request is processed - causing the share value to drop to $5 - Alice would receive only $500 when her request is executed. This outcome is unexpected and may be perceived as unfair or unsafe by users. \n```\nsharesToMint = _mintSharesByQuote(investor, amountToInvest, _totalCost);\n\n// Adjust the total cost and total deposit\n_totalCost += amountToInvest;\ntotalDeposit += amountToInvest;\n```\n```\n// Process the withdrawal\namountToWithdraw = _processWithdrawal(\n    investor,\n    sharesToBurn,\n    _totalCost,\n    withdrawalRequestHash,\n    withdrawItem.bearerToken\n);\n\nif (investor != ufarmFund && amountToWithdraw != 0) {\n    // Mark the request as used\n    __usedWithdrawalsRequests[withdrawalRequestHash] = true;\n\n    // Delete the request from the pending withdrawals\n    delete pendingWithdrawalsRequests[withdrawalRequestHash];\n}\n```\n\n**Remediation:**  Consider adding a `minOutputAmount` field to the `QueueItem` struct. This would allow users to specify the minimum acceptable amount they are willing to receive, enabling basic slippage protection and improving user trust in the protocol.\n\n**Status:**  Fixed\n\n- - -",
+    "summary": "\nThe `UFarmPool` contract has a bug that can cause users to receive a different amount of assets or shares than expected when depositing or withdrawing. This is because the value of the pool's shares can change between when a request is submitted and when it is processed. To fix this, a `minOutputAmount` field should be added to the `QueueItem` struct to protect against slippage and improve user trust. This bug has been fixed.",
+    "report_date": "2025-06-10T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/solodit/solodit_content/blob/main/reports/Hexens/2025-06-10-Ufarm.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "ufarm1-7-lack-of-slippage-protection-in-ufarmpool-withdrawals-and-deposits-hexens-none-ufarm-markdown",
+    "firm_name": "Hexens",
+    "firm_logo_square": "Hexens_square.png",
+    "protocol_name": "Ufarm",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Hexens"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Hexens",
+        "logo_square": "Hexens_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Ufarm",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

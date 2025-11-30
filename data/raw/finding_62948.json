@@ -1,0 +1,45 @@
+{
+    "id": 62948,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 16,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3464,
+    "title": "[L-02] Variable side depositors may deposit less than intended",
+    "content": "\n_Resolved_\n\nIn `UniV3Vault`, deposits of variable side caps the amount to be deposited to the remaining capacity of the variable side.\n\n```solidity\n      // Deposit only up to capacity\n      amount = (amount + variableBearerToken.totalSupply() >= variableSideCapacity)\n        ? variableSideCapacity - variableBearerToken.totalSupply()\n        : amount;\n      require(amount > 0, \"NZD\");\n```\n\nAs a result, users may deposit less than they were interested in depositing.\n\nConsider the following scenario:\n- Alice wants to deposit assets for the total variable side capacity of the vault.\n- Bob front-runs Alice and deposits for the total variable side capacity minus a few tokens.\n- Alice is left with a small amount of variable bearer tokens.\n\nIt is recommended to allow depositors of the variable side to specify a minimum amount to deposit and revert if the amount deposited is less than the minimum.\n\n\n\n",
+    "summary": "",
+    "report_date": "2025-10-13T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/pashov/audits/blob/master/team/md/Saffron-security-review_2025-07-31.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "l-02-variable-side-depositors-may-deposit-less-than-intended-pashov-audit-group-none-saffron_2025-07-31-markdown",
+    "firm_name": "Pashov Audit Group",
+    "firm_logo_square": "Pashov_square.png",
+    "protocol_name": "Saffron_2025-07-31",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Pashov Audit Group"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Pashov Audit Group",
+        "logo_square": "Pashov_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Saffron_2025-07-31",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

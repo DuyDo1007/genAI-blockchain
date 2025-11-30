@@ -1,0 +1,50 @@
+{
+    "id": 62710,
+    "kind": "PDF",
+    "auditfirm_id": 6,
+    "impact": "LOW",
+    "finders_count": 2,
+    "protocol_id": 3436,
+    "title": "Semver gate ignores prerelease metadata, blocking RC -> release SuperchainConﬁg upgrades",
+    "content": "## Severity: Low Risk\n\n## Context\nOPContractsManager.sol#L934-L941\n\n## Description\nThe upgrade gate in the SuperchainConfig upgrader treats prerelease versions (e.g., \"3.0.0-1\") as equal to their corresponding release (\"3.0.0\") because the SemverComp parser drops prerelease/build metadata. \n\nThe parser splits on \"-\" and \"+\" and only compares numeric major.minor.patch, so \"3.0.0-1\" and \"3.0.0\" both parse to 3.0.0:\n\n```solidity\nfunction parse(string memory _semver) internal pure returns (Semver memory) {\n    string[] memory parts = LibString.split(_semver, \".\");\n    string[] memory patchParts = LibString.split(parts[2], \"-\");\n    string[] memory patchParts2 = LibString.split(patchParts[0], \"+\");\n    return Semver({\n        minor: JSONParserLib.parseUint(parts[1]),\n        patch: JSONParserLib.parseUint(patchParts2[0])\n    });\n}\n```\n\nThe upgrader gate reverts when the current SuperchainConfig version is greater-than-or-equal to the target impl's version:\n\n```solidity\nif (SemverComp.gte(\n    _superchainConfig.version(),\n    ISuperchainConfig(getImplementations().superchainConfigImpl).version()\n)) {\n    revert OPContractsManagerUpgrader_SuperchainConfigAlreadyUpToDate();\n}\n```\n\nBecause prereleases compare numerically equal to releases, an intended upgrade from for example \"3.0.0-1\" (Bedrock pre-release) to \"3.0.0\" (Bedrock) will be blocked with an `OPContractsManagerUpgrader_SuperchainConfigAlreadyUpToDate()` error.\n\nTherefore, RC → release upgrades can be improperly blocked, causing operational delays and requiring workarounds.\n\n## Recommendation\nAdd an explicit \"RC step\" flag to `upgradeSuperchainConfig` (e.g., `rcUpgrade`) that relaxes the equality block only for the RC -> release path. When `rcUpgrade` is true, use a strict \"greater than\" comparison. When false, keep the current \"greater-than-or-equal\" behavior.\n\n## OP Labs\nAcknowledged. We no longer use release candidates in our process so this failure mode would not apply at the moment.\n\n## Spearbit\nAcknowledged.",
+    "summary": "",
+    "report_date": "2025-09-22T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Optimism-Verify-Upgrade16-Spearbit-Security-Review-September-2025.pdf",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Optimism-Verify-Upgrade16-Spearbit-Security-Review-September-2025.pdf",
+    "github_link": "",
+    "pdf_link": "https://solodit-bucket.s3.amazonaws.com/storage/reports/spearbit/Optimism-Verify-Upgrade16-Spearbit-Security-Review-September-2025.pdf",
+    "pdf_page_from": 5,
+    "contest_id": "",
+    "slug": "semver-gate-ignores-prerelease-metadata-blocking-rc-release-superchainconfig-upgrades-spearbit-none-optimism-u16-pdf",
+    "firm_name": "Spearbit",
+    "firm_logo_square": "spearbit_square.png",
+    "protocol_name": "Optimism u16",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "R0bert"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "MiloTruck"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Spearbit",
+        "logo_square": "spearbit_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Optimism u16",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

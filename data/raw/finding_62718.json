@@ -1,0 +1,45 @@
+{
+    "id": 62718,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 32,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3438,
+    "title": "[L-01] Pause bypass for approvals via permit",
+    "content": "\n## Severity\n\nLow\n\n## Description\n\nUSHToken gates approve() with whenNotPaused, but inherits permit() from Solmate without overriding. While paused, anyone can still set/refresh allowances via permit, pre-arming drains that execute the instant the token is unpaused.\n\n## Team Response\n\nFixed.\n\n",
+    "summary": "",
+    "report_date": "2025-08-26T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/Kann-Audits/Kann-Audits/blob/main/reports/md-format/private-audits-reports/ManifestFinance-security-review_2025-08-26.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "l-01-pause-bypass-for-approvals-via-permit-kann-none-manifestfinance-security-review_2025-08-26-markdown",
+    "firm_name": "Kann",
+    "firm_logo_square": "Kann_Audits_square.png",
+    "protocol_name": "ManifestFinance-security-review_2025-08-26",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Kann"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Kann",
+        "logo_square": "Kann_Audits_square.png"
+    },
+    "protocols_protocol": {
+        "name": "ManifestFinance-security-review_2025-08-26",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

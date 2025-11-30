@@ -1,0 +1,60 @@
+{
+    "id": 62917,
+    "kind": "PDF",
+    "auditfirm_id": 6,
+    "impact": "MEDIUM",
+    "finders_count": 4,
+    "protocol_id": 3462,
+    "title": "Rounding down in forceDeallocate allows anyone to deallocate without paying penalty and poten-",
+    "content": "## Vulnerability Report\n\n## Tially Leaks Value\n\n**Severity:** Medium Risk  \n**Context:** `VaultV2.sol#L575`  \n\n### Description\n```solidity\npenaltyAssets += assets[i].mulDivDown(forceDeallocatePenalty[adapters[i]], WAD);\n```\nHere, `penaltyAssets` represents the amount of assets that would be withdrawn from `onBehalf` as a loss for force deallocating. However, assets are rounded down, which favors `onBehalf` instead of the vault. This leads to under-reporting and allows for paying less or even zero penalties than the actual intended value.\n\nFor example, when deallocating 999 units of WBTC (worth more than $1, with 8 decimals) with a penalty of 1e15 (0.1%), the rounded down penalty is 0, which should not be the case:\n```\n(uint(999) * 1e15) / 1e18 = 0\n```\nThere could be many such cases in practice that will leak value from the vault.\n\n### Recommendation\nWhen counting `penaltyAssets`, it should be maximized by always rounding up in favor of the vault to ensure that the invariant that the penalty is not escaped holds.\n\n### Additional Notes\n- **Morpho:** Fixed by PR 389.\n- **Spearbit:** Verified.",
+    "summary": "",
+    "report_date": "2025-10-13T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Morpho-Vaults-v2-Spearbit-Security-Review-May-2025.pdf",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Morpho-Vaults-v2-Spearbit-Security-Review-May-2025.pdf",
+    "github_link": "",
+    "pdf_link": "https://solodit-bucket.s3.amazonaws.com/storage/reports/spearbit/Morpho-Vaults-v2-Spearbit-Security-Review-May-2025.pdf",
+    "pdf_page_from": 7,
+    "contest_id": "",
+    "slug": "rounding-down-in-forcedeallocate-allows-anyone-to-deallocate-without-paying-penalty-and-poten-spearbit-none-morpho-vaults-v2-pdf",
+    "firm_name": "Spearbit",
+    "firm_logo_square": "spearbit_square.png",
+    "protocol_name": "Morpho Vaults v2",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Saw-mon and Natalie"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Om Parikh"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Jonatas Martins"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Emmanuele Ricci"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Spearbit",
+        "logo_square": "spearbit_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Morpho Vaults v2",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

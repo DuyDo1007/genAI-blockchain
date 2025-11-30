@@ -1,0 +1,45 @@
+{
+    "id": 62598,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 16,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3421,
+    "title": "[L-01] Cleanup missing for `packetToBundle[packetId]` in `burnFromInventory()`",
+    "content": "\n_Resolved_\n\nThe `Packet.burnFromInventory()` function is called by the allocation manager to remove a packet from the packet store. However, it doesn't delete the associated `packetToBundle[packetId]` when the packet is burned.\n\n```solidity\nfunction burnFromInventory(uint256 packetId) external onlyRole(ALLOCATION_MANAGER_ROLE) {\n    if (_ownerOf(packetId) == address(packetStore)) {\n        packetStore.burnPacketFromInventory(packetId);\n        emit PacketBurnedFromInventory(packetId);\n        _burn(packetId);\n    }\n}\n```\n\nRecommendation:\nEnsure that `packetToBundle[packetId]` is deleted when the `burnFromInventory()` function is called:\n\n```diff\nfunction burnFromInventory(uint256 packetId) external onlyRole(ALLOCATION_MANAGER_ROLE) {\n    if (_ownerOf(packetId) == address(packetStore)) {\n        packetStore.burnPacketFromInventory(packetId);\n        emit PacketBurnedFromInventory(packetId);\n        _burn(packetId);\n+       delete packetToBundle[packetId];\n    }\n}\n```\n\n\n\n",
+    "summary": "",
+    "report_date": "2025-09-11T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/pashov/audits/blob/master/team/md/RipIt-security-review_2025-05-10.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "l-01-cleanup-missing-for-packettobundlepacketid-in-burnfrominventory-pashov-audit-group-none-ripit_2025-05-10-markdown",
+    "firm_name": "Pashov Audit Group",
+    "firm_logo_square": "Pashov_square.png",
+    "protocol_name": "RipIt_2025-05-10",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Pashov Audit Group"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Pashov Audit Group",
+        "logo_square": "Pashov_square.png"
+    },
+    "protocols_protocol": {
+        "name": "RipIt_2025-05-10",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

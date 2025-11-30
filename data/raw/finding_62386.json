@@ -1,0 +1,45 @@
+{
+    "id": 62386,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 34,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 1408,
+    "title": "[FNG-19] Custom errors",
+    "content": "**Severity:** Low\n\n**Description:** In various contracts the validation checks are performed using the `require` function with a reason string.\n\nFor example: \n```\nrequire(redeemTokensIn == 0 || redeemAmountIn == 0, \"one of redeemTokensIn or redeemAmountIn must be zero\");\n```\n\n**Remediation:**  We would recommend to replace these with custom errors. This should be done by flipping the check.\n\nFor example:\n```\nrequire(X == Y, \"X is not Y\");\n```\nbecomes\n```\nerror XnotY(uint, uint);\n\nif (X != Y)\n  revert XnotY(X, Y);\n```\nThe usage of custom errors will save a lot of gas during deployment as well as save on code bytesize of the contract (because strings won’t have to be embedded in the code). Furthermore, custom errors are much clearer as they allow for parameter values, making debugging much easier.\n\n**Status:** Fixed\n\n- - -",
+    "summary": "",
+    "report_date": "2023-11-06T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/solodit/solodit_content/blob/main/reports/Hexens/2023-11-06-Fungify.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "fng-19-custom-errors-hexens-none-fungify-markdown",
+    "firm_name": "Hexens",
+    "firm_logo_square": "Hexens_square.png",
+    "protocol_name": "Fungify",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Hexens"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Hexens",
+        "logo_square": "Hexens_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Fungify",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

@@ -1,0 +1,55 @@
+{
+    "id": 62279,
+    "kind": "PDF",
+    "auditfirm_id": 6,
+    "impact": "HIGH",
+    "finders_count": 3,
+    "protocol_id": 3396,
+    "title": "ATokenERC6909.totalSupply for debt tokens uses the liquidity index",
+    "content": "## Severity: High Risk\n\n## Context\n\n`ATokenERC6909.sol#L615-L625`\n\n## Description\n\nThe `totalSupply` function is defined as:\n\n```solidity\nfunction totalSupply(uint256 id) public view override returns (uint256) {\n    uint256 currentSupplyScaled = super.totalSupply(id);\n    if (currentSupplyScaled == 0) {\n        return 0;\n    }\n    return currentSupplyScaled.rayMul(\n        POOL.getReserveNormalizedIncome(_underlyingAssetAddresses[id])\n    );\n}\n```\n\nThis implementation assumes that the `id` provided is always an aToken ID and thus uses the `POOL.getReserveNormalizedIncome(_underlyingAssetAddresses[id])` as an index.\n\n1. This function needs to be used by other on-chain and off-chain agents to query the correct amount for debt tokens as well.\n2. It is used in `MiniPoolPiReserveInterestRateStrategy.getCurrentInterestRates()` to calculate the utilization rate, leading to incorrect values being returned.\n3. It is used in `_afterTokenTransfer` to supply the `oldSupply` to `INCENTIVES_CONTROLLER`. Consequently, for debt tokens with incentives, incorrect values would be provided.\n\nFortunately, the correct value of `totalVariableDebt` was calculated manually in `MiniPoolReserveLogic.updateInterestRates`, ensuring that the state transition for both the default and PiReserve InterestRateStrategies uses the correct calculation:\n\n```solidity\nvars.totalVariableDebt = IAERC6909(reserve.aTokenAddress).scaledTotalSupply(\n    (reserve.variableDebtTokenID)\n).rayMul(reserve.variableBorrowIndex);\n```\n\nIf the above optimization had not been used, the issue would have been more severe.\n\n## Recommendation\n\nMake sure `totalSupply` checks whether the `id` is an aToken or debtToken:\n\n```solidity\n/**\n * @notice Gets the total supply for a token ID.\n * @param id The token ID.\n * @return The total supply scaled by normalized income/debt.\n */\nfunction totalSupply(uint256 id) public view override returns (uint256) {\n    uint256 currentSupplyScaled = super.totalSupply(id);\n    if (currentSupplyScaled == 0) {\n        return 0;\n    }\n    uint256 index = 0;\n    if (isDebtToken(id)) {\n        index = POOL.getReserveNormalizedVariableDebt(_underlyingAssetAddresses[id]);\n    } else {\n        index = POOL.getReserveNormalizedIncome(_underlyingAssetAddresses[id]);\n    }\n    return currentSupplyScaled.rayMul(index);\n}\n```\n\n## Astera\n\nFixed in commit `f8cd1275`.\n\n## Spearbit\n\nFix verified.",
+    "summary": "\nThis bug report is about a high-risk issue in the code for ATokenERC6909. The `totalSupply` function is not properly checking the `id` provided and assumes it is always an aToken ID. This leads to incorrect values being returned when the function is used by other agents to query the correct amount for debt tokens. This bug affects multiple areas of the code and could have been more severe if not for a previous optimization. The recommendation is to update the `totalSupply` function to check for the type of `id` provided and use the correct index for calculation. The issue has been fixed in the latest commit and verified by Spearbit. ",
+    "report_date": "2025-08-29T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Astera-Spearbit-Security-Review-December-2024.pdf",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Astera-Spearbit-Security-Review-December-2024.pdf",
+    "github_link": "",
+    "pdf_link": "https://solodit-bucket.s3.amazonaws.com/storage/reports/spearbit/Astera-Spearbit-Security-Review-December-2024.pdf",
+    "pdf_page_from": 12,
+    "contest_id": "",
+    "slug": "atokenerc6909totalsupply-for-debt-tokens-uses-the-liquidity-index-spearbit-none-astera-pdf",
+    "firm_name": "Spearbit",
+    "firm_logo_square": "spearbit_square.png",
+    "protocol_name": "Astera",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Saw-mon and Natalie"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Cergyk"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Jonatas Martins"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Spearbit",
+        "logo_square": "spearbit_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Astera",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

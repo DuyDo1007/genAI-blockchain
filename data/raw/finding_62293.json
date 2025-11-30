@@ -1,0 +1,55 @@
+{
+    "id": 62293,
+    "kind": "PDF",
+    "auditfirm_id": 6,
+    "impact": "MEDIUM",
+    "finders_count": 3,
+    "protocol_id": 3396,
+    "title": "Minipool owner can create unliquidatable loan, imposing bad debt on main lending pool",
+    "content": "## Medium Risk Severity Report\n\n## Context\nMiniPoolConfigurator.sol#L481-L490\n\n## Description\nIn the scenario where the minipool owner is not the same entity as the main pool admin, and the minipool has some borrowing capacity from the main lending pool (available flow), the minipool owner can create an unliquidatable loan, forcing bad debt upon the main lending pool. \n\nNote that initially, the main lending pool owner and minipool owners should be the same entity. The risk reported here would be impactful with the decentralization of minipool ownership in the future.\n\nTo achieve this, the minipool owner can simply deactivate the reserve associated with the collateral of their loan. This is possible due to a flawed `_checkNoLiquidity` function for deactivating reserves:\n\n```solidity\nfunction _checkNoLiquidity(address asset, IMiniPool pool) internal view {\n    DataTypes.MiniPoolReserveData memory reserveData = pool.getReserveData(asset);\n    uint256 availableLiquidity = IERC20Detailed(asset).balanceOf(reserveData.aTokenAddress); \n    require(\n        availableLiquidity == 0 && reserveData.currentLiquidityRate == 0,\n        Errors.LPC_RESERVE_LIQUIDITY_NOT_0\n    );\n}\n```\n\n## Scenario\nLet's examine the concrete way of creating an unliquidatable loan:\n\n### Parameters\n| Parameter         | Value          |\n|-------------------|----------------|\n| Collateral         | aWETH         |\n| Debt               | aUSDC         |\n| Available flow     | 500k aUSDC    |\n| aUSDC Liquidity    | 0              |\n| aWETH LTV          | 1.2            |\n\n### Steps\n- Alice, the minipool owner, deposits $600k of WETH into the minipool and borrows $500k USDC, using all available flow.\n- Alice flashloans all of WETH out of the ERC6909 market, enabling the deactivation of the reserve because `_checkNoLiquidity` allows it.\n\n## Recommendation\nA more robust check could be made on the supply of the asset:\n\n```solidity\nfunction _checkNoLiquidity(address asset, IMiniPool pool) internal view {\n    DataTypes.MiniPoolReserveData memory reserveData = pool.getReserveData(asset);\n    uint256 availableLiquidity = IERC6909(reserveData.aTokenAddress).scaledTotalSupply();\n    require(\n        availableLiquidity == 0 && reserveData.currentLiquidityRate == 0,\n        Errors.LPC_RESERVE_LIQUIDITY_NOT_0\n    );\n}\n```\n\n## Notes\n- **Astera:** Fixed in commit df0b9abf.\n- **Spearbit:** Fix verified.",
+    "summary": "\nThis bug report discusses a medium risk severity issue in the MiniPoolConfigurator.sol code. The bug can be exploited if the owner of a mini pool is different from the main pool admin and the mini pool has some borrowing capacity from the main lending pool. The bug allows the mini pool owner to create an unliquidatable loan, causing bad debt for the main lending pool. This can be achieved by deactivating the reserve associated with the collateral of the loan. The report suggests a more robust check on the supply of the asset to prevent this issue. The bug has been fixed in the code and verified by Spearbit.",
+    "report_date": "2025-08-29T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Astera-Spearbit-Security-Review-December-2024.pdf",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Astera-Spearbit-Security-Review-December-2024.pdf",
+    "github_link": "",
+    "pdf_link": "https://solodit-bucket.s3.amazonaws.com/storage/reports/spearbit/Astera-Spearbit-Security-Review-December-2024.pdf",
+    "pdf_page_from": 27,
+    "contest_id": "",
+    "slug": "minipool-owner-can-create-unliquidatable-loan-imposing-bad-debt-on-main-lending-pool-spearbit-none-astera-pdf",
+    "firm_name": "Spearbit",
+    "firm_logo_square": "spearbit_square.png",
+    "protocol_name": "Astera",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Saw-mon and Natalie"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Cergyk"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Jonatas Martins"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Spearbit",
+        "logo_square": "spearbit_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Astera",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

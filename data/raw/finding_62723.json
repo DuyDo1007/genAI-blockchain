@@ -1,0 +1,85 @@
+{
+    "id": 62723,
+    "kind": "GIT",
+    "auditfirm_id": 3,
+    "impact": "HIGH",
+    "finders_count": 9,
+    "protocol_id": 3324,
+    "title": "H-1: Rebalancer can steal funds from markets by sending to custom receiver through Everclear Bridge",
+    "content": "\nSource: https://github.com/sherlock-audit/2025-07-malda-judging/issues/124 \n\n## Found by \nAngry\\_Mustache\\_Man, ExtraCaterpillar, SafetyBytes, Sevyn, Ziusz, axelot, bulgari, cergyk, elolpuer\n\n### Description\nThe rebalancer contract is called on `sendMsg` with a message encoded as bytes (`_msg.message`). This message is specific for the bridge contract, and in the case of `EverclearBridge` it is of the form `IntentParams`:\n\n[EverclearBridge.sol#L40-L50](https://github.com/sherlock-audit/2025-07-malda/blob/main/malda-lending/src/rebalancer/bridges/EverclearBridge.sol#L40-L50):\n```solidity\n    struct IntentParams {\n        uint32[] destinations;\n        //@audit receiver is left unchecked\n        bytes32 receiver;\n        address inputAsset;\n        bytes32 outputAsset;\n        uint256 amount;\n        uint24 maxFee;\n        uint48 ttl;\n        bytes data;\n        IFeeAdapter.FeeParams feeParams;\n    }\n```\n\nWe notice that the parameter `receiver` is left entirely unchecked, and the rebalancer EOA can provide an address controlled by it, stealing the user funds which should be send for rebalancing.\n\n[EverclearBridge.sol#L111-L121](https://github.com/sherlock-audit/2025-07-malda/blob/main/malda-lending/src/rebalancer/bridges/EverclearBridge.sol#L111-L121):\n```solidity\n(bytes32 id,) = everclearFeeAdapter.newIntent(\n    params.destinations,\n    params.receiver,\n    params.inputAsset,\n    params.outputAsset,\n    params.amount,\n    params.maxFee,\n    params.ttl,\n    params.data,\n    params.feeParams\n);\n```\n\n### Recommendation\n\nCheck that `params.receiver` is a valid market on the destination chain\n\n\n## Discussion\n\n**sherlock-admin2**\n\nThe protocol team fixed this issue in the following PRs/commits:\nhttps://github.com/malda-protocol/malda-lending/pull/103\n\n\n**CergyK**\n\nFix looks good, now `params.receiver` is forced to be equal to `_market`\n\n\n\n",
+    "summary": "\nThe bug report discusses a potential issue found by a group of people in the rebalancer contract of the Malda Protocol. The contract allows for a message to be sent in the form of bytes, which is specific to the bridge contract. However, it was found that the parameter for the receiver was left unchecked, meaning that the rebalancer could potentially steal user funds by providing an address controlled by it. The recommendation is to check that the receiver is a valid market on the destination chain. The protocol team has already fixed this issue in a recent update. ",
+    "report_date": "2025-08-14T17:00:00.000Z",
+    "contest_prize_txt": "80000 USDC",
+    "contest_link": "https://app.sherlock.xyz/audits/contests/1029",
+    "sponsor_name": "",
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "",
+    "github_link": "https://github.com/sherlock-audit/2025-07-malda-judging/issues/124",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "1029",
+    "slug": "h-1-rebalancer-can-steal-funds-from-markets-by-sending-to-custom-receiver-through-everclear-bridge-sherlock-malda-git",
+    "firm_name": "Sherlock",
+    "firm_logo_square": "sherlock_square.png",
+    "protocol_name": "Malda",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "cergyk"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "ExtraCaterpillar"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "bulgari"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "elolpuer"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "axelot"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Angry\\_Mustache\\_Man"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Sevyn"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "SafetyBytes"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Ziusz"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Sherlock",
+        "logo_square": "sherlock_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Malda",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

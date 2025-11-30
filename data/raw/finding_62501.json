@@ -1,0 +1,55 @@
+{
+    "id": 62501,
+    "kind": "GIT",
+    "auditfirm_id": 3,
+    "impact": "MEDIUM",
+    "finders_count": 3,
+    "protocol_id": 3104,
+    "title": "M-9: OETH Strategy Broken as Rebasing Not Enabled",
+    "content": "\nSource: https://github.com/sherlock-audit/2025-06-notional-exponent-judging/issues/538 \n\n## Found by \nh2134, seeques, talfao\n\n### Summary\n\nThe Yield Strategy using Origin ETH is not functioning as intended due to a design flaw. It utilizes Origin ETH with rebasing turned off. Since rebasing is required to receive ETH yield rewards, the strategy fails to generate yield. The Notional Protocol team confirmed that the protocol should ideally migrate to Wrapped OETH to enable proper yield accrual.\n\n### Root Cause\n\nThe issue lies in the design, specifically in [`Origin.sol:_stakeTokens{...}`](https://github.com/sherlock-audit/2025-06-notional-exponent/blob/82c87105f6b32bb362d7523356f235b5b07509f9/notional-v4/src/withdraws/Origin.sol#L25), where the Origin Vault is used to exchange WETH for OETH. However, the OETH used has rebasing disabled, which prevents it from generating yield. According to the Origin Protocol documentation:\n\n> *By default, OUSD, OETH, OS and Super OETH held on smart contracts will not participate in the rebasing nature of the token and will forfeit any yield unless the smart contract explicitly opts in.* [ref](https://docs.originprotocol.com/yield-bearing-tokens/core-concepts/rebasing-and-smart-contracts)\n\n### Internal Pre-conditions\n\nNone\n\n### External Pre-conditions\n\nNone\n\n### Attack Path\n\nThis is a design flaw and has been confirmed by the protocol team.\n\n### Impact\n\nCore functionality is broken — the strategy fails to generate yield. This can result in a high risk of liquidation since the debt will increase while no yield offsets it (especially if used within Morpho).\n\n### PoC\n\nNot required. The issue is confirmed in the OETH documentation and can also be verified in the OETH source code.\n\n### Mitigation\n\nThe simplest mitigation is to migrate to Wrapped OETH, which supports yield accrual.\n\n## Discussion\n\n**sherlock-admin2**\n\nThe protocol team fixed this issue in the following PRs/commits:\nhttps://github.com/notional-finance/notional-v4/pull/22\n\n\n\n\n",
+    "summary": "\nThe Yield Strategy using Origin ETH is not generating yield as intended due to a design flaw. This is because the strategy uses Origin ETH with rebasing turned off, which is required to receive ETH yield rewards. The issue lies in the design of the protocol and can be confirmed in the OETH documentation and source code. The protocol team has suggested migrating to Wrapped OETH to enable proper yield accrual. This issue can lead to a high risk of liquidation and has been fixed in the latest PRs/commits. No pre-conditions or external factors are involved in this issue. ",
+    "report_date": "2025-07-18T15:00:00.000Z",
+    "contest_prize_txt": "75500 USDC",
+    "contest_link": "https://app.sherlock.xyz/audits/contests/1001",
+    "sponsor_name": "",
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "",
+    "github_link": "https://github.com/sherlock-audit/2025-06-notional-exponent-judging/issues/538",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "1001",
+    "slug": "m-9-oeth-strategy-broken-as-rebasing-not-enabled-sherlock-notional-exponent-git",
+    "firm_name": "Sherlock",
+    "firm_logo_square": "sherlock_square.png",
+    "protocol_name": "Notional Exponent",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "talfao"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "h2134"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "seeques"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Sherlock",
+        "logo_square": "sherlock_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Notional Exponent",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

@@ -1,0 +1,45 @@
+{
+    "id": 62679,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 23,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3435,
+    "title": "RampA Logic Not Handling Very Low `initialA`",
+    "content": "##### Description\nThis issue has been identified within the `rampA` function of the `RampAController` contract. \n\nIf `initialA` is extremely low (e.g., set to `1`), the code’s checks may cause the function to revert due to the ratio constraints. This leads to an inability to initiate ramping from a very small `initialA`. \n\nThe issue is classified as **low** severity because it restricts certain use cases rather than posing an immediate security risk.\n##### Recommendation\nWe recommend either restricting the `initialA` to equal to 1 or adjusting the logic to handle very small `initialA` values gracefully, for example by allowing a special case or appropriately relaxing the ratio constraints when `initialA` is set to 1.",
+    "summary": "",
+    "report_date": "2025-09-19T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/mixbytes/audits_public/blob/master/NUTS%20Finance/Tapio/README.md#9-rampa-logic-not-handling-very-low-initiala",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "rampa-logic-not-handling-very-low-initiala-mixbytes-none-nuts-finance-markdown",
+    "firm_name": "MixBytes",
+    "firm_logo_square": "mixbytes_square.png",
+    "protocol_name": "NUTS Finance",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "MixBytes"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "MixBytes",
+        "logo_square": "mixbytes_square.png"
+    },
+    "protocols_protocol": {
+        "name": "NUTS Finance",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

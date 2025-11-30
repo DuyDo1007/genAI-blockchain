@@ -1,0 +1,45 @@
+{
+    "id": 62862,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 30,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3449,
+    "title": "[L-06] Incorrect Event Emission at `updateCachedPrice()` in `GasTank`",
+    "content": "\n## Severity\n\nLow Risk\n\n## Description\n\nWhen updating the price of the token and the native, in case of successful updating of the price, we are emitting `GasTankPaymaster_TokenPriceUpdated` event, which takes the current price as the first parameter and the previous price as the second parameter. But we always put the previous price as `0` instead of storing the previous `cachedPrice` that was before, making the event emit with an incorrect value for `previousPrice`.\n\n## Location of Affected Code\n\nFile: [GasTankPaymaster.sol#L399](https://github.com/etherspot/etherspot-modular-accounts/blob/9019f2a78c36e74bdb1df4029672998cb4631162/src/paymaster/GasTankPaymaster.sol#L399)\n\n```solidity\nfunction updateCachedPrice(bool force) public returns (uint256) {\n    // code\n    if (success) {\n        gtpConfig.cachedTokenPrice = newPrice;\n        gtpConfig.cachedPriceTimestamp = uint48(block.timestamp);\n>>      emit GasTankPaymaster_TokenPriceUpdated(newPrice, 0, gtpConfig.cachedPriceTimestamp);\n        return newPrice;\n     } else {\n          emit GasTankPaymaster_OracleUpdateFailed();\n          return 0; // Signal failure\n     }\n}\n```\n\n## Impact\n\nIncorrect event emission data can lead to mistakes in the monitoring process.\n\n## Recommendation\n\nWe should store the previous `gtpConfig.cachedTokenPrice` and use it in the `previousPrice` parameter slot instead of the constant `0`.\n\n## Team Response\n\nFixed.\n\n",
+    "summary": "",
+    "report_date": "2025-10-03T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/shieldify-security/audits-portfolio-md/blob/main/Etherspot-GasTankPaymasterModule-Extended-Security-Review.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "l-06-incorrect-event-emission-at-updatecachedprice-in-gastank-shieldify-none-etherspot-gastankpaymastermodule-extended-markdown",
+    "firm_name": "Shieldify",
+    "firm_logo_square": "Shieldify_square.png",
+    "protocol_name": "Etherspot Gastankpaymastermodule Extended",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Shieldify Security"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Shieldify",
+        "logo_square": "Shieldify_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Etherspot Gastankpaymastermodule Extended",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

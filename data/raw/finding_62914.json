@@ -1,0 +1,60 @@
+{
+    "id": 62914,
+    "kind": "PDF",
+    "auditfirm_id": 6,
+    "impact": "LOW",
+    "finders_count": 4,
+    "protocol_id": 3419,
+    "title": "RLP Deserialization Ordering Optimization",
+    "content": "## Severity: Low Risk\n\n## Context\n(No context files were provided by the reviewer)\n\n## Description\nThe RaptorCast TCP message processing performs computationally complex RLP deserialization operations on untrusted input before signature verification and peer scoring checks. This processing order creates unnecessary computational overhead for unauthenticated attackers and can be optimized to reduce attack surface.\n\n## Proof of Concept\n\n### Current Processing Order:\n```rust\n// Lines 717-723: Basic signature deserialization\nlet signature = match ST::deserialize(signature_bytes) {\n    Ok(signature) => signature,\n    Err(err) => {\n        warn!(?err, ?from_addr, \"invalid signature \");\n        continue;\n    }\n};\n// Lines 725-732: RLP parsing before signature verification\nlet deserialized_message = match InboundRouterMessage::<M, ST>::try_deserialize(&app_message_bytes) {\n    Ok(message) => message,\n    Err(err) => {\n        warn!(?err, ?from_addr, \"failed to deserialize message \");\n        continue;\n    }\n};\n// Lines 733-739: Signature verification happens after parsing\nlet from = match signature.recover_pubkey::<signing_domain::RaptorcastAppMessage>(app_message_bytes.as_ref()) {\n    Ok(from) => from,\n    Err(err) => {\n        warn!(?err, ?from_addr, \"failed to recover pubkey \");\n        continue;\n    }\n};\n```\n\n### Resource Consumption Before Auth:\n- RLP deserialization includes:\n  - Complex nested structure parsing.\n  - Memory allocation for parsed objects.\n  - Compression decompression (up to 4GB risk when compression is enabled).\n  \n### Attack Vector:\n1. Send TCP messages with valid headers and complex RLP payloads.\n2. RLP parser consumes CPU cycles processing malformed/complex structures.\n3. Large compressed payloads trigger decompression operations.\n4. Processing occurs before signature verification.\n5. Attacker can sustain resource consumption without valid credentials, even if peer-based rate limiting is implemented.\n\n## Recommendation\nReorder Processing Steps:\n```rust\n// Extract minimal data needed for signature verification first\nlet (signature_data, remaining_payload) = extract_signature_components(payload)?;\n// Perform signature verification on minimal data\nlet author = match verify_signature(&signature_data) {\n    Ok(author) => author,\n    Err(err) => {\n        tracing::debug!(?err, \"invalid signature, dropping message \");\n        continue; // Exit immediately for invalid signatures\n    }\n};\n// Bonus: check peer score before expensive operations\nif !check_peer_score(&sender, &author) {\n    continue; // Skip expensive parsing for low-scored senders\n}\n// Only parse full RLP for well-scored peers\nlet parsed_message = InboundRouterMessage::<IM, ST>::try_deserialize(remaining_payload)?;\n```\n\n### Minimal Signature Extraction:\n```rust\nfn extract_signature_components(payload: &[u8]) -> Result<(SignatureData, &[u8]), ParseError> {\n    // Parse only header fields needed for signature verification:\n    // - Message version\n    // - Signature bytes\n    // - Hash for verification\n    // Skip complex nested RLP structures until after peer scoring\n}\n```\n\n### Early Signature Validation:\nThe optimized flow includes immediate signature validation with early exit:\n1. Fast signature check - cryptographic validation only\n    ```rust\n    let author = match verify_signature(&signature_data) {\n        Ok(author) => author,\n        Err(_) => continue, // Immediate rejection - no further processing\n    };\n    ```\n2. Only proceed to peer scoring for cryptographically valid messages\n    ```rust\n    if !check_peer_score(&sender, &author) {\n        continue; // Secondary filtering based on reputation\n    }\n    ```\n3. Full RLP parsing only for valid, well-scored peers\n    ```rust\n    let parsed_message = parse_full_message(remaining_payload)?;\n    ```\n\n## Processing Optimization Benefits:\n- Immediate rejection of invalid signatures before any peer scoring checks.\n- Reduced CPU overhead for low-scored peer messages.\n- Earlier rejection of invalid/malicious senders.\n\n## Category Labs:\nAcknowledged. Filed monad issue 2338.\n\n## Spearbit:\nAcknowledged.",
+    "summary": "",
+    "report_date": "2025-09-19T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Monad-Spearbit-Security-Review-September-2025.pdf",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Monad-Spearbit-Security-Review-September-2025.pdf",
+    "github_link": "",
+    "pdf_link": "https://solodit-bucket.s3.amazonaws.com/storage/reports/spearbit/Monad-Spearbit-Security-Review-September-2025.pdf",
+    "pdf_page_from": 45,
+    "contest_id": "",
+    "slug": "rlp-deserialization-ordering-optimization-spearbit-none-monad-pdf",
+    "firm_name": "Spearbit",
+    "firm_logo_square": "spearbit_square.png",
+    "protocol_name": "Monad",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Haxatron"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Dtheo"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Guido Vranken"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Rikard Hjort"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Spearbit",
+        "logo_square": "spearbit_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Monad",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

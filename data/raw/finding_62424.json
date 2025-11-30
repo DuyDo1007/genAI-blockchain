@@ -1,0 +1,45 @@
+{
+    "id": 62424,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 34,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3406,
+    "title": "[MNBD1-6] An attacker can prevent the graduation of the BondingCurvePool by front-running to sell a very small amount of curve tokens",
+    "content": "**Severity:** Low\n\n**Description:** In the BondingCurvePool contract, `graduateToken()` is only triggered when all curve tokens have been sold, as indicated by a condition in the `buyTokens()` function:\n```\n// Graduate if all tokens have been sold\nif (totalTokensSold == curveTokens) {\n  graduateToken();\n}\n```\n`totalTokensSold` increases by the amount of curve tokens bought by users in the `buyTokens()` function. However, it also decreases in the `sellTokens()` function whenever curve tokens are sold.\n\nThe problem is that there is no minimum threshold for the amount of curve tokens that can be sold in the `sellTokens()` function. This allows an attacker to sell just 1 wei of curve tokens to reduce `totalTokensSold`, thereby preventing graduation from occurring. The attacker can front-run any `buyTokens()` transaction by selling 1 wei of curve tokens to block the graduation.\n```\nfunction sellTokens(\n  uint256 amount,\n  address to\n) external override nonReentrant onlyMoonBound returns (uint256) {\n  bool graduated = tokenManager.getTokenGraduationStatus(token);\n  require(!graduated, 'Token has already graduated.'); // Check graduation status\n  require(amount > 0, 'Amount must be greater than 0');\n  require(ERC20(token).balanceOf(to) >= amount, 'Not enough tokens to sell');\n  require(ERC20(token).allowance(to, address(this)) >= amount, 'Insufficient allowance');\n\n  uint256 refundAmount = calculateCost(totalTokensSold - amount, totalTokensSold);\n  require(address(this).balance >= refundAmount, 'Not enough KAS in the pool.');\n\n  ERC20(token).transferFrom(to, address(this), amount); // Transfer tokens to the contract\n\n  // Update the total tokens sold\n  totalTokensSold -= amount;\n\n  uint256 tax = (refundAmount * TAX_BPS) / 10000; // 1% tax\n  if (tax > 0) {\n    refundAmount -= tax; // Deduct tax from refund\n\n    // Transfer tax to moonbound vault\n    (bool taxSuccess, ) = moonBound.call{ value: tax }('');\n    require(taxSuccess, 'Failed to send tax to moonBound vault');\n  }\n\n  // Transfer KAS to the seller\n  (bool success, ) = to.call{ value: refundAmount }('');\n  require(success, 'Failed to send refund to the sender');\n\n  emit TokensSold(to, amount, refundAmount);\n\n  return refundAmount;\n}\n\n```\n\n\n**Remediation:**  A minimum threshold for the amount of tokens sold in the `sellTokens()` function should be added.\n\n**Status:** Fixed\n\n- - -",
+    "summary": "",
+    "report_date": "2025-05-26T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/solodit/solodit_content/blob/main/reports/Hexens/2025-05-26-Moonbound.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "mnbd1-6-an-attacker-can-prevent-the-graduation-of-the-bondingcurvepool-by-front-running-to-sell-a-very-small-amount-of-curve-tokens-hexens-none-moonbound-markdown",
+    "firm_name": "Hexens",
+    "firm_logo_square": "Hexens_square.png",
+    "protocol_name": "Moonbound",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Hexens"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Hexens",
+        "logo_square": "Hexens_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Moonbound",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

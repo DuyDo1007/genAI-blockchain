@@ -1,0 +1,45 @@
+{
+    "id": 62326,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 16,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3400,
+    "title": "[L-02] Faulty logic allows duplicate custodian addition",
+    "content": "\n_Resolved_\n\nIn `deusd_minting.move` function `add_custodian_address_internal()`, the incorrect assertion logic fails to prevent duplicate custodian addresses from being added.\n\nIf you check the below code, it uses OR operator\n```move\nassert!(custodian != @0x0 || management.custodian_addresses.contains(custodian), EInvalidCustodianAddress);\n```\n\nThe OR condition passes when the custodian already exists, opposite of the intended behavior.\n\nLet's take an example of **how it occurs:**\n1. Admin adds custodian @alice successfully.\n2. Admin adds @alice again.\n3. Assertion evaluates: `(@alice != @0x0) || (contains(@alice))` = `true || true` = `true`.\n4. Validation passes when it should reject the duplicate.\n\nIt happened because of a wrong logical operator and a missing negation, it should have rejected when the address already exists, not accepted.\n\nThe impact of it is that duplicate custodians are accepted instead of a clear error, causing confusion and potential storage waste.\n\nAs a recommendation, replace with proper validation logic:\n\n```move\nassert!(custodian != @0x0, EZeroAddress);\nassert!(!management.custodian_addresses.contains(custodian), EDuplicateCustodian);\n```\n\n\n\n",
+    "summary": "",
+    "report_date": "2025-09-02T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/pashov/audits/blob/master/team/md/Elixir-security-review_2025-08-17.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "l-02-faulty-logic-allows-duplicate-custodian-addition-pashov-audit-group-none-elixir_2025-08-17-markdown",
+    "firm_name": "Pashov Audit Group",
+    "firm_logo_square": "Pashov_square.png",
+    "protocol_name": "Elixir_2025-08-17",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Pashov Audit Group"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Pashov Audit Group",
+        "logo_square": "Pashov_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Elixir_2025-08-17",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

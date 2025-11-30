@@ -1,0 +1,45 @@
+{
+    "id": 62950,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 16,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3464,
+    "title": "[L-04] Missing vault expiration enables indefinite dormant vaults",
+    "content": "\n_Acknowledged_\n\nThe protocol lacks a mechanism to expire vaults that never get fully funded. This can lead to:\n\n- **Stale vaults**: vaults starting with different market conditions than when configured.\n- **Opportunistic starts**: leftover funds in old vaults might tempt someone to fill the missing side, just to trigger the vault and claim those funds (this is attractive if the vault has a short duration).\n\nExample dormant vault: [0x2443eEAC7B1523636c94aFbf4D6fc55fd1507E3b](https://etherscan.io/address/0x2443eEAC7B1523636c94aFbf4D6fc55fd1507E3b)\n\nConsider adding an optional expiration duration for vault configuration (e.g., `vaultStartDeadline`). \nIf unmet, the vault becomes unstartable, and participants can still withdraw their funds.\n\n\n\n",
+    "summary": "",
+    "report_date": "2025-10-13T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/pashov/audits/blob/master/team/md/Saffron-security-review_2025-07-31.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "l-04-missing-vault-expiration-enables-indefinite-dormant-vaults-pashov-audit-group-none-saffron_2025-07-31-markdown",
+    "firm_name": "Pashov Audit Group",
+    "firm_logo_square": "Pashov_square.png",
+    "protocol_name": "Saffron_2025-07-31",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Pashov Audit Group"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Pashov Audit Group",
+        "logo_square": "Pashov_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Saffron_2025-07-31",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

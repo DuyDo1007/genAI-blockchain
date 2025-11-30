@@ -1,0 +1,50 @@
+{
+    "id": 62103,
+    "kind": "GIT",
+    "auditfirm_id": 3,
+    "impact": "MEDIUM",
+    "finders_count": 2,
+    "protocol_id": 3050,
+    "title": "M-5: Changing the epoch duration will completely break the vault and the slashers",
+    "content": "\nSource: https://github.com/sherlock-audit/2025-06-symbiotic-relay-judging/issues/410 \n\nThis issue has been acknowledged by the team but won't be fixed at this time.\n\n## Found by \n0x73696d616f, zark\n\n### Summary\n\nThe [vault](https://github.com/sherlock-audit/2025-06-symbiotic-relay/blob/main/middleware-sdk/src/contracts/modules/voting-power/extensions/logic/OpNetVaultAutoDeployLogic.sol#L19-L20) and slashers in scope of the protocol in `OpNetVaultAutoDeploy` are `BASE_VAULT_VERSION` and `TOKENIZED_VAULT_VERSION`, [`SlasherType.INSTANT`](https://github.com/sherlock-audit/2025-06-symbiotic-relay/blob/main/middleware-sdk/src/contracts/modules/voting-power/extensions/logic/OpNetVaultAutoDeployLogic.sol#L203) and [`SlasherType.VETO`](https://github.com/sherlock-audit/2025-06-symbiotic-relay/blob/main/middleware-sdk/src/contracts/modules/voting-power/extensions/logic/OpNetVaultAutoDeployLogic.sol#L214).\n\nThe issue is that the epoch duration can not be updated in these contracts, they always use the same value. As a result, whenever it is changed in the epoch manager via `EpochManager::setEpochDuration()`, it will completely ruin the vault's staking and slashing mechanism, as they rely on the epoch duration. For example, the instant slasher requires the slashing to be [within](https://github.com/symbioticfi/core/blob/main/src/contracts/slasher/Slasher.sol#L36-L39) 1 epoch duration, but if the epoch duration is now bigger/smaller, slashing will fail for a significant period of time. [Slashing](https://github.com/sherlock-audit/2025-06-symbiotic-relay/blob/main/middleware-sdk/src/contracts/modules/voting-power/extensions/logic/BaseSlashingLogic.sol#L34-L59) also has several checks which don't allow slashing whenever the operator, token or vault is not registered in that epoch, which can make slashing impossible via `slashVault()` in case of epoch duration change.\n\nAdditionally, the [slashing window](https://github.com/sherlock-audit/2025-06-symbiotic-relay/blob/main/middleware-sdk/src/contracts/modules/voting-power/extensions/logic/OpNetVaultAutoDeployLogic.sol#L147-L149) must be bigger than the epoch duration, but the slasher's and vault's epoch duration can't be changed, so this will also not work properly. The same happens for the [veto duration](https://github.com/sherlock-audit/2025-06-symbiotic-relay/blob/main/middleware-sdk/src/contracts/modules/voting-power/extensions/logic/OpNetVaultAutoDeployLogic.sol#L218) of the veto [slasher](https://github.com/symbioticfi/core/blob/main/src/contracts/slasher/VetoSlasher.sol#L274-L276).\n\n`Vault::onSlash()` requires the epoch to be [no older](https://github.com/symbioticfi/core/blob/main/src/contracts/vault/Vault.sol#L224-L226) than `currentEpoch_ - 1`, but a different duration means this will fail. For example, if the duration is halved, calling at duration / 2 + 1 after the current epoch will revert as this is already 2 epochs in the past.\n\n### Root Cause\n\nIn `EpochManager:115`, setting a new epoch duration will always break the vault and their slasher.\n\n### Internal Pre-conditions\n\nNone\n\n### External Pre-conditions\n\nNone\n\n### Attack Path\n\n1. `EpochManager::setEpochDuration()` is called.\n\n### Impact\n\nEpoch duration is out of sync between the vaults, slashers and the epoch manager, so slashing will fail or be impossible.\n\n### PoC\n\n_No response_\n\n### Mitigation\n\nNon trivial.\n\n",
+    "summary": "\nThis bug report discusses an issue with the vault and slashers in the Symbiotic Relay protocol. The epoch duration cannot be updated in these contracts, causing problems with staking and slashing mechanisms. This can lead to slashing being impossible or failing for a significant period of time. The root cause of this issue is the setting of a new epoch duration in the EpochManager. The impact of this bug is that the epoch duration will be out of sync between the vaults, slashers, and the epoch manager, which can affect the ability to slash. No response has been received for a proof of concept and the mitigation for this bug is non-trivial. ",
+    "report_date": "2025-07-10T15:00:00.000Z",
+    "contest_prize_txt": "100000 USDC",
+    "contest_link": "https://app.sherlock.xyz/audits/contests/967",
+    "sponsor_name": "",
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "",
+    "github_link": "https://github.com/sherlock-audit/2025-06-symbiotic-relay-judging/issues/410",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "967",
+    "slug": "m-5-changing-the-epoch-duration-will-completely-break-the-vault-and-the-slashers-sherlock-symbiotic-relay-git",
+    "firm_name": "Sherlock",
+    "firm_logo_square": "sherlock_square.png",
+    "protocol_name": "Symbiotic Relay",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "0x73696d616f"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "zark"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Sherlock",
+        "logo_square": "sherlock_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Symbiotic Relay",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

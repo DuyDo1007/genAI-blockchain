@@ -1,0 +1,45 @@
+{
+    "id": 62676,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 23,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3435,
+    "title": "Misleading Function Names and Variable",
+    "content": "##### Description\nThe `getPendingYieldAmount` function name of `SelfPeggingAsset` contract suggests it returns only “pending yield,” but it actually provides updated balances and a new invariant value. \nAdditionally, the `totalSupply` variable of the `SelfPeggingAsset` contract represents invariant `D`, not the usual definition of \"total supply\" of `SelfPeggingAsset` contract.\n\nThe issue is classified as **low** severity because it does not break functionality but can confuse developers or integrators.\n\n##### Recommendation\nWe recommend renaming the function to something like `getUpdatedBalancesAndD()` or clarifying the returned values in comments. Likewise, consider renaming `totalSupply` to `D`.\n",
+    "summary": "",
+    "report_date": "2025-09-19T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/mixbytes/audits_public/blob/master/NUTS%20Finance/Tapio/README.md#6-misleading-function-names-and-variable",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "misleading-function-names-and-variable-mixbytes-none-nuts-finance-markdown",
+    "firm_name": "MixBytes",
+    "firm_logo_square": "mixbytes_square.png",
+    "protocol_name": "NUTS Finance",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "MixBytes"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "MixBytes",
+        "logo_square": "mixbytes_square.png"
+    },
+    "protocols_protocol": {
+        "name": "NUTS Finance",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

@@ -1,0 +1,70 @@
+{
+    "id": 62481,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 16,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3413,
+    "title": "[L-08] `endMultipleRounds()` lacks round end timestamp check",
+    "content": "\n_Acknowledged_\n\n`endMultipleRounds()` is used to end multiple rounds across different markets in a single transaction.\n```solidity\nfunction endMultipleRounds(uint256[] calldata marketIds) external onlyOwner {\n        for (uint256 i = 0; i < marketIds.length; i++) {\n            uint256 marketId = marketIds[i];\n            uint256 roundId = currentRoundId[marketId];\n            Round storage round = marketRounds[marketId][roundId];\n\n            if (!round.ended) {\n                (uint128 price,) = getPrice(markets[marketId].tokenKey, markets[marketId].priceFeed);\n                round.endPrice = price;\n                round.ended = true;\n\n                uint256 totalPool = predictions[marketId][roundId].length * PREDICTION_FEE;\n                uint256 fee = (totalPool * 5) / 100;\n\n                if (fee > 0 && treasury != address(0)) {\n                    IERC20(markets[marketId].token).transfer(treasury, fee);\n                }\n            }\n        }\n    }\n```\nAs you can see, it does not verify whether the end timestamp has been reached before ending the round, allowing it to be ended at any time and bypassing the 24-hour window.\n\n**Recommendations**\n\nChecks if the round's end timestamp has been reached; if not, it reverts.\n```diff\nfunction endMultipleRounds(uint256[] calldata marketIds) external onlyOwner {\n        for (uint256 i = 0; i < marketIds.length; i++) {\n            uint256 marketId = marketIds[i];\n            uint256 roundId = currentRoundId[marketId];\n            Round storage round = marketRounds[marketId][roundId];\n\n+           require(block.timestamp >= round.startTime + 24 hours, \"Round not over yet\");\n\n            if (!round.ended) {\n                (uint128 price,) = getPrice(markets[marketId].tokenKey, markets[marketId].priceFeed);\n                round.endPrice = price;\n                round.ended = true;\n```\n\n\n",
+    "summary": "",
+    "report_date": "2025-09-04T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/pashov/audits/blob/master/team/md/MCP-security-review_2025-08-07.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "l-08-endmultiplerounds-lacks-round-end-timestamp-check-pashov-audit-group-none-mcp_2025-08-07-markdown",
+    "firm_name": "Pashov Audit Group",
+    "firm_logo_square": "Pashov_square.png",
+    "protocol_name": "MCP_2025-08-07",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Pashov Audit Group"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Pashov Audit Group",
+        "logo_square": "Pashov_square.png"
+    },
+    "protocols_protocol": {
+        "name": "MCP_2025-08-07",
+        "protocols_protocolcategoryscore": [
+            {
+                "protocols_protocolcategory": {
+                    "title": "NFT Lending"
+                },
+                "score": 0.5
+            },
+            {
+                "protocols_protocolcategory": {
+                    "title": "RWA"
+                },
+                "score": 0.5
+            },
+            {
+                "protocols_protocolcategory": {
+                    "title": "RWA Lending"
+                },
+                "score": 0.5
+            },
+            {
+                "protocols_protocolcategory": {
+                    "title": "Staking Pool"
+                },
+                "score": 0.5
+            }
+        ]
+    },
+    "issues_issuetagscore": []
+}

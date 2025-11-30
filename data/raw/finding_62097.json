@@ -1,0 +1,150 @@
+{
+    "id": 62097,
+    "kind": "GIT",
+    "auditfirm_id": 3,
+    "impact": "MEDIUM",
+    "finders_count": 22,
+    "protocol_id": 3327,
+    "title": "M-1: Attacker can steal 100% of users deposits",
+    "content": "\nSource: https://github.com/sherlock-audit/2025-07-allbridge-core-yield-judging/issues/173 \n\nThis issue has been acknowledged by the team but won't be fixed at this time.\n\n## Found by \n0xEkko, 0xFlare, AshishLac, BobbyAudit, EgisSecurity, HeckerTrieuTien, LeFy, Olugbenga-ayo, Phaethon, X0sauce, alicrali33, anonymousjoe, araj, blockace, iam0ti, ivanalexandur, magiccentaur, s4bot3ur, v10g1, veerendravamshi, xiaoming90, zxriptor\n\n### Summary\n\nI want to specify this can happen with any tokens I have just given the example with 1e6.\n\nIf an attacker donates a very large amount in the contract, then on the first deposit the contract calls [_subDepositRewardsPoolCheck](https://github.com/sherlock-audit/2025-07-allbridge-core-yield/blob/main/core-auto-evm-contracts/contracts/PortfolioToken.sol#L152), which will deposit the amount that the address holds of the token into the pool, making totalVirtual inflated. \n\nHowever the first depositor can also be the attacker, the logic of the contract is that if realTotal is 0 we mint 1:1, if the attacker calls deposit with 1000 wei( because we need to get around the amountSP calculation in pool.[deposit ](https://etherscan.io/address/0x7dbf07ad92ed4e26d5511b4f285508ebf174135d#code)which will yield a 1 wei deposit out of the 1000 wei), then the attacker can set realTotal to 1 wei\n\nHow the attack will happen:\n\n1.Attacker calls deposit 1st, he sets realTotal = 1 wei, then he sees user1 want to donates 10e6, he front-runs him and transfers 10e6) to the contract, the contract assumes this is a reward and deposits it into the pool, which will make virtualTotal:10e3+ 1, and realTotal:1 wei\n\n2. User2 deposits, he gets to the part where erc20 has to be minted to him:\n\n  `out := div(mul(virtualAmount, realTotal), totalVirtual)`\n\nNow virtualAmount is 10e3, realTotal is 1 wei, and totalVirtual is 10e3 + 1, which makes ( 10e3 * 1) / 10e3 = 0\n\nWhat happens if `out` = zero in `_mintAfterTotalChanged`: `if (realAmount == 0) {\n            return;\n        }`\n\nWe return to the deposit but we do NOT revert\n\nNow attacker calls withdraw the formula inside burn is: `realTotal * (amount / totalVirtual)`, so realTotal is 1, amount = 20e6 , totalVirtual is 20e6: (1 * (20e6/20e6) = 1, the attacker withdraws his initial donation + the user transfer.\n\nThe attacker can donate on every transfer users make so their deposits mint 0 erc20 and with his 1 erc20 he can steal all of the users deposits\n\n### Root Cause\n\nInside _mintAfterTotalChanged the contract should revert if `realAmount == 0`\n\n### Internal Pre-conditions\n\nAttacker needs to be first to call deposit with 1000 wei\n\n### External Pre-conditions\n\n-\n\n### Attack Path\n\nDescribed\n\n### Impact\n\nAttacker can steal 100% of users deposits, Impact: HIGH\n\n### PoC\n\n-\n\n### Mitigation\n\nRevert inside `_mintAfterTotalChanged` instead of returning:\n\n```solidity\n\n  uint256 realAmount = _fromVirtualAfterTotalChangedForMint(virtualAmount, index);\n        if (realAmount == 0) {\n            revert;\n        }\n        return MultiToken._mint(account, realAmount, index);\n```\n\nAdd a minAmountIn deposit\n\nImplement a new reward system which tracks how much rewards did the contract actually receive from the pool\n\nIf you are worried about dust amounts implement a onlyOwner function which sweeps any amounts from contract into the pool, that way the owner can foresee if direct transfers will hurt the system in any way\n\n",
+    "summary": "\nThis bug report discusses an issue with the Allbridge Core Yield Judging contract, which could potentially allow an attacker to steal all of the users' deposits. The issue was found by multiple individuals and has been acknowledged by the team, but will not be fixed at this time. The bug occurs when an attacker donates a large amount to the contract, causing the totalVirtual amount to inflate. The attacker can then manipulate the deposit and withdrawal functions to steal all of the users' deposits. The root cause of this bug is that the contract does not revert when the realAmount is zero, allowing the attacker to withdraw their initial donation and the users' deposits. The impact of this bug is considered high and there is currently no proof of concept or mitigation in place. Suggestions for mitigation include adding a minimum deposit amount, implementing a new reward system, and allowing the contract owner to sweep any excess funds into the pool. ",
+    "report_date": "2025-07-28T15:00:00.000Z",
+    "contest_prize_txt": "19000 USDC",
+    "contest_link": "https://app.sherlock.xyz/audits/contests/1051",
+    "sponsor_name": "",
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "",
+    "github_link": "https://github.com/sherlock-audit/2025-07-allbridge-core-yield-judging/issues/173",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "1051",
+    "slug": "m-1-attacker-can-steal-100-of-users-deposits-sherlock-allbridge-core-yield-git",
+    "firm_name": "Sherlock",
+    "firm_logo_square": "sherlock_square.png",
+    "protocol_name": "Allbridge Core Yield",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "HeckerTrieuTien"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "X0sauce"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "xiaoming90"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "zxriptor"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "ivanalexur"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "blockace"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "EgisSecurity"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "magiccentaur"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "alicrali33"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "iam0ti"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "0xFlare"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "LeFy"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Olugbenga-ayo"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "0xEkko"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "veerendravamshi"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "BobbyAudit"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "v10g1"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "anonymousjoe"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "s4bot3ur"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "araj"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Phaethon"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "AshishLac"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Sherlock",
+        "logo_square": "sherlock_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Allbridge Core Yield",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

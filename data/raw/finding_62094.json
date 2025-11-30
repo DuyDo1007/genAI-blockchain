@@ -1,0 +1,38 @@
+{
+    "id": 62094,
+    "kind": "GIT",
+    "auditfirm_id": 2,
+    "impact": "LOW",
+    "finders_count": 0,
+    "protocol_id": 1174,
+    "title": "[01] Users can avoid performance fees by transferring entire share balances in parts",
+    "content": "\nThe [`transfer`](https://github.com/code-423n4/2025-06-panoptic/blob/72836c0d5fc8a46052a5dce27cd09c299b7f6edb/src/HypoVault.sol# L406) and [`transferFrom`](https://github.com/code-423n4/2025-06-panoptic/blob/72836c0d5fc8a46052a5dce27cd09c299b7f6edb/src/HypoVault.sol# L416) can be used by anyone to transfer the shares across.\n\nHowever, these functions make an internal call [`_transferBasis`](https://github.com/code-423n4/2025-06-panoptic/blob/72836c0d5fc8a46052a5dce27cd09c299b7f6edb/src/HypoVault.sol# L429) which uses the the amount being passed in proportion to the basis in order to transfer:\n```\n\n    function _transferBasis(address from, address to, uint256 amount) internal {\n        uint256 fromBalance = balanceOf[from];\n        if (fromBalance == 0) return;\n\n        uint256 fromBasis = userBasis[from];\n        uint256 basisToTransfer = (fromBasis * amount) / fromBalance;           <<@ -- // Allowing it to round down to 0\n\n        userBasis[from] = fromBasis - basisToTransfer;\n        userBasis[to] += basisToTransfer;\n    }\n```\n\nHence, if the `fromBasis * amount` is smaller than `fromBalance`, it would return 0.\n\nAn attacker can avoid performance fee by ensuring that the basis is 0 of the recipient address (which will be his own wallet) by transferring amounts such that `fromBasis * amount` < `fromBalance`, avoiding the performance fee when calling `executeWithdrawal` as pending basis would be zero when executing withdrawal:\n```\n\n        // executeWithdrawal\n        uint256 withdrawnBasis = (uint256(pendingWithdrawal.basis) *\n            _withdrawalEpochState.sharesFulfilled) / _withdrawalEpochState.sharesWithdrawn;         <<@\n        uint256 performanceFee = (uint256(\n            Math.max(0, int256(assetsToWithdraw) - int256(withdrawnBasis))                          <<@\n        ) * performanceFeeBps) / 10_000;\n```\n\n### Recommended mitigation steps\n\nIt is recommended to use consistent scaling.\n\n",
+    "summary": "",
+    "report_date": "2025-08-13T00:00:00.000Z",
+    "contest_prize_txt": "18000",
+    "contest_link": "https://code4rena.com/reports/2025-06-panoptic-hypovault",
+    "sponsor_name": "Panoptic",
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://code4rena.com/reports/2025-06-panoptic-hypovault",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "510",
+    "slug": "01-users-can-avoid-performance-fees-by-transferring-entire-share-balances-in-parts-code4rena-panoptic-panoptic-git",
+    "firm_name": "Code4rena",
+    "firm_logo_square": "code4rena_square.png",
+    "protocol_name": "Panoptic",
+    "bookmarked": false,
+    "read": false,
+    "auditfirms_auditfirm": {
+        "name": "Code4rena",
+        "logo_square": "code4rena_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Panoptic",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

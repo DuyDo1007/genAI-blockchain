@@ -1,0 +1,50 @@
+{
+    "id": 62242,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 11,
+    "impact": "GAS",
+    "finders_count": 2,
+    "protocol_id": 3393,
+    "title": "Improve `PriceStorage` storage packing",
+    "content": "**Description:** * `PriceStorage::upperBoundPercentage` and `lowerBoundPercentage` can be safely declared as `uint128` to pack them into the same storage slot:\n```diff\n- uint256 public upperBoundPercentage;\n- uint256 public lowerBoundPercentage;\n+ uint128 public upperBoundPercentage;\n+ uint128 public lowerBoundPercentage;\n```\n\nThis reduces gas costs of every call to `PriceStorage::setPrice` where they are read together.\n\n* `IPriceStorage::Price` can safely use `uint128` for `price` and `timestamp` to pack each `Price` struct into the same storage slot:\n```diff\ninterface IPriceStorage {\n  struct Price {\n-   uint256 price;\n-   uint256 timestamp;\n+   uint128 price;\n+   uint128 timestamp;\n  }\n```\n\nThis saves two storage writes in `PriceStorage::setPrice` when writing to `prices[key]` and `lastPrice`.\n\n**Avant:**\nFixed in commits [0325fcd](https://github.com/Avant-Protocol/Avant-Contracts-Max/commit/0325fcdfb7d78e311fb194845bb27ea541a301a0), [d40fc3d](https://github.com/Avant-Protocol/Avant-Contracts-Max/commit/d40fc3d103a502d2a3ab54939dd43ca8193ca176).\n\n**Cyfrin:** Verified.",
+    "summary": "",
+    "report_date": "2025-08-28T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/solodit/solodit_content/blob/main/reports/Cyfrin/2025-08-28-cyfrin-avant-max-v2.0.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "improve-pricestorage-storage-packing-cyfrin-none-avant-max-markdown",
+    "firm_name": "Cyfrin",
+    "firm_logo_square": "Cyfrin_square.jpg",
+    "protocol_name": "Avant Max",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Dacian"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Jorge"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Cyfrin",
+        "logo_square": "Cyfrin_square.jpg"
+    },
+    "protocols_protocol": {
+        "name": "Avant Max",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

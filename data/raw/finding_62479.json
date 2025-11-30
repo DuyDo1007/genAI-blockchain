@@ -1,0 +1,70 @@
+{
+    "id": 62479,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 16,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3413,
+    "title": "[L-06] Stale price data may cause incorrect round outcomes",
+    "content": "\n_Resolved_\n\nIn the endRound function, the contract retrieves the latest value from the DIA price feed, but does not check whether the price is fresh or from before the round's end time (startTime + 24 hours). As a result, it is possible for the oracle to return a stale price. This creates a fairness issue, where the final round result (and thus reward distribution) might not accurately reflect the market conditions at the end of the round, potentially disadvantaging users who made correct predictions.\n\nAdd a check that ensures the returned price timestamp is after or at the round's expected end time.\n\n\n\n",
+    "summary": "",
+    "report_date": "2025-09-04T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/pashov/audits/blob/master/team/md/MCP-security-review_2025-08-07.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "l-06-stale-price-data-may-cause-incorrect-round-outcomes-pashov-audit-group-none-mcp_2025-08-07-markdown",
+    "firm_name": "Pashov Audit Group",
+    "firm_logo_square": "Pashov_square.png",
+    "protocol_name": "MCP_2025-08-07",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Pashov Audit Group"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Pashov Audit Group",
+        "logo_square": "Pashov_square.png"
+    },
+    "protocols_protocol": {
+        "name": "MCP_2025-08-07",
+        "protocols_protocolcategoryscore": [
+            {
+                "protocols_protocolcategory": {
+                    "title": "NFT Lending"
+                },
+                "score": 0.5
+            },
+            {
+                "protocols_protocolcategory": {
+                    "title": "RWA"
+                },
+                "score": 0.5
+            },
+            {
+                "protocols_protocolcategory": {
+                    "title": "RWA Lending"
+                },
+                "score": 0.5
+            },
+            {
+                "protocols_protocolcategory": {
+                    "title": "Staking Pool"
+                },
+                "score": 0.5
+            }
+        ]
+    },
+    "issues_issuetagscore": []
+}

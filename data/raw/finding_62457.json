@@ -1,0 +1,45 @@
+{
+    "id": 62457,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 16,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3411,
+    "title": "[L-01] Yearly mint calculation discrepancy: documentation vs implementation",
+    "content": "\n_Resolved_\n\nThere is a discrepancy between the documented behavior and actual implementation of the yearly mint reward calculation. The comments describe a simple linear inflation mechanism, but the implementation uses a completely different square-root-based formula, leading to different economic outcomes than documented.\n\n**The Discrepancy:**\n\n1. **Comment describes linear inflation**:\n```cairo\n// The numerator of the inflation rate. The denominator is C_DENOM. C_NUM / C_DENOM is the\n// fraction of the total supply that can be minted in a year.\n```\n\nThis suggests the formula should be:\n```\nyearly_mint = total_supply * (C_NUM / C_DENOM)\n```\n\n2. **Implementation uses square-root formula**:\n```cairo\nfn compute_yearly_mint(\n    self: @ContractState, total_stake: Amount, total_supply: Amount,\n) -> Amount {\n    let stake_times_supply: u256 = total_stake.wide_mul(total_supply);\n    self.c_num.read().into() * stake_times_supply.sqrt() / C_DENOM.into()\n}\n```\n\nActual formula:\n```\nyearly_mint = C_NUM * sqrt(total_stake * total_supply) / C_DENOM\n```\n\nThis discrepancy is critical as it affects the entire economic model of the protocol and must be resolved immediately to prevent confusion and potential financial miscalculations by all stakeholders.\n\n\n\n",
+    "summary": "",
+    "report_date": "2025-09-03T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/pashov/audits/blob/master/team/md/Starknet-security-review_2025-07-31.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "l-01-yearly-mint-calculation-discrepancy-documentation-vs-implementation-pashov-audit-group-none-starknet_2025-07-31-markdown",
+    "firm_name": "Pashov Audit Group",
+    "firm_logo_square": "Pashov_square.png",
+    "protocol_name": "Starknet_2025-07-31",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Pashov Audit Group"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Pashov Audit Group",
+        "logo_square": "Pashov_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Starknet_2025-07-31",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

@@ -1,0 +1,50 @@
+{
+    "id": 62750,
+    "kind": "PDF",
+    "auditfirm_id": 6,
+    "impact": "LOW",
+    "finders_count": 2,
+    "protocol_id": 3441,
+    "title": "XSS in Curator Data Rendering",
+    "content": "## Security Report\n\n## Severity\n**Low Risk**\n\n## Context\n(No context files were provided by the reviewers)\n\n## Description\nA Cross-Site Scripting (XSS) vulnerability exists in the vault detail pages where curator data from the WHISK API is rendered without proper sanitization. An attacker could potentially inject malicious JavaScript through curator URLs and images, leading to session hijacking, wallet theft, or other malicious activities. We have attempted to create a vault on the Morpho curator app that would contain these malicious payloads; however, filtering is in place to use only trusted vaults.\n\n### Supported Vaults\n```json\nsupportedVaults: {\n  [mainnet.id]: [\n    { address: getAddress(\"0xBEEF01735c132Ada46AA9aA4c54623cAA92A64CB\"), tag: \"Prime\" }, // Steakhouse USDC↪→\n    { address: getAddress(\"0xbEEF02e5E13584ab96848af90261f0C8Ee04722a\"), tag: \"Prime\" }, // Steakhouse PYUSD↪→\n    { address: getAddress(\"0xbEef047a543E45807105E51A8BBEFCc5950fcfBa\"), tag: \"Prime\" } // Steakhouse USDT↪→\n    // ...\n  ]\n}\n```\n\nDue to the filtering in place, we were unable to get any of these vaults to render within the context of the web application; however, this doesn't mean that it may not be possible in the future.\n\n## Proof of Concept\nThe application renders curator data directly from the WHISK API without sanitization:\n\n```jsx\n<LinkExternal href={curator.url} className=\"text-foreground\">\n  {curator.name}\n  <Image src={curator.image} alt={curator.name} width={24} height={24} />\n</LinkExternal>\n```\n\nWhile vaults are restricted to a predefined whitelist in `src/config/index.ts`, the curator data comes from the WHISK API and is not validated or sanitized before rendering.\n\n### Example\n```html\n<a href=\"javascript:alert(/quotesingle.ts1XSS/quotesingle.ts1)\" class=\"text-foreground\">\n  Malicious Curator\n  <img src=\"https://example.com/logo.png\" alt=\"Malicious Curator\" width=\"24\" height=\"24\" />\n</a>\n```\n\n## Likelihood\n**Low**\n\n## Impact\n**High**\n\n## Recommendation\nSanitize any data that is used directly in sinks from the WHISK API. \n\n- **Steakhouse**: Fixed in PR 8.\n- **Spearbit**: Fix verified. Seems like `defaultUrlTransform()` does a good job at sanitizing URLs.",
+    "summary": "",
+    "report_date": "2025-09-25T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Steakhouse-App-Web2-Spearbit-Security-Review-September-2025.pdf",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Steakhouse-App-Web2-Spearbit-Security-Review-September-2025.pdf",
+    "github_link": "",
+    "pdf_link": "https://solodit-bucket.s3.amazonaws.com/storage/reports/spearbit/Steakhouse-App-Web2-Spearbit-Security-Review-September-2025.pdf",
+    "pdf_page_from": 5,
+    "contest_id": "",
+    "slug": "xss-in-curator-data-rendering-spearbit-none-steakhouse-app-pdf",
+    "firm_name": "Spearbit",
+    "firm_logo_square": "spearbit_square.png",
+    "protocol_name": "Steakhouse App",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Dreyand"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Mikey96"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Spearbit",
+        "logo_square": "spearbit_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Steakhouse App",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

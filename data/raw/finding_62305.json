@@ -1,0 +1,55 @@
+{
+    "id": 62305,
+    "kind": "PDF",
+    "auditfirm_id": 6,
+    "impact": "LOW",
+    "finders_count": 3,
+    "protocol_id": 3396,
+    "title": "Unchecked zero address for profit handler can lead to loss of profits",
+    "content": "## Severity: Low Risk\n\n**Context:** AToken.sol#L597\n\n**Description:** During a rebalance (AToken rehypothetication), profits made from a strategy are evaluated and sent to a `_profitHandler` address.\n\n```plaintext\n• AToken.sol#L593-L601:\nif (profit != 0) {\n    // Profit is ultimately (coll at hand) + (coll allocated to yield generator) - (recorded\n    total coll Amount in pool).\n    profit =\n    (IERC20(_underlyingAsset).balanceOf(address(this)) + _farmingBal) - _underlyingAmount;\n    if (profit != 0) {\n        // Distribute to profitHandler.\n        IERC20(_underlyingAsset).safeTransfer(_profitHandler, profit);\n    }\n}\n```\n\nHowever, it is not checked that `_profitHandler` is initialized. Since this member is not set during initialization but only by its specific setter, it could be unset. This would lead to the burning of the accumulated profit.\n\n```plaintext\n• AToken.sol#L635-L643:\n/**\n* @dev Sets the profit handler address.\n* @param profitHandler The new profit handler address.\n*/\nfunction setProfitHandler(address profitHandler) external override onlyLendingPool {\n    require(profitHandler != address(0), Errors.AT_INVALID_ADDRESS);\n    require(address(_vault) != address(0), Errors.AT_VAULT_NOT_INITIALIZED);\n    _profitHandler = profitHandler;\n}\n```\n\n**Recommendation:** Only send the profit amount if `_profitHandler` is set:\n\n```plaintext\n• AToken.sol#L593-L601:\nif (profit != 0) {\n    // Profit is ultimately (coll at hand) + (coll allocated to yield generator) - (recorded total\n    coll Amount in pool).\n    profit =\n    (IERC20(_underlyingAsset).balanceOf(address(this)) + _farmingBal) - _underlyingAmount;\n    - if (profit != 0) {\n    + if (profit != 0 && _profitHandler != address(0)) {\n        // Distribute to profitHandler.\n        IERC20(_underlyingAsset).safeTransfer(_profitHandler, profit);\n    }\n}\n```\n\n**Astera:** Fixed in commits 1eb7b435 and 9c76b33c.  \n**Spearbit:** Fix verified.",
+    "summary": "",
+    "report_date": "2025-08-29T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Astera-Spearbit-Security-Review-December-2024.pdf",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Astera-Spearbit-Security-Review-December-2024.pdf",
+    "github_link": "",
+    "pdf_link": "https://solodit-bucket.s3.amazonaws.com/storage/reports/spearbit/Astera-Spearbit-Security-Review-December-2024.pdf",
+    "pdf_page_from": 34,
+    "contest_id": "",
+    "slug": "unchecked-zero-address-for-profit-handler-can-lead-to-loss-of-profits-spearbit-none-astera-pdf",
+    "firm_name": "Spearbit",
+    "firm_logo_square": "spearbit_square.png",
+    "protocol_name": "Astera",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Saw-mon and Natalie"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Cergyk"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Jonatas Martins"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Spearbit",
+        "logo_square": "spearbit_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Astera",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

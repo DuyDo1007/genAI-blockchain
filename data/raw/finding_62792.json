@@ -1,0 +1,50 @@
+{
+    "id": 62792,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 37,
+    "impact": "LOW",
+    "finders_count": 2,
+    "protocol_id": 3445,
+    "title": "Missing Recipient Address Validation",
+    "content": "**Update**\nMarked as \"Fixed\" by the client. Addressed in: `74ef2d50b843fd5b4df2d80d37db62472c3dcf08`.\n\n**File(s) affected:**`contracts/CampTimelockEscrow.sol`\n\n**Description:** In `bridgeOut()`, the `_to` parameter specifies the recipient address. However, there is no check to ensure `_to` is not the zero address.\n\n**Recommendation:** Add a validation to revert if `_to` is the zero address.",
+    "summary": "",
+    "report_date": "2025-09-15T14:20:31.258Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://certificate.quantstamp.com/full/camp-re-audit/2a90a14d-4635-462c-905c-0b444e0d8cf8/index.html",
+    "sponsor_name": "",
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://certificate.quantstamp.com/full/camp-re-audit/2a90a14d-4635-462c-905c-0b444e0d8cf8/index.html",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "missing-recipient-address-validation-quantstamp-camp-re-audit-markdown",
+    "firm_name": "Quantstamp",
+    "firm_logo_square": "quantstamp_square.png",
+    "protocol_name": "Camp - Re-Audit",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Paul Clemson"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Darren Jensen"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Quantstamp",
+        "logo_square": "quantstamp_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Camp - Re-Audit",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

@@ -1,0 +1,55 @@
+{
+    "id": 62649,
+    "kind": "PDF",
+    "auditfirm_id": 6,
+    "impact": "LOW",
+    "finders_count": 3,
+    "protocol_id": 3430,
+    "title": "Hardcoded word limit in Copium causes inconsistency with Master42",
+    "content": "## Severity: Low Risk\n\n## Context\n- Master42.sol: Lines 127-130\n- Copium.sol: Lines 102-112\n\n## Description\nThe `createYeet` function in the Copium contract enforces a hardcoded word limit of 1000 characters for user messages:\n\n```solidity\nrequire(bytes(_message).length <= 1000, MessageTooLong());\n```\n\nIn contrast, the Master42 contract allows the owner to dynamically adjust the `wordLimit` using the `updateWordLimit` function. This discrepancy can lead to inconsistent behavior between the two contracts, especially if they are expected to operate under the same word limit rules.\n\n## Recommendation\nIt is recommended to add a `wordLimit` variable and a setter function in the Copium contract to allow the owner to update the word limit, ensuring it can be synchronized with the Master42 contract.\n\n## Semantic Layer\nFixed in PR 3.\n\n## Spearbit\nFix verified.",
+    "summary": "",
+    "report_date": "2025-07-27T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Semantic-Layer-Spearbit-Security-Review-May-2025.pdf",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Semantic-Layer-Spearbit-Security-Review-May-2025.pdf",
+    "github_link": "",
+    "pdf_link": "https://solodit-bucket.s3.amazonaws.com/storage/reports/spearbit/Semantic-Layer-Spearbit-Security-Review-May-2025.pdf",
+    "pdf_page_from": 14,
+    "contest_id": "",
+    "slug": "hardcoded-word-limit-in-copium-causes-inconsistency-with-master42-spearbit-none-semantic-layer-pdf",
+    "firm_name": "Spearbit",
+    "firm_logo_square": "spearbit_square.png",
+    "protocol_name": "Semantic Layer",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Tnch"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Mario Poneder"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Noah Marconi"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Spearbit",
+        "logo_square": "spearbit_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Semantic Layer",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

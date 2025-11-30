@@ -1,0 +1,55 @@
+{
+    "id": 62007,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 37,
+    "impact": "LOW",
+    "finders_count": 3,
+    "protocol_id": 3365,
+    "title": "Insecure Assumptions in Input Parsing: Multi Layer Splitting on Delimiter Based Data Field",
+    "content": "**Update**\nMarked as \"Fixed\" by the client. Addressed in: `a1694d38d25937d73a1d507bad4166bf7944467b`. The client provided the following explanation:\n\n> Add secure transaction ID parsing with regex validation\n\n**File(s) affected:**`hooks/react-query/mutations/useProcessTransaction.ts`\n\n**Description:** The application performs multi layer parsing of a data parameter using delimiter based splitting (e.g., `.split('@')`, `.split('.')`) in `hooks/react-query/mutations/useProcessTransaction.ts`, line 196-198, without proper validation or sanitization of the structure. This approach places excessive trust in the marshalling/unmarshalling format of the incoming data — assuming that:\n\n*   The delimiters will always appear in predictable ways\n*   The number and order of segments is correct\n*   Delimiter characters are never present in the payload itself\n\nSuch assumptions are brittle and error-prone. Security wise, this can lead to:\n\n*   Injection of crafted delimiters to confuse the parsing logic (e.g., field smuggling)\n*   Malformed or ambiguous values leading to silent logic corruption\n*   Bypassing business logic (e.g., skipping validation or triggering unintended branches)\n\nMoreover, delimiter based parsing becomes difficult to maintain or secure as the format grows in complexity, often lacking formal validation or clear schemas.\n\n**Recommendation:** Avoid delimiter based parsing for structured data unless absolutely necessary. Use well defined formats like JSON instead.\n\nIf the format must remain string based for compatibility, consider also running a sanity check on each entry extracted, or on the entire string, and fail if something appears off.",
+    "summary": "",
+    "report_date": "2025-08-26T12:12:16.438Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://certificate.quantstamp.com/full/saucer-swap-wallet/d30efab8-8abd-46b1-bba5-6360b87e3aa3/index.html",
+    "sponsor_name": "",
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://certificate.quantstamp.com/full/saucer-swap-wallet/d30efab8-8abd-46b1-bba5-6360b87e3aa3/index.html",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "insecure-assumptions-in-input-parsing-multi-layer-splitting-on-delimiter-based-data-field-quantstamp-saucerswap-wallet-markdown",
+    "firm_name": "Quantstamp",
+    "firm_logo_square": "quantstamp_square.png",
+    "protocol_name": "SaucerSwap Wallet",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Albert Heinle"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Darren Jensen"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Jonathan Mevs"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Quantstamp",
+        "logo_square": "quantstamp_square.png"
+    },
+    "protocols_protocol": {
+        "name": "SaucerSwap Wallet",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

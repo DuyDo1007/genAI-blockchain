@@ -1,0 +1,60 @@
+{
+    "id": 62153,
+    "kind": "PDF",
+    "auditfirm_id": 6,
+    "impact": "LOW",
+    "finders_count": 4,
+    "protocol_id": 3384,
+    "title": "rawDivCeil and rawDivFloor return incorrect values for ratios close to 0",
+    "content": "## Severity: Low Risk\n\n## Context\nPMath.sol#L111-L135\n\n## Description\nNote that:\n```\nsdiv(x, d) = sign(x/d)\n```\n| x | d |\n|---|---|\nand thus `sdiv` rounds towards 0. \n\nThus `rawDivCeil` needs to add 1 to the result when the division is not whole in the region \\([0, ∞)\\). But `rawDivCeil` uses the following condition to add 1 to the result if necessary:\n```solidity\nif sgt(z, 0) { /*...*/ }\n```\nAnd thus the region \\( \\frac{x}{d} \\in (0, 1) \\) is neglected. For this region we would have `sdiv(x, d) = 0`.\n\n`rawDivFloor` needs to subtract 1 from the result when the division is not whole in the region \\((-∞, 0]\\). But `rawDivFloor` uses the following condition to subtract 1 from the result if necessary:\n```solidity\nif slt(z, 0) { /*...*/ }\n```\nAnd thus the region \\( \\frac{x}{d} \\in (-1, 0) \\) is neglected. For this region we would have `sdiv(x, d) = 0`.\n\n## Proof of Concept\nIn the test suite repo add this file `test/lib/math/PMath.t.sol`:\n```solidity\n// SPDX-License-Identifier: GPL-3.0-or-later\npragma solidity ^0.8.28;\n\nimport {PMath} from \"boros/lib/math/PMath.sol\";\nimport {Test} from \"forge-std/Test.sol\";\n\ncontract PMathTest is Test {\n    function test_rawDivXX_PositiveRatioLessThanOne(int256 x, int256 d) public {\n        // 0 < x/d < 1\n        vm.assume(PMath.sign(x) == PMath.sign(d));\n        vm.assume(PMath.abs(x) < PMath.abs(d));\n        vm.assume(x != 0);\n\n        int256 z = PMath.rawDivCeil(x, d);\n        assertEq(z, 1, \"rawDivCeil for 0 < x/d < 1 failed\");\n        z = PMath.rawDivFloor(x, d);\n        assertEq(z, 0, \"rawDivFloor for 0 < x/d < 1 failed\");\n    }\n\n    function test_rawDivXX_NegativeRatioGreaterThanNegativeOne(int256 x, int256 d) public {\n        // -1 < x/d < 0\n        vm.assume(PMath.sign(x) != PMath.sign(d));\n        vm.assume(PMath.abs(x) < PMath.abs(d));\n        vm.assume(x != 0);\n\n        int256 z = PMath.rawDivCeil(x, d);\n        assertEq(z, 0, \"rawDivCeil for -1 < x/d < 0 failed\");\n        z = PMath.rawDivFloor(x, d);\n        assertEq(z, -1, \"rawDivFloor for -1 < x/d < 0 failed\");\n    }\n}\n```\nand run:\n```\nforge test --mc PMathTest\n```\n\n## Recommendation\nChange the conditions to:\n\n```diff\n- -- a/contracts/lib/math/PMath.sol\n+ ++ b/contracts/lib/math/PMath.sol\n@@ -115,7 +115,7 @@ library PMath {\nrevert(0x1c, 0x04)\n}\nz := sdiv(x, d)\n- if sgt(z, 0) {\n+ if iszero(xor(shr(255, x), shr(255, d))) {\nz := add(z, iszero(iszero(smod(x, d))))\n}\n}\n@@ -128,7 +128,7 @@ library PMath {\nrevert(0x1c, 0x04)\n}\nz := sdiv(x, d)\n- if slt(z, 0) {\n+ if xor(shr(255, x), shr(255, d)) {\nz := sub(z, iszero(iszero(smod(x, d))))\n}\n}\n```\n\nAlso add test cases to make sure the regions close to 0 return the correct values for these functions.\n\n## Pendle Finance\nFixed in commit e2aa73d0.\n\n## Spearbit\nFix verified.",
+    "summary": "",
+    "report_date": "2025-08-22T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Pendle-Spearbit-Security-Review-August-2025.pdf",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Pendle-Spearbit-Security-Review-August-2025.pdf",
+    "github_link": "",
+    "pdf_link": "https://solodit-bucket.s3.amazonaws.com/storage/reports/spearbit/Pendle-Spearbit-Security-Review-August-2025.pdf",
+    "pdf_page_from": 37,
+    "contest_id": "",
+    "slug": "rawdivceil-and-rawdivfloor-return-incorrect-values-for-ratios-close-to-0-spearbit-none-pendle-core-v3-pdf",
+    "firm_name": "Spearbit",
+    "firm_logo_square": "spearbit_square.png",
+    "protocol_name": "Pendle Core v3",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Saw-mon and Natalie"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Ethan"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Desmond Ho"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "RustyRabbit"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Spearbit",
+        "logo_square": "spearbit_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Pendle Core v3",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

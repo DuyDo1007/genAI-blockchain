@@ -1,0 +1,75 @@
+{
+    "id": 62487,
+    "kind": "GIT",
+    "auditfirm_id": 3,
+    "impact": "HIGH",
+    "finders_count": 7,
+    "protocol_id": 3104,
+    "title": "H-6: DoS might happen to `DineroWithdrawRequestManager#_initiateWithdrawImpl()` due to overflow on `++s_batchNonce`",
+    "content": "\nSource: https://github.com/sherlock-audit/2025-06-notional-exponent-judging/issues/580 \n\n## Found by \n0xpiken, HeckerTrieuTien, Ledger\\_Patrol, Ragnarok, X0sauce, heavyw8t, y4y\n\n### Summary\n\nWhen `DineroWithdrawRequestManager#initiateWithdraw()` is called to initiate WETH withdrawal, [`DineroWithdrawRequestManager#_initiateWithdrawImpl()`](https://github.com/sherlock-audit/2025-06-notional-exponent/blob/main/notional-v4/src/withdraws/Dinero.sol#L17-L39) will be executed to initiate a redemption from `PirexETH`:\n```solidity\n    function _initiateWithdrawImpl(\n        address /* account */,\n        uint256 amountToWithdraw,\n        bytes calldata /* data */\n    ) override internal returns (uint256 requestId) {\n        if (YIELD_TOKEN == address(apxETH)) {\n            // First redeem the apxETH to pxETH before we initiate the redemption\n            amountToWithdraw = apxETH.redeem(amountToWithdraw, address(this), address(this));\n        }\n\n        uint256 initialBatchId = PirexETH.batchId();\n        pxETH.approve(address(PirexETH), amountToWithdraw);\n        // TODO: what do we put for should trigger validator exit?\n        PirexETH.initiateRedemption(amountToWithdraw, address(this), false);\n        uint256 finalBatchId = PirexETH.batchId();\n@>      uint256 nonce = ++s_batchNonce;\n\n        // May require multiple batches to complete the redemption\n        require(initialBatchId < MAX_BATCH_ID);\n        require(finalBatchId < MAX_BATCH_ID);\n        // Initial and final batch ids may overlap between requests so the nonce is used to ensure uniqueness\n        return nonce << 240 | initialBatchId << 120 | finalBatchId;\n    }\n```\nThe returned `requestId` is composed by three variables: `nonce`, `initialBatchId`, and `finalBatchId`.\n`nonce` is calculated as below:\n```solidity\n        uint256 nonce = ++s_batchNonce;\n```\nHowever, `s_batchNonce` is a `uint16` variable. Once its value reaches `65535`, then `++s_batchNonce` will revert the whole `initiateWithdraw()` function, resulting no one can withdraw WETH though `DineroWithdrawRequestManager`. Anyone asset deposited through `DineroWithdrawRequestManager` will be locked forever.\n\n### Root Cause\n\nThe capacity of `s_batchNonce` is too small.\n\n### Internal Pre-conditions\n\n_No response_\n\n### External Pre-conditions\n\n_No response_\n\n### Attack Path\n\nMalicious attacker can call  `DineroWithdrawRequestManager#stakeTokens()` and `DineroWithdrawRequestManager#initiateWithdraw()` repeatedly with different accounts through an approved vault  to quickly increase `s_batchNonce` to `65535`. \n\n### Impact\n\nOnce `s_batchNonce` reaches `65535`, `DineroWithdrawRequestManager#initiateWithdraw()` call will always revert and no any WETH can be withdrawn from `DineroWithdrawRequestManager`.\n\n### PoC\n\n_No response_\n\n### Mitigation\n\nThe reason that defining `s_batchNonce` as `uint16` is  that `s_batchNonce` will be used together with two `uint120` variables to make a `uint256` variable:\n```solidity\n        return nonce << 240 | initialBatchId << 120 | finalBatchId;\n```\nSince `PirexETH.batchId()` will increase one time only every 32 ether redemption, it is unnecessary to record two batchIds in `requestId`. `requestId` can be redesigned as below:\n```code\n|255------136|135---------16|15---------0|\n|s_batchNonce|initialBatchId|deltaBatchId|\n``` \nWhere `uint16 deltaBatchId = finalBatchId - initialBatchId`\nThen `s_batchNonce` can be defined as a `uint120` variable.\n\n## Discussion\n\n**sherlock-admin2**\n\nThe protocol team fixed this issue in the following PRs/commits:\nhttps://github.com/notional-finance/notional-v4/pull/20/files\n\n\n\n\n",
+    "summary": "\nThis bug report discusses an issue that was found in the Notional Finance protocol by a group of individuals. The issue involves a function called `DineroWithdrawRequestManager#initiateWithdraw()` which is responsible for initiating a withdrawal of WETH. The function calls another function, `DineroWithdrawRequestManager#_initiateWithdrawImpl()`, which then executes a redemption from `PirexETH`. The problem lies in the fact that the `requestId` variable, which is used to track the withdrawal, is composed of three variables, one of which is a `uint16` called `s_batchNonce`. Once this variable reaches its maximum value of `65535`, the `initiateWithdraw()` function will revert and no further withdrawals can be made through the protocol. This means that any assets deposited through the protocol will be locked forever. The root cause of this issue is the fact that the capacity of `s_batchNonce` is too small. The report suggests that this can be mitigated by redesigning the `requestId` variable to use a `uint120` instead of a `uint16`. The Notional Finance team has addressed this issue in a recent PR and the bug has been fixed.",
+    "report_date": "2025-07-18T15:00:00.000Z",
+    "contest_prize_txt": "75500 USDC",
+    "contest_link": "https://app.sherlock.xyz/audits/contests/1001",
+    "sponsor_name": "",
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "",
+    "github_link": "https://github.com/sherlock-audit/2025-06-notional-exponent-judging/issues/580",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "1001",
+    "slug": "h-6-dos-might-happen-to-dinerowithdrawrequestmanager_initiatewithdrawimpl-due-to-overflow-on-s_batchnonce-sherlock-notional-exponent-git",
+    "firm_name": "Sherlock",
+    "firm_logo_square": "sherlock_square.png",
+    "protocol_name": "Notional Exponent",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "HeckerTrieuTien"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "0xpiken"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "y4y"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "X0sauce"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Ledger\\_Patrol"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Ragnarok"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "heavyw8t"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Sherlock",
+        "logo_square": "sherlock_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Notional Exponent",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

@@ -1,0 +1,45 @@
+{
+    "id": 62608,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 16,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3421,
+    "title": "[L-11] `revertBurnRequest()` mismanages `INSTANT_OPEN_PACKET` burn type",
+    "content": "\n_Resolved_\n\nThe `revertBurnRequest()` function in `Packet.sol` allows reverting any burn type, including **INSTANT_OPEN_PACKET**. However, when a packet has burn type **INSTANT_OPEN_PACKET**, the packet opening process has already been initiated through `randomAllocationPool.instantOpenPacket()`, which starts an asynchronous VRF process that can't be simply canceled by changing the burn type back to NONE.\nThis creates an inconsistent state where the burn type is reset to `NONE` in the Packet contract.\nAnd the VRF process continues in the `CardAllocationPool` contract.\n\nTo resolve this, set `fulfilled` to true.\n\n\n\n",
+    "summary": "",
+    "report_date": "2025-09-11T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/pashov/audits/blob/master/team/md/RipIt-security-review_2025-05-10.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "l-11-revertburnrequest-mismanages-instant_open_packet-burn-type-pashov-audit-group-none-ripit_2025-05-10-markdown",
+    "firm_name": "Pashov Audit Group",
+    "firm_logo_square": "Pashov_square.png",
+    "protocol_name": "RipIt_2025-05-10",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Pashov Audit Group"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Pashov Audit Group",
+        "logo_square": "Pashov_square.png"
+    },
+    "protocols_protocol": {
+        "name": "RipIt_2025-05-10",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

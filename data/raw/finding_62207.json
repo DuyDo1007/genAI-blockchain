@@ -1,0 +1,50 @@
+{
+    "id": 62207,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 11,
+    "impact": "LOW",
+    "finders_count": 2,
+    "protocol_id": 3392,
+    "title": "Use named mapping parameters to explicitly note the purpose of keys and values",
+    "content": "**Description:** Use named mapping parameters to explicitly note the purpose of keys and values:\n* `Issuance`:\n```solidity\nvault/StakingVault.sol\n37:    mapping(address => UserCooldown) cooldowns;\n\nhelpers/Blacklistable.sol\n8:    mapping(address => bool) internal _blacklisted;\n\nhelpers/Whitelist.sol\n6:    /// @notice A mapping of specific user addresses that are allowed to bypass SBT checks\n8:    mapping(address => bool) public manualWhitelist;\n```\n\n* `Deposit-Registry`:\n```solidity\nCompliantDepositRegistry.sol\n21:    mapping(address => uint) public investorDepositMap;\n```\n\n**Syntetika:**\nFixed in commit [6f77988](https://github.com/SyntetikaLabs/monorepo/commit/6f779887cb2ab813c2d15dbc9cca7991a7301367).\n\n**Cyfrin:** Verified.",
+    "summary": "",
+    "report_date": "2025-08-01T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/solodit/solodit_content/blob/main/reports/Cyfrin/2025-08-01-cyfrin-syntetika-v2.0.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "use-named-mapping-parameters-to-explicitly-note-the-purpose-of-keys-and-values-cyfrin-none-syntetika-markdown",
+    "firm_name": "Cyfrin",
+    "firm_logo_square": "Cyfrin_square.jpg",
+    "protocol_name": "Syntetika",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Dacian"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Jorge"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Cyfrin",
+        "logo_square": "Cyfrin_square.jpg"
+    },
+    "protocols_protocol": {
+        "name": "Syntetika",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

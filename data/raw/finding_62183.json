@@ -1,0 +1,45 @@
+{
+    "id": 62183,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 16,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3389,
+    "title": "[L-10] Dust shares prevent immediate strategy vault removal due to inconsistent checks",
+    "content": "\n_Resolved_\n\nThe `EulerEarn` vault supports immediate removal of a strategy vault from its `withdrawQueue` by reallocating its funds to another strategy vault. However, this process is hindered by inconsistent logic when checking if a strategy vault is truly “empty.”\n\n- In `reallocate()`, a strategy vault is considered empty based on the `supplyAssets` (calculated by via `id.previewRedeem(supplyShares)`):\n\n```solidity\nfunction reallocate(MarketAllocation[] calldata allocations) external nonReentrant onlyAllocatorRole {\n        address msgSender = _msgSender();\n        uint256 totalSupplied;\n        uint256 totalWithdrawn;\n        for (uint256 i; i < allocations.length; ++i) {\n            MarketAllocation memory allocation = allocations[i];\n            IERC4626 id = allocation.id;\n            if (!config[id].enabled) revert ErrorsLib.MarketNotEnabled(id);\n\n            uint256 supplyShares = config[id].balance;\n            uint256 supplyAssets = id.previewRedeem(supplyShares);\n            uint256 withdrawn = supplyAssets.zeroFloorSub(allocation.assets);\n\n            if (withdrawn > 0) { //@audit : will not be entered if the supplyAssets rounds down to zero\n                // Guarantees that unknown frontrunning donations can be withdrawn, in order to disable a strategy vault (market).\n                uint256 shares;\n                if (allocation.assets == 0) {\n                    shares = supplyShares;\n                    withdrawn = 0;\n                }\n\n                uint256 withdrawnAssets;\n                uint256 withdrawnShares;\n\n                if (shares == 0) {\n                    withdrawnAssets = withdrawn;\n                    withdrawnShares = id.withdraw(withdrawn, address(this), address(this));\n                } else {\n                    withdrawnAssets = id.redeem(shares, address(this), address(this));\n                    withdrawnShares = shares;\n                }\n\n                config[id].balance = uint112(supplyShares - withdrawnShares);\n\n                emit EventsLib.ReallocateWithdraw(msgSender, id, withdrawnAssets, withdrawnShares);\n\n                totalWithdrawn += withdrawnAssets;\n            } else {\n                //...\n            }\n        }\n\n       //...\n    }\n```\n\n- In `updateWithdrawQueue()`, it checks whether the vault holds any `shares` in that strategy vault (via `config[id].balance`):\n\n```solidity\n    function updateWithdrawQueue(uint256[] calldata indexes) external onlyAllocatorRole {\n        //...\n\n        for (uint256 i; i < currLength; ++i) {\n            if (!seen[i]) {\n                IERC4626 id = withdrawQueue[i];\n\n                //...\n\n                if (config[id].balance != 0) {\n                    if (config[id].removableAt == 0) revert ErrorsLib.InvalidMarketRemovalNonZeroSupply(id);\n\n                    if (block.timestamp < config[id].removableAt) {\n                        revert ErrorsLib.InvalidMarketRemovalTimelockNotElapsed(id);\n                    }\n                }\n\n                delete config[id];\n            }\n        }\n\n        //...\n    }\n```\n\nThis inconsistency allows a scenario where a strategy vault appears empty in `reallocate()` (because redeemable assets are zero), but cannot be removed via `updateWithdrawQueue()` because the vault still holds dust shares. This situation may arise due to rounding and a low share price, which results in zero assets when redeemed.\n\nFor example, if the share price is < 1, one share might not be redeemable for a single asset unit. In this case:\n\n- `id.previewRedeem(config[id].balance)` reports `0`, thus the calculated `withdrawn` will be `0`.\n- `reallocate()` assumes the strategy vault is empty and performs no action.\n- Yet `updateWithdrawQueue()` still sees `config[id].balance` > 0 and blocks removal since `removableAt == 0` was set previously to remove the strategy vault via `submitMarketRemoval()`.\n\nThis results in:\n\n- Preventing immediate removal of strategy vaults that appear empty from a value perspective but still hold unusable dust shares.\n- Forcing reliance on the slower timelock pathway, reducing flexibility.\n\n**Recommendations**\n\nConsider updating the `reallocate()` function to force redemption of any remaining shares even if `withdrawn == 0`, this can be done by flagging `allocation.assets == 0` for such vaults to be removed.\n\n\n\n",
+    "summary": "",
+    "report_date": "2025-08-27T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/pashov/audits/blob/master/team/md/EulerEarn-security-review_2025-07-25.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "l-10-dust-shares-prevent-immediate-strategy-vault-removal-due-to-inconsistent-checks-pashov-audit-group-none-eulerearn_2025-07-25-markdown",
+    "firm_name": "Pashov Audit Group",
+    "firm_logo_square": "Pashov_square.png",
+    "protocol_name": "EulerEarn_2025-07-25",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Pashov Audit Group"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Pashov Audit Group",
+        "logo_square": "Pashov_square.png"
+    },
+    "protocols_protocol": {
+        "name": "EulerEarn_2025-07-25",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

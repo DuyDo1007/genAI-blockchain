@@ -1,0 +1,45 @@
+{
+    "id": 62559,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 16,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3420,
+    "title": "[L-01] No NFT retrieval mechanism in `SpinLottery` for inactive rarities",
+    "content": "\n_Resolved_\n\nIn the `SpinLottery` contract, once an NFT is added to the prize pool, there is no mechanism for retrieving it other than through the lottery process.\n\n```solidity\n    function _distributePrize(address player, uint256 requestId, uint8 rarity, uint256 prizeRandom) external {\n        // Only allow this contract to call this function\n        if (msg.sender != address(this)) revert(\"Unauthorized\");\n        \n        (address nftAddress, uint88 tokenId) = _claimPrize(rarity, prizeRandom);\n        IERC721(nftAddress).transferFrom(address(this), player, tokenId);\n        emit PrizeWon(player, requestId, nftAddress, tokenId, rarity);\n    }\n```\n\nIf a rarity is marked as inactive via `configureRarity`, any NFTs associated with that rarity become effectively locked and cannot be retrieved. \n\n```solidity\n        // Update configuration\n        rarityConfigs[_rarityId] = RarityConfig({\n            weight: _weight,\n            basePrice: _basePrice,\n            active: _active\n        });\n```\n\nTo address this issue, implement a mechanism that allows admins to retrieve their NFTs if the associated `rarity` becomes inactive. \n\n\n\n",
+    "summary": "",
+    "report_date": "2025-09-11T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/pashov/audits/blob/master/team/md/RipIt-security-review_2025-04-25.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "l-01-no-nft-retrieval-mechanism-in-spinlottery-for-inactive-rarities-pashov-audit-group-none-ripit_2025-04-25-markdown",
+    "firm_name": "Pashov Audit Group",
+    "firm_logo_square": "Pashov_square.png",
+    "protocol_name": "RipIt_2025-04-25",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Pashov Audit Group"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Pashov Audit Group",
+        "logo_square": "Pashov_square.png"
+    },
+    "protocols_protocol": {
+        "name": "RipIt_2025-04-25",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

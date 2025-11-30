@@ -1,0 +1,55 @@
+{
+    "id": 62267,
+    "kind": "PDF",
+    "auditfirm_id": 6,
+    "impact": "LOW",
+    "finders_count": 3,
+    "protocol_id": 3395,
+    "title": "LockToVote.vote and LockToVote.clearVote functions should explicitly validate the msg.sender to",
+    "content": "## be the LockManager\n\n**Severity:** Low Risk  \n**Context:** LockToVotePlugin.sol#L28, LockToVotePlugin.sol#L148, LockToVotePlugin.sol#L211  \n\n**Description:**  \nThe `LockToVote.vote` and `LockToVote.clearVote` functions are both calling the `auth(LOCK_MANAGER_PERMISSION_ID)` modifier, and they do not validate that `msg.sender == lockManager`. This means that those functions could theoretically be called by an entity who has the permission but is not the lock manager.\n\nThe `LockManager` contract is the one that tells the voting plugin both who is the caller and how much voting power (tokens) have been locked. Relative to the vote function, it would allow such an external entity to vote on behalf of any address with an arbitrary amount of voting power without the need to transfer and lock any token (corresponding to the voting power). This gives that external entity the ability to freely decide the success or failure of any proposals.\n\nRelative to the `clearVote` function, it would allow such an external entity to arbitrarily clear the vote of an existing voter without their consent. Like before, this action gives that external entity the ability to freely decide the success or failure of any proposals.\n\nOn the other end, if the `LOCK_MANAGER_PERMISSION_ID` permission is revoked from the `LockManager`, it would prevent a working `LockManager` from casting votes or clearing an existing one, disrupting the core usage of the voting plugin and the `LockManager`.\n\n**Recommendation:**  \nAragon should add explicit sanity checks in both the `vote` and `clearVote` functions and revert when `msg.sender != address(lockManager)`. The `LOCK_MANAGER_PERMISSION_ID` permission can be left as it is given that it will be removed once the plugin is uninstalled and will correctly prevent the `LockManager` from casting new votes after the uninstallation process.\n\n**Aragon:** Fixed in PR 39.  \n\n**Spearbit:** The PR 39 has implemented the following changes:\n- `LockToVote.clearVote`: removed `auth(LOCK_MANAGER_PERMISSION_ID)` and added the requirement `msg.sender == address(lockManager)`. The `LockManager` will always be able to clear the vote. Note that unless there's an upgrade in the code, the `lockManager` address cannot be changed after deployment.\n- `LockToVote.vote`: added the requirement `msg.sender == address(lockManager)`. The DAO could remove the permission `LOCK_MANAGER_PERMISSION_ID` from the `LockManager` and prevent it from casting a vote on behalf of the user.",
+    "summary": "",
+    "report_date": "2025-08-28T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Aragon-Spearbit-Security-Review-July-2025.pdf",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Aragon-Spearbit-Security-Review-July-2025.pdf",
+    "github_link": "",
+    "pdf_link": "https://solodit-bucket.s3.amazonaws.com/storage/reports/spearbit/Aragon-Spearbit-Security-Review-July-2025.pdf",
+    "pdf_page_from": 18,
+    "contest_id": "",
+    "slug": "locktovotevote-and-locktovoteclearvote-functions-should-explicitly-validate-the-msgsender-to-spearbit-none-aragon-dao-gov-plugin-pdf",
+    "firm_name": "Spearbit",
+    "firm_logo_square": "spearbit_square.png",
+    "protocol_name": "Aragon DAO Gov Plugin",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Om Parikh"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Emanuelle Ricci"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Patrick Drotleff"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Spearbit",
+        "logo_square": "spearbit_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Aragon DAO Gov Plugin",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

@@ -1,0 +1,50 @@
+{
+    "id": 62227,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 11,
+    "impact": "GAS",
+    "finders_count": 2,
+    "protocol_id": 3392,
+    "title": "Variables only set once in `constructor` of non-upgradeable contracts should be declared `immutable`",
+    "content": "**Description:** Variables only set once in `constructor` of non-upgradeable contracts should be declared `immutable`:\n* `CompliantDepositRegistry::complianceChecker`\n* `Minter::baseAsset, hilBTCToken`\n\n**Syntetika:**\nFixed in commit [3d1e596](https://github.com/SyntetikaLabs/monorepo/commit/3d1e5967e99de56cb212565eca42845ba8149784).\n\n**Cyfrin:** Verified.",
+    "summary": "",
+    "report_date": "2025-08-01T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/solodit/solodit_content/blob/main/reports/Cyfrin/2025-08-01-cyfrin-syntetika-v2.0.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "variables-only-set-once-in-constructor-of-non-upgradeable-contracts-should-be-declared-immutable-cyfrin-none-syntetika-markdown",
+    "firm_name": "Cyfrin",
+    "firm_logo_square": "Cyfrin_square.jpg",
+    "protocol_name": "Syntetika",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Dacian"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Jorge"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Cyfrin",
+        "logo_square": "Cyfrin_square.jpg"
+    },
+    "protocols_protocol": {
+        "name": "Syntetika",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

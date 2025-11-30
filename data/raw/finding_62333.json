@@ -1,0 +1,45 @@
+{
+    "id": 62333,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 16,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3400,
+    "title": "[L-09] Cooldown timer reset causes user withdrawal delays",
+    "content": "\n_Acknowledged_\n\nIn `deusd_lp_staking.move` function `unstake()`, each unstake operation overwrites the cooldown timestamp for all cooling tokens, not just the newly unstaked amount.\n\nIf you check this **vulnerable code**, it resets the timer for ALL cooling tokens\n```move\nstake_data.cooldown_start_timestamp = clock_utils::timestamp_seconds(clock);\n// ↑ Resets timer for ALL cooling tokens\n```\n\nThis is **how it occurs:**\n1. User unstakes 1000 tokens on Day 0 (withdrawable Day 30).\n2. User unstakes 100 more tokens on Day 20 (thinking it's independent).\n3. Cooldown resets: all 1100 tokens now withdrawable Day 50 (30 days from Day 20).\n\nThe **root cause** here is that a single timestamp is shared across all cooling tokens instead of per-batch tracking.\n\nThe concrete impact here is user confusion and unintended withdrawal delays from multiple unstake transactions resetting cooldown periods.\n\n**Recommendation**\n\nPrevent cooldown reset if tokens are already cooling.\n\n```move\n// In unstake() function:\nif (stake_data.cooling_down_amount == 0) {\n    stake_data.cooldown_start_timestamp = clock_utils::timestamp_seconds(clock);\n}\n```\n\n\n\n",
+    "summary": "",
+    "report_date": "2025-09-02T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/pashov/audits/blob/master/team/md/Elixir-security-review_2025-08-17.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "l-09-cooldown-timer-reset-causes-user-withdrawal-delays-pashov-audit-group-none-elixir_2025-08-17-markdown",
+    "firm_name": "Pashov Audit Group",
+    "firm_logo_square": "Pashov_square.png",
+    "protocol_name": "Elixir_2025-08-17",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Pashov Audit Group"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Pashov Audit Group",
+        "logo_square": "Pashov_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Elixir_2025-08-17",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

@@ -1,0 +1,45 @@
+{
+    "id": 62590,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 16,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3420,
+    "title": "[L-32] Potential incomplete role revocation in `revokeRole()` function",
+    "content": "\n_Resolved_\n\n The `revokeRole` function is intended to revoke a specific role from a given address. Thus, it is expected to work completely.\n```solidity\n    /**\n     * @notice Revokes a role from an address\n     * @dev Only super admin or role manager can revoke roles\n     * @param roleId ID of the role to revoke\n     * @param user Address to revoke the role from\n     *\n     * Requirements:\n     * - Caller must be super admin or role manager\n     * - Role ID cannot be 0 or SUPER_ADMIN_ROLE\n     *\n     * Emits a {RoleBurned} event\n```\n\n**However, its implementation does not guarantee that the role is fully revoked.** \n\nSince the contract uses `ERC1155` tokens, a user may hold multiple tokens corresponding to the same role(or `tokenId`) (e.g., multiple `ROLE_MANAGER_ROLE` tokens) since there is no such check in `assignRole`.\n\n```solidity\n    function assignRole(uint256 roleId, address receiver) external onlySuperAdminOrRoleManager {\n        if (roleId == SUPER_ADMIN_ROLE) {\n            revert SuperAdminRoleReserved();\n        }\n        if (roleId == 0) {\n            revert InvalidRoleId();\n        }\n\n        _mint(receiver, roleId, 1, \"\"); // <= No check if the user does already have such role before\n        emit RoleMinted(roleId, receiver, msg.sender);\n    }\n```\n\n**The current implementation only burns 1 token when revoking a role**, which means that the user could still retain access if they possess an additional `tokenId` representing the same role. This behavior contradicts the intended design of the `revokeRole` function which is intended to revoke a specific role from a given address.\n\n```solidity\n    function revokeRole(uint256 roleId, address user) external onlySuperAdminOrRoleManager {\n        if (roleId == SUPER_ADMIN_ROLE) {\n            revert SuperAdminRoleReserved();\n        }\n        if (roleId == 0) {\n            revert InvalidRoleId();\n        }\n\n        _burn(user, roleId, 1); // <= only burns 1 token\n        emit RoleBurned(roleId, user, msg.sender);\n    }\n```\n\n**Note that it's possible for the user to have multiple instances of the same role, see here: (`balanceOf(user, roleId) > 0`)**\n```solidity\n    function hasRole(uint256 roleId, address user) public view returns (bool) {\n        return balanceOf(user, roleId) > 0;\n    }\n```\n\n\nRecommendations:\n\n To ensure that the `revokeRole function` effectively revokes all instances of a role from a user, it should first check the total balance of the specified `roleId` tokens held by the user. If the user holds multiple tokens, the function should burn all of them.\n\n\n\n",
+    "summary": "",
+    "report_date": "2025-09-11T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/pashov/audits/blob/master/team/md/RipIt-security-review_2025-04-25.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "l-32-potential-incomplete-role-revocation-in-revokerole-function-pashov-audit-group-none-ripit_2025-04-25-markdown",
+    "firm_name": "Pashov Audit Group",
+    "firm_logo_square": "Pashov_square.png",
+    "protocol_name": "RipIt_2025-04-25",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Pashov Audit Group"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Pashov Audit Group",
+        "logo_square": "Pashov_square.png"
+    },
+    "protocols_protocol": {
+        "name": "RipIt_2025-04-25",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

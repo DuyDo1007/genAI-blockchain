@@ -1,0 +1,60 @@
+{
+    "id": 62903,
+    "kind": "PDF",
+    "auditfirm_id": 6,
+    "impact": "MEDIUM",
+    "finders_count": 4,
+    "protocol_id": 3419,
+    "title": "Inefﬁcient loop accross current_ map during pop_accept after a call",
+    "content": "## Severity: Medium Risk\n\n## Context\n`state.hpp#L117-L119`\n\n## Description\n```cpp\nvoid pop_accept()\n{\n    MONAD_ASSERT(version_);\n    for (auto it = current_.begin(); it != current_.end(); ++it) {\n        it->second.pop_accept(version_);\n    }\n    logs_.pop_accept(version_);\n    --version_;\n}\n```\n\nThe `current_` map tracks all the addresses that were accessed, touched, or modified in the current transaction. This for loop is inefficient because it can iterate through addresses in `current_` that have been accessed in the transaction but have **not** been modified in the current call frame. \n\nFor example, an attacker could potentially access many addresses at the start of a transaction (via access list, for example). This will result in `access_account` being called, which will cause these addresses to be added to the `current_` map, paying only 2400 gas for the access cost. As an example, an attacker can purchase 30,000 addresses in the access list for 72M gas.\n\n```cpp\nevmc_access_status access_account(Address const &address)\n{\n    auto &account_state = current_account_state(address); // address added to 'current_' map here\n    return account_state.access();\n}\n```\n\nThen the attacker makes multiple precompile calls, each call is considered warm paying only 100 gas. At the end of each call, `pop_accept` will be called. However, the for loop will iterate through all 30,000 addresses in the `current_` even though these addresses were not modified at all in the precompile call. As an example, an attacker can make 700,000 calls using 70M gas. All in all, this results in 21 billion for loop iterations per block.\n\n## Recommendation\nWhile it is unknown how viable this attack vector is, in the best case, the code is unoptimized as it is looping through the global `current_` map, which also includes addresses that do not contain the current version at the top of their version stack. An optimization can be made to track **only** the modified addresses to loop through for a given version via a `Map<Version, std::vector<Address>` / `std::stack<std::vector<Address>>` variable to prevent iterating over unnecessary items in the `current_` map.\n\n## Category Labs\nLocal benchmarks confirm that this appears to be valid. We will be tracking it in this monad issue 1657.\n\n## Spearbit\nAcknowledged.",
+    "summary": "\nThe report talks about a bug that makes the code inefficient when iterating through a map. This map keeps track of all the addresses that were accessed, touched, or modified in the current transaction. The for loop in the code goes through all the addresses in the map, even those that were not modified in the current call frame. This can be exploited by an attacker to access many addresses and make multiple precompile calls, resulting in a high number of iterations. The recommendation is to optimize the code by tracking only the modified addresses to prevent unnecessary iterations. This bug has been acknowledged and is being tracked by the developers.",
+    "report_date": "2025-09-19T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Monad-Spearbit-Security-Review-September-2025.pdf",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Monad-Spearbit-Security-Review-September-2025.pdf",
+    "github_link": "",
+    "pdf_link": "https://solodit-bucket.s3.amazonaws.com/storage/reports/spearbit/Monad-Spearbit-Security-Review-September-2025.pdf",
+    "pdf_page_from": 30,
+    "contest_id": "",
+    "slug": "inefficient-loop-accross-current_-map-during-pop_accept-after-a-call-spearbit-none-monad-pdf",
+    "firm_name": "Spearbit",
+    "firm_logo_square": "spearbit_square.png",
+    "protocol_name": "Monad",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Haxatron"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Dtheo"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Guido Vranken"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Rikard Hjort"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Spearbit",
+        "logo_square": "spearbit_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Monad",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

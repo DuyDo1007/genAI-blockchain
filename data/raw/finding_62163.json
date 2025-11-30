@@ -1,0 +1,65 @@
+{
+    "id": 62163,
+    "kind": "GIT",
+    "auditfirm_id": 3,
+    "impact": "MEDIUM",
+    "finders_count": 5,
+    "protocol_id": 3130,
+    "title": "M-1: Attacker/partial liquidator can extend Liquidation action by resetting  $.liquidationStart[_agent] to 0.",
+    "content": "\nSource: https://github.com/sherlock-audit/2025-07-cap-judging/issues/145 \n\n## Found by \nBigsam, dobrevaleri, roshark, silver\\_eth, swarun\n\n### Summary\n\nAttackers can extend Liquidation by Action, by partially liquidating a position with a few wei to manipulate health to >=1e27 before taking the collateral, since the account is still liquidatable after the delegator is slashed of this amount, a new liquidator's call to liquidate this position will revert incorrectly. This is because the health check to close the liquidation uses debt amount after repayment with delegation still yet unslashed.\n\n### Root Cause\n\n```solidity\n\n    /// @notice Liquidate an agent when their health is below 1\n    /// @dev Liquidation must be opened first and the grace period must have passed. Liquidation\n    /// bonus linearly increases, once grace period has ended, up to the cap at expiry.\n    /// All health factors, LTV ratios, and thresholds are in ray (1e27)\n    /// @param $ Lender storage\n    /// @param params Parameters to liquidate an agent\n    /// @return liquidatedValue Value of the liquidation returned to the liquidator\n    function liquidate(ILender.LenderStorage storage $, ILender.RepayParams memory params)\n        external\n        returns (uint256 liquidatedValue)\n    {\n        (uint256 totalDelegation, uint256 totalSlashableCollateral, uint256 totalDebt,,, uint256 health) =\n            ViewLogic.agent($, params.agent);\n\n        ValidationLogic.validateLiquidation(\n            health,\n            totalDelegation * $.emergencyLiquidationThreshold / totalDebt,\n            $.liquidationStart[params.agent],\n            $.grace,\n            $.expiry\n        );\n\n        (uint256 assetPrice,) = IOracle($.oracle).getPrice(params.asset);\n        uint256 bonus = ViewLogic.bonus($, params.agent);\n        uint256 maxLiquidation = ViewLogic.maxLiquidatable($, params.agent, params.asset);\n        uint256 liquidated = params.amount > maxLiquidation ? maxLiquidation : params.amount;\n\n   @audit>>       liquidated = BorrowLogic.repay(\n            $,\n            ILender.RepayParams({ agent: params.agent, asset: params.asset, amount: liquidated, caller: params.caller })\n        );\n\n@audit>>         (,,,,, health) = ViewLogic.agent($, params.agent);\n@audit>>          if (health >= 1e27) _closeLiquidation($, params.agent);   // premature close ............. health is not health.....\n\n        liquidatedValue =\n            (liquidated + (liquidated * bonus / 1e27)) * assetPrice / (10 ** $.reservesData[params.asset].decimals);\n        if (totalSlashableCollateral < liquidatedValue) liquidatedValue = totalSlashableCollateral;\n\n        if (liquidatedValue > 0) IDelegation($.delegation).slash(params.agent, params.caller, liquidatedValue);\n\n        emit Liquidate(params.agent, params.caller, params.asset, liquidated, liquidatedValue);\n    }\n\n```\n\nLiquidation is closed before delegations are slashed, hence the health factor returned is not the ending health factor.....\n\n```solidity\n    /// @dev Cancel further liquidations with no checks\n    /// @param $ Lender storage\n    /// @param _agent Agent address\n    function _closeLiquidation(ILender.LenderStorage storage $, address _agent) internal {\n \n@audit>>        $.liquidationStart[_agent] = 0;\n        \n         emit CloseLiquidation(_agent);\n    }\n\n```\n\nThis will cause the the next liquidator or actual liquidator that was front run , the liquidator's call will revert here.\n\n```solidity\n    function liquidate(ILender.LenderStorage storage $, ILender.RepayParams memory params)\n        external\n        returns (uint256 liquidatedValue)\n    {\n        (uint256 totalDelegation, uint256 totalSlashableCollateral, uint256 totalDebt,,, uint256 health) =\n            ViewLogic.agent($, params.agent);\n\n@audit>>         ValidationLogic.validateLiquidation(\n            health,\n            totalDelegation * $.emergencyLiquidationThreshold / totalDebt,\n            $.liquidationStart[params.agent],\n            $.grace,\n            $.expiry\n        );\n```\n\n```solidity\n    /// @notice Validate the liquidation of an agent\n    /// @dev Health of above 1e27 is healthy, below is liquidatable\n    /// @param health Health of an agent's position\n    /// @param emergencyHealth Emergency health below which the grace period is voided\n    /// @param start Last liquidation start time\n    /// @param grace Grace period duration\n    /// @param expiry Liquidation duration after which it expires\n    function validateLiquidation(uint256 health, uint256 emergencyHealth, uint256 start, uint256 grace, uint256 expiry)\n        external\n        view\n    {\n        if (health >= 1e27) revert HealthFactorNotBelowThreshold();\n        if (emergencyHealth >= 1e27) {\n\n@audit>>             if (block.timestamp <= start + grace) revert GracePeriodNotOver();\n            if (block.timestamp >= start + expiry) revert LiquidationExpired();\n        }\n    }\n```\n\nWhen we repay we burn debt tokens this will reduce the debt of the agent, but this reduced debt is used to get the new health before delegation is reduced.\n\nBecause the health factor will return a value above >= 1e27 which is incorrect because delegation has not been reduced by the liquidated value. hence the check is using a higher than the actual health factor.\n\nThis means the liquidator will be force to Open another liquidation with a new Grace Period. \n\nThe attacker is incentivized to carry out this attack has they will receive the liquidated value plus fee, making this attack profitable.\n\n\n### Internal Pre-conditions\n\n1. Account health drops below 1e27\n2. Liquidation is open giving the liquidator a grace period to respond.\n\n\n### External Pre-conditions\n\nhttps://github.com/sherlock-audit/2025-07-cap/blob/main/cap-contracts/contracts/lendingPool/libraries/LiquidationLogic.sol#L81-L87\n\nhttps://github.com/sherlock-audit/2025-07-cap/blob/main/cap-contracts/contracts/lendingPool/libraries/ViewLogic.sol#L108-L129\n\nhttps://github.com/sherlock-audit/2025-07-cap/blob/main/cap-contracts/contracts/lendingPool/libraries/BorrowLogic.sol#L158\n\n\n\n\n### Attack Path\n\n1. Account health drops below 1e27\n2. Liquidation is open giving the liquidator a grace period to respond.\n3. Attacker liquidates immediately grace period passes with a partial liquidation\n4. Account is still liquidatable because the health factor wasn't returned back to health \n5. Attacker successfully updates the mapping with the health still below 1e27.\n\n### Impact\n\nHealth factor below 1e27 will have the Open liquidation call close prematurely, preventing other liquidators from liquidating early.\n\n### PoC\n\n_No response_\n\n### Mitigation\n\nClose the liquidation after the delegation Amount has been slashed to ensure that the health factor is indeed the Positions current health factor.\n\n```solidity\n\n  ValidationLogic.validateLiquidation(\n            health,\n            totalDelegation * $.emergencyLiquidationThreshold / totalDebt,\n            $.liquidationStart[params.agent],\n            $.grace,\n            $.expiry\n        );\n\n        (uint256 assetPrice,) = IOracle($.oracle).getPrice(params.asset);\n        uint256 bonus = ViewLogic.bonus($, params.agent);\n        uint256 maxLiquidation = ViewLogic.maxLiquidatable($, params.agent, params.asset);\n        uint256 liquidated = params.amount > maxLiquidation ? maxLiquidation : params.amount;\n\n        liquidated = BorrowLogic.repay(\n            $,\n            ILender.RepayParams({ agent: params.agent, asset: params.asset, amount: liquidated, caller: params.caller })\n        );\n\n--        (,,,,, health) = ViewLogic.agent($, params.agent);\n--        if (health >= 1e27) _closeLiquidation($, params.agent);   // premature close ............. health is not health.....\n\n        liquidatedValue =\n            (liquidated + (liquidated * bonus / 1e27)) * assetPrice / (10 ** $.reservesData[params.asset].decimals);\n        if (totalSlashableCollateral < liquidatedValue) liquidatedValue = totalSlashableCollateral;\n\n        if (liquidatedValue > 0) IDelegation($.delegation).slash(params.agent, params.caller, liquidatedValue);\n\n   \n++        (,,,,, health) = ViewLogic.agent($, params.agent);\n++       if (health >= 1e27) _closeLiquidation($, params.agent);   // premature close ............. health is not health.....\n\n        emit Liquidate(params.agent, params.caller, params.asset, liquidated, liquidatedValue);\n    }\n\n```\n\n## Discussion\n\n**sherlock-admin2**\n\nThe protocol team fixed this issue in the following PRs/commits:\nhttps://github.com/cap-labs-dev/cap-contracts/pull/185\n\n\n\n\n",
+    "summary": "\nSummary: \n\nThis bug report describes a vulnerability in a lending protocol that allows attackers to manipulate the health factor of a position by partially liquidating it with a small amount of wei. This manipulation can cause the health factor to appear above the threshold of 1e27, allowing the attacker to prematurely close the liquidation and prevent other liquidators from intervening. The root cause of this issue is a discrepancy in the health factor calculation, which uses the debt amount after repayment but before delegation is slashed. The suggested mitigation is to close the liquidation after delegation has been slashed to ensure an accurate health factor. The protocol team has fixed this issue in a recent PR. ",
+    "report_date": "2025-07-24T15:00:00.000Z",
+    "contest_prize_txt": "126000 USDC",
+    "contest_link": "https://app.sherlock.xyz/audits/contests/990",
+    "sponsor_name": "",
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "",
+    "github_link": "https://github.com/sherlock-audit/2025-07-cap-judging/issues/145",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "990",
+    "slug": "m-1-attackerpartial-liquidator-can-extend-liquidation-action-by-resetting-liquidationstart_agent-to-0-sherlock-cap-git",
+    "firm_name": "Sherlock",
+    "firm_logo_square": "sherlock_square.png",
+    "protocol_name": "Cap",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "roshark"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Bigsam"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "silver\\_eth"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "swarun"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "dobrevaleri"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Sherlock",
+        "logo_square": "sherlock_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Cap",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

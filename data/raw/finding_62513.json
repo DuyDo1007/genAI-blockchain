@@ -1,0 +1,75 @@
+{
+    "id": 62513,
+    "kind": "GIT",
+    "auditfirm_id": 3,
+    "impact": "MEDIUM",
+    "finders_count": 6,
+    "protocol_id": 3104,
+    "title": "M-21: Funds stuck if one of the withdrawal requests cannot be finalized",
+    "content": "\nSource: https://github.com/sherlock-audit/2025-06-notional-exponent-judging/issues/692 \n\n## Found by \nHeckerTrieuTien, Ledger\\_Patrol, auditgpt, coin2own, dan\\_\\_vinci, xiaoming90\n\n### Summary\n\n-\n\n### Root Cause\n\n- Handling of multiple withdraw requests (WRs) is not robust enough, and the failure of one can cause the entire WRs to be stuck even though the rest of the WRs have finalized successfully.\n- Lack of minimum position size could cause a revert to occur during redemption, blocking the WR from finalizing. See the main report for more details.\n\n### Internal Pre-conditions\n\n-\n\n### External Pre-conditions\n\n-\n\n### Attack Path\n\nBoth WRs must be finalized before the redemption is allowed to be executed, as shown in Line 397 below.\n\nhttps://github.com/sherlock-audit/2025-06-notional-exponent/blob/main/notional-v4/src/single-sided-lp/AbstractSingleSidedLP.sol#L397\n\n```solidity\nFile: AbstractSingleSidedLP.sol\n378:     function finalizeAndRedeemWithdrawRequest(\n379:         address sharesOwner,\n380:         uint256 sharesToRedeem\n381:     ) external override returns (uint256[] memory exitBalances, ERC20[] memory withdrawTokens) {\n382:         ERC20[] memory tokens = TOKENS();\n383: \n384:         exitBalances = new uint256[](tokens.length);\n385:         withdrawTokens = new ERC20[](tokens.length);\n386: \n387:         WithdrawRequest memory w;\n388:         for (uint256 i; i < tokens.length; i++) {\n389:             IWithdrawRequestManager manager = ADDRESS_REGISTRY.getWithdrawRequestManager(address(tokens[i]));\n390:             (w, /* */) = manager.getWithdrawRequest(address(this), sharesOwner);\n391: \n392:             uint256 yieldTokensBurned = uint256(w.yieldTokenAmount) * sharesToRedeem / w.sharesAmount;\n393:             bool finalized;\n394:             (exitBalances[i], finalized) = manager.finalizeAndRedeemWithdrawRequest({\n395:                 account: sharesOwner, withdrawYieldTokenAmount: yieldTokensBurned, sharesToBurn: sharesToRedeem\n396:             });\n397:             if (!finalized) revert WithdrawRequestNotFinalized(w.requestId);\n398:             withdrawTokens[i] = ERC20(manager.WITHDRAW_TOKEN());\n399:         }\n400:     }\n```\n\nHowever, the issue is that if one of the WRs cannot be finalized due to various reasons, such as:\n\n- Insufficient funds/liquidity at the external protocol\n- Validator of the Liquid Staking protocol suffers a massive slashing event, leading to insufficient liquidity to repay users\n- External protocol being compromised or paused\n- External protocol's finalize redemption/withdrawal function keeps reverting (can be due to an unintentional bug or malicious acts)\n- If the WR is handling ERC4626 vault share, it sometimes might revert during redemption. A common revert during redemption is a classic zero share check (e.g., `require((assets = previewRedeem(shares)) != 0, \"ZERO_ASSETS\");)` that blocks the redemption when the assets received are zero, which might occur due to rounding errors. This generally occurs when the share to be redeemed is small, and since Notional does not enforce a minimum position size, this issue can theoretically arise. One example of such is the PirexETH that is in-scope, where it will revert if the assets received round down to zero (see [here](https://etherscan.io/address/0xD664b74274DfEB538d9baC494F3a4760828B02b0#code#F23#L107)). Same for AutoPxETH (See [here](https://etherscan.io/address/0x9ba021b0a9b958b5e75ce9f6dff97c7ee52cb3e6#code#F3#L107)). There are two (2) root causes here: 1) Lack of minimum position size 2) Handling of multiple WRs are not robust enough and the failure of one can cause entire WRs to be stuck.\n- To add-on to the previous point, some staking protocols (e.g., LIDO) enforced a minimum withdrawal amount. If the amount of LST to be unstaked is less than the minimum withdrawal amount, the redemption cannot be carried out. LIDO is one of the protocols that enforce this. Since there is no minimum position size when entering the position, this is likely to occur. In this case, such a WR cannot be finalized or even initiate withdrawal. Since the Contest's README [here](https://github.com/sherlock-audit/2025-06-notional-exponent-xiaoming9090/tree/main?tab=readme-ov-file#q-please-discuss-any-design-choices-you-made), mentioned that `Notional Exponent is designed to be extendable to new yield strategies and opportunities as well as new lending platforms. `, this point is valid as this issue will occur when they extended to other platforms such as LIDO.\n\nThe funds in the other WR will remain stuck and be lost.\n\nAssume a Curve two-token pool with wstETH (7-day withdrawal period + subject to redemption queue) and USDC (no withdrawal period).\n\nWhen the user initiates the withdrawal, there will be two (2) separate withdrawal requests (WR) created. First WR holds 100 wstETH and is currently pending the withdrawal period to be completed, while the second WR holds 115 WETH.\n\nIf LIDO is compromised, the first WR will not be able to be finalized, as there is no guarantee that LIDO's redemption will resume after the hack, as they may not recover from the hack.\n\nIn this case, since the requirement is that both WRs must be finalized, even though the 115 WETH can be withdrawn immediately, the protocol doesn't allow the user to do so. Thus, instead of losing around 50% of the total funds due to the LIDO hack, the user ends up allowing 100% of the funds as the entire fund is stuck.\n\n### Impact\n\nHigh. Funds will get stuck if this issue happens.\n\n\n### PoC\n\n_No response_\n\n### Mitigation\n\n_No response_\n\n",
+    "summary": "\nThis bug report discusses an issue found in the Notional Exponent platform, where multiple withdrawal requests can become stuck if one of them fails to finalize. This can happen due to various reasons, such as insufficient funds, external protocol being compromised, or a bug in the external protocol's code. The lack of a minimum position size can also cause a revert during redemption, blocking the withdrawal request from being finalized. This can result in the user losing all of their funds. The impact of this bug is considered high, as it can lead to funds being permanently stuck. The report also suggests potential mitigations, but there has been no response from the platform's developers. ",
+    "report_date": "2025-07-18T15:00:00.000Z",
+    "contest_prize_txt": "75500 USDC",
+    "contest_link": "https://app.sherlock.xyz/audits/contests/1001",
+    "sponsor_name": "",
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "",
+    "github_link": "https://github.com/sherlock-audit/2025-06-notional-exponent-judging/issues/692",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "1001",
+    "slug": "m-21-funds-stuck-if-one-of-the-withdrawal-requests-cannot-be-finalized-sherlock-notional-exponent-git",
+    "firm_name": "Sherlock",
+    "firm_logo_square": "sherlock_square.png",
+    "protocol_name": "Notional Exponent",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "HeckerTrieuTien"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "dan\\_\\_vinci"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Ledger\\_Patrol"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "auditgpt"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "xiaoming90"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "dan\\_\\_vinci"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "coin2own"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Sherlock",
+        "logo_square": "sherlock_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Notional Exponent",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

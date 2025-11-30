@@ -1,0 +1,45 @@
+{
+    "id": 62117,
+    "kind": "GIT",
+    "auditfirm_id": 3,
+    "impact": "MEDIUM",
+    "finders_count": 1,
+    "protocol_id": 3135,
+    "title": "M-6: Targeted-lockup bypass: freshly minted shares can be transferred immediately in the same `transfer()` or `transferFrom()` call",
+    "content": "\nSource: https://github.com/sherlock-audit/2025-07-mellow-flexible-vaults-judging/issues/617 \n\n## Found by \nrsam\\_eth\n\n### Summary\n\n`TokenizedShareManager` is designed so that every newly minted share is subject to a per account targeted lock-up (`lockedUntil = now + targetedLockup`).\nHowever, because `TokenizedShareManager._update()` calls `claimShares(from)` before executing the actual ERC-20 transfer, and because `mint()` sets `lockedUntil` after the prior lock check, a user who has any allocated (yet-unclaimed) shares can:\n\n1. trigger a mint via `claimShares` in the `_update` function (through a `transfer` or `transferFrom`),\n2. have those shares credited to their balance, and\n3. pass them to another address in the same transaction,\n\nall without ever being prevented by the lock-up.\n\n### Root Cause\n\nhttps://github.com/sherlock-audit/2025-07-mellow-flexible-vaults/blob/main/flexible-vaults/src/managers/TokenizedShareManager.sol#L46-L55\n```solidity    \nfunction _update(address from, address to, uint256 value) internal override {\n        updateChecks(from, to); // ① lock check executes here\n        if (from != address(0)) {\n            claimShares(from); // ② mints & sets new lock, the updateChecks in next _update calls are \n            //bypassed since from is address(0) and to is the \"from\" here\n        }\n        if (to != address(0)) {\n            claimShares(to);\n        }\n        super._update(from, to, value); // ③ transfer executes after mint\n    }\n```\n`claimShares(from)` →` mintAllocatedShares() `→ `mint()` → `ERC-20 _mint()`, the new entered `_update(address(0), from, value)` passes the `updateChecks` for `from` because in the `updateChecks` → `from == address(0)` → the `value` parameter (in the first `_update`) is minted to `from` → in the `shareManager::mint` function (3rd step in the call flow) the `lockedUntill` is assigned:\nhttps://github.com/sherlock-audit/2025-07-mellow-flexible-vaults/blob/main/flexible-vaults/src/managers/ShareManager.sol#L230-L233\n```solidity\n        if (targetLockup != 0) {\n            uint32 lockedUntil = uint32(block.timestamp) + targetLockup;\n            $.accounts[account].lockedUntil = lockedUntil;\n            emit Mint(account, value, lockedUntil);\n        }\n```\nBecause the original `updateChecks` has already passed, the transfer that follows moves the just-minted shares out of the locked account.\n\n### Internal Pre-conditions\n\n- `TokenizedShareManager` operates with `targetedLockup > 0`.\n- from `holds ≥1` allocated shares in any deposit queue.\n\n### External Pre-conditions\n\n---\n\n### Attack Path\n\n1. **State before tx**  \n   - `lockedUntil` for **Alice** is *in the past* → she can transfer.  \n   - Alice owns **100 allocated shares** (not yet active).\n\n2. **Alice calls**\n\n   ```solidity\n   share.transfer(bob, 100);\n   ```\n\n3. **`TokenizedShareManager._update(Alice → Bob)`**  \n   1. `updateChecks(from, to)` → passes (lock expired).  \n   2. `claimShares(from)` is invoked.  \n\n4. **Inside `claimShares(Alice)`**  \n   1. `mintAllocatedShares(Alice, 100)`  \n   2. `mint()` → `_mintShares()` → **ERC20 `_mint`**  \n      *triggers* an **inner** `_update(0 → Alice, 100)` (no lock check).  \n   3. After `_mint` returns, `mint` sets  \n\n      ```solidity\n      accounts[Alice].lockedUntil = block.timestamp + targetedLockup;\n      ```\n\n5. **Return to outer `_update`**  \n   - `super._update(Alice → Bob, 100)` executes, moving the **freshly minted shares** to **Bob**.\n\n6. **Result**  \n   - Transaction succeeds.  \n   - Bob receives 100 liquid shares immediately.  \n   - Alice’s `lockedUntil` is refreshed, but she now holds **zero** shares, so the lock is moot.\n\n### Impact\n\n1. **Policy bypass:** the intended cooling-off period on new shares is unenforced, if a user has allocated shares, then can just transfer them right away.\n2. **Market risk:** users can instantly sell or transfer what should have been time-locked shares.\n\n### PoC\n\n_No response_\n\n### Mitigation\n\nperform a second lock check, ensuring new shares cannot move until next tx.\n\n## Discussion\n\n**sherlock-admin2**\n\nThe protocol team fixed this issue in the following PRs/commits:\nhttps://github.com/mellow-finance/flexible-vaults/pull/19/files\n\n\n\n\n",
+    "summary": "\nThe report discusses a bug found in the TokenizedShareManager contract, which allows users to bypass a lock-up period for newly minted shares. This is due to a flaw in the code that does not properly check for the lock-up period before transferring shares. This can lead to policy bypass and market risk for users. The team has fixed the issue in their code.",
+    "report_date": "2025-07-28T15:00:00.000Z",
+    "contest_prize_txt": "70000 USDC",
+    "contest_link": "https://app.sherlock.xyz/audits/contests/964",
+    "sponsor_name": "",
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "",
+    "github_link": "https://github.com/sherlock-audit/2025-07-mellow-flexible-vaults-judging/issues/617",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "964",
+    "slug": "m-6-targeted-lockup-bypass-freshly-minted-shares-can-be-transferred-immediately-in-the-same-transfer-or-transferfrom-call-sherlock-mellow-flexible-vaults-git",
+    "firm_name": "Sherlock",
+    "firm_logo_square": "sherlock_square.png",
+    "protocol_name": "Mellow Flexible Vaults",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "rsam\\_eth"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Sherlock",
+        "logo_square": "sherlock_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Mellow Flexible Vaults",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

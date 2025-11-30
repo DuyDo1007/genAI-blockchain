@@ -1,0 +1,45 @@
+{
+    "id": 62701,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 23,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3435,
+    "title": "RiskEngine Error Checks Using Numerical Constant Instead of `NO_ERROR`",
+    "content": "##### Description\nThis issue has been identified across multiple checks in the RiskEngine-related code where numerical comparisons against `0` are used rather than the enumerated value `RiskEngineError.Error.NO_ERROR`.\n\nFor example:\n```solidity!\nif (allowed != 0) { ... }\n```\nReplacing such comparisons with:\n```solidity!\nif (allowed != RiskEngineError.Error.NO_ERROR) { ... }\n```\nimproves code clarity and reduces confusion for developers and auditors.\n\n##### Recommendation\nWe recommend replacing numeric comparisons with the more explicit enumerated constant to make the code self-documenting and less error-prone.\n",
+    "summary": "",
+    "report_date": "2025-09-18T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/mixbytes/audits_public/blob/master/NUTS%20Finance/Pike/README.md#4-riskengine-error-checks-using-numerical-constant-instead-of-no_error",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "riskengine-error-checks-using-numerical-constant-instead-of-no_error-mixbytes-none-nuts-finance-markdown",
+    "firm_name": "MixBytes",
+    "firm_logo_square": "mixbytes_square.png",
+    "protocol_name": "NUTS Finance",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "MixBytes"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "MixBytes",
+        "logo_square": "mixbytes_square.png"
+    },
+    "protocols_protocol": {
+        "name": "NUTS Finance",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

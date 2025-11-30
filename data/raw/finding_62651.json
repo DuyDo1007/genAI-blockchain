@@ -1,0 +1,55 @@
+{
+    "id": 62651,
+    "kind": "PDF",
+    "auditfirm_id": 6,
+    "impact": "LOW",
+    "finders_count": 3,
+    "protocol_id": 3430,
+    "title": "Missing slippage checks in addLiquidity and removeLiquidity methods",
+    "content": "## Security Advisory\n\n## Severity\n**Low Risk**\n\n## Context\n- SVFHook.sol#L120-L163\n- SVFHook.sol#L189-L210\n\n## Description\nThe `addLiquidity` method does not include a slippage check for the calculated liquidity, which could result in users receiving less liquidity than expected due to price fluctuations. Similarly, the `removeLiquidity` method passes `0` for `amount0Min` and `amount1Min` in the `positionManager.burn` call, which does not protect users from receiving less than the expected amounts of `token0` and `token1` when removing liquidity.\n\n## Recommendation\nIt is recommended to implement the following mitigation measures:\n\n1. **Add a minLiquidity parameter to addLiquidity**: \n   Introduce a `minLiquidity` parameter to the `AddLiquidityParams` struct and check that the calculated liquidity meets this minimum threshold:\n   ```solidity\n   if (liquidity < params.minLiquidity) revert InsufficientLiquidity();\n   ```\n\n2. **Add amount0Min and amount1Min parameters to removeLiquidity**: \n   Allow the caller to specify `amount0Min` and `amount1Min` in the `RemoveLiquidityParams` struct and pass these values to the `positionManager.burn` call to enforce slippage protection:\n   ```solidity\n   delta = positionManager.burn(univ4NftId, params.amount0Min, params.amount1Min, msg.sender, params.deadline, \"0x\");\n   ```\n\n## Semantic Layer\nFixed in PR 15.\n\n## Spearbit\nFix verified.",
+    "summary": "",
+    "report_date": "2025-07-27T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Semantic-Layer-Spearbit-Security-Review-May-2025.pdf",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Semantic-Layer-Spearbit-Security-Review-May-2025.pdf",
+    "github_link": "",
+    "pdf_link": "https://solodit-bucket.s3.amazonaws.com/storage/reports/spearbit/Semantic-Layer-Spearbit-Security-Review-May-2025.pdf",
+    "pdf_page_from": 15,
+    "contest_id": "",
+    "slug": "missing-slippage-checks-in-addliquidity-and-removeliquidity-methods-spearbit-none-semantic-layer-pdf",
+    "firm_name": "Spearbit",
+    "firm_logo_square": "spearbit_square.png",
+    "protocol_name": "Semantic Layer",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Tnch"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Mario Poneder"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Noah Marconi"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Spearbit",
+        "logo_square": "spearbit_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Semantic Layer",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

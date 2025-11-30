@@ -1,0 +1,50 @@
+{
+    "id": 62226,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 11,
+    "impact": "GAS",
+    "finders_count": 2,
+    "protocol_id": 3392,
+    "title": "Cache storage to prevent identical storage reads",
+    "content": "**Description:** Reading from storage is expensive; cache storage to prevent identical storage reads:\n* `ComplianceChecker.sol`:\n```solidity\n// cache `for` loop storage lengths in `isCompliant`\n59:            optionIndex < _complianceOptions.length;\n66:                sbtIndex < _complianceOptions[optionIndex].requiredSBTs.length;\n```\n\n* `CompliantDepositRegistry.sol`:\n```solidity\n// cache `investorDepositMap[investor]` in `getDepositAddress`\n60:        require(investorDepositMap[investor] > 0, UnregisteredInvestor());\n64:        return depositAddresses[investorDepositMap[investor]];\n\n// cache `nextDepositAddressIndex` in `registerDepositAddress`\n93:                nextDepositAddressIndex < depositAddresses.length &&\n102:        investorDepositMap[msg.sender] = nextDepositAddressIndex;\n\n// cache `getDepositAddress(msg.sender)` in `registerDepositAddress`\n// ideally do this by using a named return variable, assigning straight to it,\n// using the named return variable to emit the event then deleting the obsolete\n// `return` statement\n104:        emit DepositAddressSet(msg.sender, getDepositAddress(msg.sender));\n106:        return getDepositAddress(msg.sender);\n\n// cache `depositAddresses.length` in `getDepositAddresses`\n128:        if (startIndex + count > depositAddresses.length) {\n129:            returnLength = depositAddresses.length - startIndex;\n134:            i < count && startIndex + i < depositAddresses.length;\n\n// cache `depositAddresses.length` in `addDepositAddresses`\n// just invert the order of these two statements then use `startIndex`\n// to set `finalizedAddressesLength`\n154:        finalizedAddressesLength = depositAddresses.length;\n156:        uint startIndex = depositAddresses.length;\n\n// cache `block.timestamp + batchChallengePeriod` in `addDepositAddresses`\n// and use it to set `latestBatchUnlockTime` and also to emit the event\n161:        latestBatchUnlockTime = block.timestamp + batchChallengePeriod;\n165:            latestBatchUnlockTime,\n\n// cache `finalizedAddressesLength` and use `block.timestamp` instead of\n// `latestBatchUnlockTime` when emitting event in `challengeLatestBatch`\n199:        uint batchLength = depositAddresses.length - finalizedAddressesLength;\n208:            finalizedAddressesLength,\n209:            latestBatchUnlockTime,\n```\n\n* `Blacklistable.sol`:\n```solidity\n// use input `_newBlacklister` when emitting event in `updateBlackLister`\n74:        emit BlacklisterChanged(blacklister);\n```\n\n* `Minter.sol`:\n```solidity\n// cache `custodian` in `transferToCustody`\n135:        baseAsset.safeTransfer(custodian, amount);\n136:        emit FundsTransferredToCustody(amount, custodian);\n```\n\n* `StakingVault.sol`:\n```solidity\n// cache `cooldownDuration` in `redeem, withdraw`\n137:        if (cooldownDuration == 0) {\n142:            cooldownDuration;\n159:        if (cooldownDuration == 0) {\n164:            cooldownDuration;\n\n// use input `duration` when emitting event in `setCooldownDuration`\n220:        cooldownDuration = duration;\n221:        emit CooldownDurationUpdated(previousDuration, cooldownDuration);\n\n// cache `lastDistributionTimestamp` in `getUnvestedAmount` if first `return`\n// statement is unlikely to be frequently triggered\n271:        if (lastDistributionTimestamp > block.timestamp) {\n275:            lastDistributionTimestamp;\n```\n\n**Syntetika:**\nFixed in commits [bc24502](https://github.com/SyntetikaLabs/monorepo/commit/bc245024d7a3d4773661a2eb82284653bfa7f46b), [8560039](https://github.com/SyntetikaLabs/monorepo/commit/8560039b80334a3ad234f7f90ff0a55e50d13edd), [bfad835](https://github.com/SyntetikaLabs/monorepo/commit/bfad8350a4b6b843c47bea023237271c198bfa84).\n\n**Cyfrin:** Verified though ideally `StakingVault::withdraw` would also [cache](https://github.com/SyntetikaLabs/monorepo/blob/audit/issuance/src/vault/StakingVault.sol#L190-L195) `cooldownDuration` similar to the fix made inside `redeem`.",
+    "summary": "",
+    "report_date": "2025-08-01T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/solodit/solodit_content/blob/main/reports/Cyfrin/2025-08-01-cyfrin-syntetika-v2.0.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "cache-storage-to-prevent-identical-storage-reads-cyfrin-none-syntetika-markdown",
+    "firm_name": "Cyfrin",
+    "firm_logo_square": "Cyfrin_square.jpg",
+    "protocol_name": "Syntetika",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Dacian"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Jorge"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Cyfrin",
+        "logo_square": "Cyfrin_square.jpg"
+    },
+    "protocols_protocol": {
+        "name": "Syntetika",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

@@ -1,0 +1,45 @@
+{
+    "id": 62390,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 34,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 1408,
+    "title": "[FNG-7] Missing recovery mechanisms for ETH and ERC20 tokens",
+    "content": "**Severity:** Informational\n\n**Path:** CErc20.sol:sweepToken#L134-L139\n\n**Description:** The `sweepToken` function in the `CErc20.sol` contract is designed to recover accidental ERC-20 transfers made to this contract. However, this function does not account for accidentally sending ETH. As a result, if users inadvertently send ETH to this contract, they stand to lose their funds. Similarly, the `CEther.sol` contract lacks a mechanism to reclaim accidentally sent ERC20 tokens, leading to the potential loss of those tokens for users.\n```\n    /**\n     * @notice A public function to sweep accidental ERC-20 transfers to this contract. Tokens are sent to admin (timelock)\n     * @param token The address of the ERC-20 token to sweep\n     */\n    function sweepToken(EIP20NonStandardInterface token) virtual override external {\n        require(msg.sender == admin, \"CErc20::sweepToken: only admin can sweep tokens\");\n        require(address(token) != underlying, \"CErc20::sweepToken: can not sweep underlying token\");\n        uint256 balance = token.balanceOf(address(this));\n        token.transfer(admin, balance);\n    }\n```\n\n**Remediation:**  Recommend adding a mechanism to the `CErc20.sol` contract to handle the recovery of mistakenly sent ETH, also add a  function in the `CEther.sol` contract that allows for the recovery of accidentally sent ERC20 tokens.\n\n**Status:** Fixed\n\n- - -",
+    "summary": "",
+    "report_date": "2023-11-06T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/solodit/solodit_content/blob/main/reports/Hexens/2023-11-06-Fungify.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "fng-7-missing-recovery-mechanisms-for-eth-and-erc20-tokens-hexens-none-fungify-markdown",
+    "firm_name": "Hexens",
+    "firm_logo_square": "Hexens_square.png",
+    "protocol_name": "Fungify",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Hexens"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Hexens",
+        "logo_square": "Hexens_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Fungify",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

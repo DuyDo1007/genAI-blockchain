@@ -1,0 +1,45 @@
+{
+    "id": 62528,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 7,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3418,
+    "title": "Misleading Naming in getTargetOutput Can Cause Developer Confusion",
+    "content": "The [`getTargetOutput`](https://github.com/OpenZeppelin/uniswap-hooks/blob/3e9fa228ec0f7fe05a95e09e25442466b459a712/src/general/AntiSandwichHook.sol#L173) function calculates the unspecified amount in a swap based on the beginning-of-block pool state. This value can represent either the input or output of the trade, depending on the swap direction and whether it is an exact input or exact output swap. Despite this, the function name implies it that always returns an output amount, which does not accurately reflect its behavior.\n\nConsider renaming the function to `getTargetUnspecifiedAmount` to more clearly convey that the returned value may be either the input or the output. This would reduce potential confusion for developers and improve the overall clarity and maintainability of the code.\n\n***Update:** Resolved in [pull request #86](https://github.com/OpenZeppelin/uniswap-hooks/pull/86). The team stated:*\n\n> *We renamed `_getTargetOutput` to `_getTargetUnspecified`.*",
+    "summary": "",
+    "report_date": "2025-07-16T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://blog.openzeppelin.com/openzeppelin-uniswap-hooks-v1.1.0-rc-2-audit",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "misleading-naming-in-gettargetoutput-can-cause-developer-confusion-openzeppelin-none-openzeppelin-uniswap-hooks-v110-rc-2-audit-markdown",
+    "firm_name": "OpenZeppelin",
+    "firm_logo_square": "openzeppelin_square.png",
+    "protocol_name": "OpenZeppelin Uniswap Hooks v1.1.0 RC 2 Audit",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "OpenZeppelin"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "OpenZeppelin",
+        "logo_square": "openzeppelin_square.png"
+    },
+    "protocols_protocol": {
+        "name": "OpenZeppelin Uniswap Hooks v1.1.0 RC 2 Audit",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

@@ -1,0 +1,38 @@
+{
+    "id": 62534,
+    "kind": "GIT",
+    "auditfirm_id": 2,
+    "impact": "LOW",
+    "finders_count": 0,
+    "protocol_id": 3373,
+    "title": "[02] For pools which have stETH as the deposit token, switching to Aave strategy will not work",
+    "content": "\nIn the current implementation of the Distribution contracts onchain, only stETH have been staked by users thereby earning MOR in return. However, if the protocol were to try to switch to Aave strategy for these staked tokens, it would fail.\n\n<https://github.com/code-423n4/2025-08-morpheus/blob/main/contracts/capital-protocol/Distributor.sol# L192-L248>\n```\n\n function addDepositPool(\n        uint256 rewardPoolIndex_,\n        address depositPoolAddress_,\n        address token_,\n        string memory chainLinkPath_,\n        Strategy strategy_\n    ) external onlyOwner {\n        IRewardPool rewardPool_ = IRewardPool(rewardPool);\n        rewardPool_.onlyExistedRewardPool(rewardPoolIndex_);\n\n        require(\n            IERC165(depositPoolAddress_).supportsInterface(type(IDepositPool).interfaceId),\n            \"DR: the deposit pool address is invalid\"\n        );\n\n        // Validate that pool is public in other cases.\n        if (strategy_ == Strategy.NO_YIELD) {\n            // Validate that pool is private.\n            rewardPool_.onlyNotPublicRewardPool(rewardPoolIndex_);\n            // Validate that deposit pool is not added for this `rewardPoolIndex_`.\n            require(\n                depositPoolAddresses[rewardPoolIndex_].length == 0,\n                \"DR: the deposit pool for this index already added\"\n            );\n\n            // Skip `token_` and `chainLinkPath_` when `Strategy.NO_YIELD`.\n            token_ = address(0);\n            chainLinkPath_ = \"\";\n        } else {\n            require(!isDepositTokenAdded[token_], \"DR: the deposit token already added\");\n\n            rewardPool_.onlyPublicRewardPool(rewardPoolIndex_);\n        }\n\n        // Set `aToken_` when `Strategy.AAVE`. Add allowance for Aave to transfer `token_` from the current\n        // contract.\n        address aToken_ = address(0);\n        if (strategy_ == Strategy.AAVE) {\n            (aToken_, , ) = AaveIPoolDataProvider(aavePoolDataProvider).getReserveTokensAddresses(token_);\n\n            IERC20(token_).safeApprove(aavePool, type(uint256).max);\n            IERC20(aToken_).approve(aavePool, type(uint256).max);\n        }\n\n        DepositPool memory depositPool_ = DepositPool(token_, chainLinkPath_, 0, 0, 0, strategy_, aToken_, true);\n\n        depositPoolAddresses[rewardPoolIndex_].push(depositPoolAddress_);\n        depositPools[rewardPoolIndex_][depositPoolAddress_] = depositPool_;\n        isDepositTokenAdded[token_] = true;\n\n        // Update prices for all `depositPools` by `rewardPoolIndex_`\n        if (strategy_ != Strategy.NO_YIELD) {\n            updateDepositTokensPrices(rewardPoolIndex_);\n        }\n\n        emit DepositPoolAdded(rewardPoolIndex_, depositPool_);\n    }\n```\n\nOne newer features of the v7 contracts such as DepositPool.sol is that it now sends the staked tokens to the Distributor contract. This allows the protocol to also have other yield strategies such as supplying user staked tokens to Aave markets.\n\n1. If we were to upgrade from v6 to v7 for DepositPool A for the reward pool index of 0 which is a public pool.\n2. Then, call `addRewardPool` in the RewardPool contract to add the reward pool index of 0.\n3. Next call, `addDepositPool()` in the Distributor contract to whitelist reward pool index 0, it would fail.\n4. The reason is because in the currently deployed v6 Distribution contracts (which the protocol will upgrade to use DepositPool implementation), only stETH is the token staked. Thus, the Distributor contract trying to call approve on the `aToken` address will fail. Because on Aave, there is no corresponding `aToken` for the stETH deposit token and for that reason, Aave will return the zero address which the contract will then try to call approve on.\n\n",
+    "summary": "",
+    "report_date": "2025-09-11T00:00:00.000Z",
+    "contest_prize_txt": "20000",
+    "contest_link": "https://code4rena.com/reports/2025-08-morpheus",
+    "sponsor_name": "Morpheus",
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://code4rena.com/reports/2025-08-morpheus",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "520",
+    "slug": "02-for-pools-which-have-steth-as-the-deposit-token-switching-to-aave-strategy-will-not-work-code4rena-morpheus-morpheus-git",
+    "firm_name": "Code4rena",
+    "firm_logo_square": "code4rena_square.png",
+    "protocol_name": "Morpheus",
+    "bookmarked": false,
+    "read": false,
+    "auditfirms_auditfirm": {
+        "name": "Code4rena",
+        "logo_square": "code4rena_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Morpheus",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

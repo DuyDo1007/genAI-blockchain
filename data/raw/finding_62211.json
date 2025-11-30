@@ -1,0 +1,50 @@
+{
+    "id": 62211,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 11,
+    "impact": "LOW",
+    "finders_count": 2,
+    "protocol_id": 3392,
+    "title": "Consider using `SafeCast` when downcasting amounts",
+    "content": "**Description:** Consider using [SafeCast](https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/utils/math/SafeCast.sol) when downcasting amounts:\n* `StakingVault.sol`:\n```solidity\n144:        cooldowns[msg.sender].underlyingAmount += uint152(assetsRedeemed);\n165:        cooldowns[msg.sender].underlyingAmount += uint152(assets);\n```\n\n**Syntetika:**\nFixed in commit [8d7987c](https://github.com/SyntetikaLabs/monorepo/commit/8d7987cfe72ab33c51b486fd3ac5fe2670292a30).\n\n**Cyfrin:** Verified.",
+    "summary": "",
+    "report_date": "2025-08-01T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/solodit/solodit_content/blob/main/reports/Cyfrin/2025-08-01-cyfrin-syntetika-v2.0.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "consider-using-safecast-when-downcasting-amounts-cyfrin-none-syntetika-markdown",
+    "firm_name": "Cyfrin",
+    "firm_logo_square": "Cyfrin_square.jpg",
+    "protocol_name": "Syntetika",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Dacian"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Jorge"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Cyfrin",
+        "logo_square": "Cyfrin_square.jpg"
+    },
+    "protocols_protocol": {
+        "name": "Syntetika",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

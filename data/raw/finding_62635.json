@@ -1,0 +1,55 @@
+{
+    "id": 62635,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 37,
+    "impact": "LOW",
+    "finders_count": 3,
+    "protocol_id": 3425,
+    "title": "`VTokenstorage` Does Not Keep Extra Slots",
+    "content": "**Update**\nMarked as \"Fixed\" by the client. Addressed in: `3cacf4606313e7fecf73a6db1ae60a414a85e773`.\n\n**File(s) affected:**`contracts/Tokens/VTokens/legacy/VTokenStorageR1.sol`\n\n**Description:** The new `VTokenInterfaceR1` implementation now inherits from `VTokenStorageR1` instead of `VTokenStorage`. The previous `VTokenStorage` contract reserved an additional 50 storage slots through a `uint256[50] __gap` placeholder, ensuring room for future variable additions without altering the storage layout.\n\nAfter the migration, this explicit reservation is no longer visible to developers. In subsequent upgrades, they may overlook the previously intended expansion buffer or inadvertently add storage variables beyond the implicit 50-slot allowance, risking storage collisions or corrupting the upgrade path.\n\n**Recommendation:** Document in `VTokenStorageR1` how many additional slots may be added safely. Consider keeping a `__gap` variable for all unused slots (50-23) as a means to prevent accidental storage layout collisions in future upgrades.",
+    "summary": "",
+    "report_date": "2025-09-13T17:22:40.823Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://certificate.quantstamp.com/full/migration-core-venus/08bc9b81-16b9-4e32-aa2a-7a0b6ce4db88/index.html",
+    "sponsor_name": "",
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://certificate.quantstamp.com/full/migration-core-venus/08bc9b81-16b9-4e32-aa2a-7a0b6ce4db88/index.html",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "vtokenstorage-does-not-keep-extra-slots-quantstamp-migration-core-venus-markdown",
+    "firm_name": "Quantstamp",
+    "firm_logo_square": "quantstamp_square.png",
+    "protocol_name": "Migration Core (Venus)",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Nikita Belenkov"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Mustafa Hasan"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Leonardo Passos"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Quantstamp",
+        "logo_square": "quantstamp_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Migration Core (Venus)",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

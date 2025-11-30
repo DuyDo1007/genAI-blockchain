@@ -1,0 +1,45 @@
+{
+    "id": 62573,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 16,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3420,
+    "title": "[L-15] Shared privilege concerns in role-based access control cards",
+    "content": "\n_Acknowledged_\n\nIn the Card contract, the MINT_MANAGER_ROLE and REDEEM_MANAGER_ROLE are defined as privileged roles for managing card minting and redemption operations, respectively.\n\nHowever, multiple `Cards` could refer to the same `rbac` (Role-Based Access Control) instance via `RoleBasedAccessControlConsumer`. This design implies that if a user is granted minting or redemption privileges in one `Card`, they inherently possess the same privileges in all other `Card` instances that share the same `rbac`.\n\nThis raises concerns about the independence of access control across different `Card` contracts, as it could lead to unintended privilege escalation or management issues if the roles are not intended to be universally applicable.\n\n\n\n",
+    "summary": "",
+    "report_date": "2025-09-11T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/pashov/audits/blob/master/team/md/RipIt-security-review_2025-04-25.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "l-15-shared-privilege-concerns-in-role-based-access-control-cards-pashov-audit-group-none-ripit_2025-04-25-markdown",
+    "firm_name": "Pashov Audit Group",
+    "firm_logo_square": "Pashov_square.png",
+    "protocol_name": "RipIt_2025-04-25",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Pashov Audit Group"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Pashov Audit Group",
+        "logo_square": "Pashov_square.png"
+    },
+    "protocols_protocol": {
+        "name": "RipIt_2025-04-25",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

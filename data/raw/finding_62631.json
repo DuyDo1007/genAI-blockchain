@@ -1,0 +1,45 @@
+{
+    "id": 62631,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 16,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3422,
+    "title": "[L-10] burnToken does not verify token transfer success",
+    "content": "\n_Resolved_\n\nThe `burnToken()` function in `FunnelVaultUpgradeable` uses a direct ERC-20 transfer to the burn address but does not check the return value. If the token does not strictly follow ERC-20 standards (e.g a non-compliant token that returns false on failure, the vault would assume the burn succeeded even if it failed.\n\nIn such a case, the mapping is decremented and the event emitted, but the tokens remain in the contract. This results in token funds stuck in the vault (_since the vault thinks they were burned_) and potential accounting inconsistencies. For instance, a token like USDT (which doesn’t revert on failure) could silently fail to transfer, leaving the vault holding tokens that are no longer tracked in burnFees.\n\nRecommendation is to add a check if transfer is successful, and if not, revert the trx.\n\n\n\n",
+    "summary": "",
+    "report_date": "2025-09-12T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/pashov/audits/blob/master/team/md/Funnel-security-review_2025-08-27.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "l-10-burntoken-does-not-verify-token-transfer-success-pashov-audit-group-none-funnel_2025-08-27-markdown",
+    "firm_name": "Pashov Audit Group",
+    "firm_logo_square": "Pashov_square.png",
+    "protocol_name": "Funnel_2025-08-27",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Pashov Audit Group"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Pashov Audit Group",
+        "logo_square": "Pashov_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Funnel_2025-08-27",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

@@ -1,0 +1,38 @@
+{
+    "id": 62085,
+    "kind": "GIT",
+    "auditfirm_id": 2,
+    "impact": "LOW",
+    "finders_count": 0,
+    "protocol_id": 2159,
+    "title": "[07] Consider introducing a backup oracle in case of failures",
+    "content": "\nOracles are immutable, cannot be updated once set. As a result, a potential oracle failure can topple the entire pool’s ecosystem causing loss of funds to the protocol.\n```\n\npub fn execute_initialize(\n    e: &Env,\n    admin: &Address,\n    name: &String,\n    oracle: &Address,\n    bstop_rate: &u32,\n    max_positions: &u32,\n    min_collateral: &i128,\n    backstop_address: &Address,\n    blnd_id: &Address,\n) {\n    let pool_config = PoolConfig {\n@>      oracle: oracle.clone(),\n        min_collateral: *min_collateral,\n        bstop_rate: *bstop_rate,\n        status: 6,\n        max_positions: *max_positions,\n    };\n    require_valid_pool_config(e, &pool_config);\n\n    storage::set_admin(e, admin);\n    storage::set_name(e, name);\n    storage::set_backstop(e, backstop_address);\n    storage::set_pool_config(e, &pool_config);\n    storage::set_blnd_token(e, blnd_id);\n}\n```\n\n### Recommended mitigation steps\n\nReconsider oracle immutability or add the option for a backup oracle.\n\n---\n\n",
+    "summary": "",
+    "report_date": "2025-08-13T00:00:00.000Z",
+    "contest_prize_txt": "125000",
+    "contest_link": "https://code4rena.com/reports/2025-02-blend-v2-audit-certora-formal-verification",
+    "sponsor_name": "Blend",
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://code4rena.com/reports/2025-02-blend-v2-audit-certora-formal-verification",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "492",
+    "slug": "07-consider-introducing-a-backup-oracle-in-case-of-failures-code4rena-blend-blend-git",
+    "firm_name": "Code4rena",
+    "firm_logo_square": "code4rena_square.png",
+    "protocol_name": "Blend",
+    "bookmarked": false,
+    "read": false,
+    "auditfirms_auditfirm": {
+        "name": "Code4rena",
+        "logo_square": "code4rena_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Blend",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

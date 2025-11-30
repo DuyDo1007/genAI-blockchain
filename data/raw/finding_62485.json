@@ -1,0 +1,50 @@
+{
+    "id": 62485,
+    "kind": "GIT",
+    "auditfirm_id": 3,
+    "impact": "HIGH",
+    "finders_count": 2,
+    "protocol_id": 3104,
+    "title": "H-4: When users borrow directly from Morpho price of the collateral will not be accurate",
+    "content": "\nSource: https://github.com/sherlock-audit/2025-06-notional-exponent-judging/issues/450 \n\n## Found by \nmstpr-brainbot, rudhra1749\n\n### Summary\n\nWhen users have a withdrawal request, the Morpho price oracle will price the request based on the requested value instead of the share amount. However, if users choose to borrow directly from Morpho bypassing the lending router the shares will be priced based on their raw share value, not the request value.\n\n\n\n### Root Cause\n\nAs seen in the following lines:\n\n* [`AbstractYieldStrategy.sol#L118-L120`](https://github.com/sherlock-audit/2025-06-notional-exponent/blob/82c87105f6b32bb362d7523356f235b5b07509f9/notional-v4/src/AbstractYieldStrategy.sol#L118-L120)\n* [`AbstractSingleSidedLP.sol#L300-L303`](https://github.com/sherlock-audit/2025-06-notional-exponent/blob/82c87105f6b32bb362d7523356f235b5b07509f9/notional-v4/src/single-sided-lp/AbstractSingleSidedLP.sol#L300-L303)\n\nIf the transient `t_currentAccount` variable is set and the user has a withdrawal request, then the price will be based on the withdrawal request value. However, if the user is borrowing **directly** not via the lending router the `t_currentAccount` is never set. This causes the call to fall back to `super.convertToAssets(shares)`, which prices based on yield token holdings instead.\n\nThis introduces a discrepancy: a user with an active withdrawal request is not holding yield tokens, but their shares will still be priced as if they are—potentially leading to mispricing or incorrect collateral valuation.\n\n### Internal Pre-conditions\n\n1. Request a withdrawal and borrow from MORPHO directly not via lending router\n\n### External Pre-conditions\n\nNone needed\n\n### Attack Path\n\nHappens naturally\n\n### Impact\n\nOracle will misprice the users collateral. Users shares are not corresponding to yield tokens but withdrawal request underlying tokens but the oracle will price them wrong! \n\n### PoC\n\n```solidity\n// forge test --match-test test_price_Inconsistency -vv\n    function test_price_Inconsistency() public {\n\n        console.log(\"Asset is\", IERC20Metadata(address(asset)).symbol());\n\n        address tapir = msg.sender;\n        // deal(address(asset), msg.sender, defaultDeposit); \n        _enterPosition(tapir, defaultDeposit, 0);\n        uint256 balanceBefore = lendingRouter.balanceOfCollateral(tapir, address(y));\n\n        vm.startPrank(tapir);\n        lendingRouter.initiateWithdraw(tapir, address(y), getWithdrawRequestData(tapir, balanceBefore));\n\n        MarketParams memory marketParams = MorphoLendingRouter(address(lendingRouter)).marketParams(address(y));\n        Id idx = Id.wrap(keccak256(abi.encode(marketParams)));\n        address oracle = marketParams.oracle;\n\n        console.log(\"Price of the asset is\", IOracle(oracle).price());\n        console.log(\"Price of the vault is\", y.price(tapir));\n    }\n```\n\nTest Logs:\nRan 1 test for tests/TestSingleSidedLPStrategyImpl.sol:Test_LP_Curve_pxETH_ETH\n[PASS] test_price_Inconsistency() (gas: 1904287)\nLogs:\n  Asset is WETH\n  Price of the asset is 1001461263579509710000000000000\n  Price of the vault is 1001459261273599425000000000000\n\n### Mitigation\n\ntbd\n\n",
+    "summary": "\nThis bug report discusses an issue found by two users in the code of the Morpho lending platform. The issue occurs when a user requests a withdrawal and then borrows directly from Morpho, bypassing the lending router. In this situation, the shares will be priced based on their raw share value instead of the requested value, potentially leading to incorrect pricing and collateral valuation. The root cause of this issue is due to a variable not being set correctly when the user borrows directly. The impact of this bug is that the oracle will misprice the user's collateral, and the shares will not correspond to the yield tokens. A proof of concept is provided in the report, and a mitigation plan is yet to be determined. ",
+    "report_date": "2025-07-18T15:00:00.000Z",
+    "contest_prize_txt": "75500 USDC",
+    "contest_link": "https://app.sherlock.xyz/audits/contests/1001",
+    "sponsor_name": "",
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "",
+    "github_link": "https://github.com/sherlock-audit/2025-06-notional-exponent-judging/issues/450",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "1001",
+    "slug": "h-4-when-users-borrow-directly-from-morpho-price-of-the-collateral-will-not-be-accurate-sherlock-notional-exponent-git",
+    "firm_name": "Sherlock",
+    "firm_logo_square": "sherlock_square.png",
+    "protocol_name": "Notional Exponent",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "mstpr-brainbot"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "rudhra1749"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Sherlock",
+        "logo_square": "sherlock_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Notional Exponent",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

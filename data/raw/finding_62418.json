@@ -1,0 +1,45 @@
+{
+    "id": 62418,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 34,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 1826,
+    "title": "[EIGEN2-10] A new operator could replace another operator with less staking amount",
+    "content": "**Severity:** Low\n\n**Path:** SlashingRegistryCoordinator.sol:_setOperatorSetParams\n\n**Description:** The function `_setOperatorSetParams` sets the configuration for a quorumNumber for the `SlashingRegistryCoordinator`. \n\nCurrently, there are no checks for the `kickBIPsOfOperatorStake` and  `kickBIPsOfTotalStake`. However it would be better to implement some limitations on these values.\n\nFor example. in the function `_validateChurn`, these values are used to determine if the registrering user’s stake is greater than the `operatorToKickStake` times `kickBIPsOfOperatorStake` its value:\n```\n_validateChurn\n    require(\n          newOperatorStake > _individualKickThreshold(operatorToKickStake, setParams),\n          InsufficientStakeForChurn()\n      );\n```\n```\nfunction _individualKickThreshold(\n    uint96 operatorStake,\n    OperatorSetParam memory setParams\n) internal pure returns (uint96) {\n    return operatorStake * setParams.kickBIPsOfOperatorStake / BIPS_DENOMINATOR;\n}\n```\nTo prevent a case where a lower stake could kick a higher stake, the value should always be higher than 100% expressed in BIPS (10_000). It would be an unfair situation to kick out another operator while the newOperatorStake is lower than the operatorToKickStake.\n```\n    function _setOperatorSetParams(\n        uint8 quorumNumber,\n        OperatorSetParam memory operatorSetParams\n    ) internal {\n        _quorumParams[quorumNumber] = operatorSetParams;\n        emit OperatorSetParamsUpdated(quorumNumber, operatorSetParams);\n    }\n```\n\n\n**Remediation:**  We recommend to add a check to ensure `kickBIPsOfOperatorStake` is higher than 100% (`10_000`).\n\n**Status:** Acknowledged\n\n\n- - -",
+    "summary": "",
+    "report_date": "2025-04-22T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/solodit/solodit_content/blob/main/reports/Hexens/2025-04-22-EigenLayer.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "eigen2-10-a-new-operator-could-replace-another-operator-with-less-staking-amount-hexens-none-eigenlayer-markdown",
+    "firm_name": "Hexens",
+    "firm_logo_square": "Hexens_square.png",
+    "protocol_name": "Eigenlayer",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Hexens"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Hexens",
+        "logo_square": "Hexens_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Eigenlayer",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

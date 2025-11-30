@@ -1,0 +1,50 @@
+{
+    "id": 62489,
+    "kind": "GIT",
+    "auditfirm_id": 3,
+    "impact": "HIGH",
+    "finders_count": 2,
+    "protocol_id": 3104,
+    "title": "H-8: Incorrect assumption that one (1) Pendle Standard Yield (SY) token is equal to one (1) Yield Token when computing the price in the oracle",
+    "content": "\nSource: https://github.com/sherlock-audit/2025-06-notional-exponent-judging/issues/689 \n\n## Found by \nmstpr-brainbot, xiaoming90\n\n### Summary\n\n-\n\n### Root Cause\n\n- Incorrect assumption that one (1) Pendle Standard Yield (SY) token is equal to one (1) Yield Token when computing the price in the oracle\n\n### Internal Pre-conditions\n\n-\n\n### External Pre-conditions\n\n-\n\n### Attack Path\n\nWhen deploying the Pendle yield strategy, the deployer can choose to set the `useSyOracleRate_` to true or false. If `useSyOracleRate_` is set to true, the `PENDLE_ORACLE.getPtToSyRate()` function will be used to get the PT rate.\n\nAn example of such a setup is shown in the test script provided with the codebase, where the `useSyOracleRate_` setting is set to true in Line 115 below. \n\nhttps://github.com/sherlock-audit/2025-06-notional-exponent/blob/main/notional-v4/tests/TestPTStrategyImpl.sol#L111\n\n```solidity\nFile: TestPTStrategyImpl.sol\n079:     function deployYieldStrategy() internal override {\n080:         strategyName = \"Pendle PT\";\n081:         address(deployCode(\"PendlePTLib.sol:PendlePTLib\"));\n082: \n083:         setMarketVariables();\n084:         bool isSUSDe = tokenOut == address(sUSDe);\n085: \n..SNIP..\n106:         }\n107: \n108:         w = ERC20(y.yieldToken());\n109:         // NOTE: is tokenOut the right token to use here?\n110:         (AggregatorV2V3Interface baseToUSDOracle, ) = TRADING_MODULE.priceOracles(address(tokenOut));\n111:         PendlePTOracle pendleOracle = new PendlePTOracle(\n112:             market,\n113:             baseToUSDOracle,\n114:             false,\n115:             true, // @audit-info useSyOracleRate_\n116:             15 minutes,\n117:             \"Pendle PT\",\n118:             address(0)\n119:         );\n120: \n121:         o = new MockOracle(pendleOracle.latestAnswer());\n122:     }\n```\n\nWhen the `useSyOracleRate` is set to true, `PENDLE_ORACLE.getPtToSyRate()` function in Line 63 below will be used to get the PT rate. Note that `getPtToSyRate` will return how much Pendle's Standard Yield (SY) token per PT token.\n\nhttps://github.com/sherlock-audit/2025-06-notional-exponent/blob/main/notional-v4/src/oracles/PendlePTOracle.sol#L63\n\n```solidity\nFile: PendlePTOracle.sol\n61:     function _getPTRate() internal view returns (int256) {\n62:         uint256 ptRate = useSyOracleRate ?\n63:             PENDLE_ORACLE.getPtToSyRate(pendleMarket, twapDuration) :\n64:             PENDLE_ORACLE.getPtToAssetRate(pendleMarket, twapDuration);\n65:         return ptRate.toInt();\n66:     }\n```\n\nNote that Chainlink or other oracle providers do not provide a price feed directly for the Pendle SY token.\n\nThe root cause here is that the codebase incorrectly assumes the price of Pendle SY Token is always equivalent to the Yield Token. Thus, the protocol assumes that it is fine to use the price feed for the Yield Token for Pendle SY Token when computing the price. While this is generally true, it is not always the case that 1 SY == 1 Yield Token.\n\nNot all SY contracts will burn one (1) SY share and return one (1) yield token back. Inspecting the Pendle's source code reveals that for some SY contracts, some redemptions will involve withdrawing/redemption from external staking protocol or performing swaps, which might suffer from slippage or fees.\n\nBelow is the Pendle's `SY.redeem` function showing that slippage might occur during the exchange, and thus 1 SY == 1 Yield Token does not always hold.\n\nhttps://github.com/pendle-finance/pendle-core-v2-public/blob/46d13ce4168e8c5ad9e5641dd6380fea69e48490/contracts/interfaces/IStandardizedYield.sol#L87\n\n```solidity\nFile: IStandardizedYield.sol\n74:     /**\n75:      * @notice redeems an amount of base tokens by burning some shares\n76:      * @param receiver recipient address\n77:      * @param amountSharesToRedeem amount of shares to be burned\n78:      * @param tokenOut address of the base token to be redeemed\n79:      * @param minTokenOut reverts if amount of base token redeemed is lower than this\n80:      * @param burnFromInternalBalance if true, burns from balance of `address(this)`, otherwise burns from `msg.sender`\n81:      * @return amountTokenOut amount of base tokens redeemed\n82:      * @dev Emits a {Redeem} event\n83:      *\n84:      * Requirements:\n85:      * - (`tokenOut`) must be a valid base token.\n86:      */\n87:     function redeem(\n88:         address receiver,\n89:         uint256 amountSharesToRedeem,\n90:         address tokenOut,\n91:         uint256 minTokenOut,\n92:         bool burnFromInternalBalance\n93:     ) external returns (uint256 amountTokenOut);\n```\n\nThe following `_calculateBaseToQuote()` function will be used to compute how many asset tokens are worth per PT token. Assume that `useSyOracleRate_` is true.\n\n- The `baseToUSD` will return how many asset tokens per Yield Token. Only the price feed of Yield token is supported by Chainlink and other oracle providers.\n- The `_getPTRate` will return how many Pendle SY tokens per PT token\n\nThe following formula is used to compute how many asset tokens are worth per PT token:\n\n```solidity\n(asset tokens per PT) = (asset tokens per Yield Token) * (Pendle SY tokens per PT token)\n```\n\nThis formula will only work if `Yield Token` is equivalent to `Pendle SY tokens`. However, as mentioned earlier, this is not true. In some cases, one Pendle SY token might be worth 0.95 Yield Token. In this case, the price returned will be inflated since it assumes that 1 SY == 1 Yield Token.\n\nhttps://github.com/sherlock-audit/2025-06-notional-exponent/blob/main/notional-v4/src/oracles/PendlePTOracle.sol#L68\n\n```solidity\nFile: PendlePTOracle.sol\n68:     function _calculateBaseToQuote() internal view override returns (\n69:         uint80 roundId,\n70:         int256 answer,\n71:         uint256 startedAt,\n72:         uint256 updatedAt,\n73:         uint80 answeredInRound\n74:     ) {\n75:         int256 baseToUSD;\n76:         (\n77:             roundId,\n78:             baseToUSD,\n79:             startedAt,\n80:             updatedAt,\n81:             answeredInRound\n82:         ) = baseToUSDOracle.latestRoundData();\n83:         require(baseToUSD > 0, \"Chainlink Rate Error\");\n84:         // Overflow and div by zero not possible\n85:         if (invertBase) baseToUSD = (baseToUSDDecimals * baseToUSDDecimals) / baseToUSD;\n86: \n87:         int256 ptRate = _getPTRate();\n88:         answer = (ptRate * baseToUSD) / baseToUSDDecimals;\n89:     }\n```\n\n### Impact\n\nHigh. Price computed will be inflated, leading collateral to be overvalued. As a result, users are allowed to borrow more than expected, affecting the protocol's solvency and increasing the risk of bad debt.\n\n### PoC\n\n_No response_\n\n### Mitigation\n\n_No response_\n\n",
+    "summary": "\nThis bug report is about an issue found in the Pendle yield strategy code. The bug was discovered by two individuals and it is caused by an incorrect assumption in the code. The code assumes that one Pendle Standard Yield (SY) token is equal to one Yield Token when calculating the price in the oracle. However, this is not always true and can result in an inflated price. This bug can have a high impact as it can lead to the protocol's solvency being affected and an increased risk of bad debt. There is currently no response or mitigation for this bug.",
+    "report_date": "2025-07-18T15:00:00.000Z",
+    "contest_prize_txt": "75500 USDC",
+    "contest_link": "https://app.sherlock.xyz/audits/contests/1001",
+    "sponsor_name": "",
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "",
+    "github_link": "https://github.com/sherlock-audit/2025-06-notional-exponent-judging/issues/689",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "1001",
+    "slug": "h-8-incorrect-assumption-that-one-1-pendle-standard-yield-sy-token-is-equal-to-one-1-yield-token-when-computing-the-price-in-the-oracle-sherlock-notional-exponent-git",
+    "firm_name": "Sherlock",
+    "firm_logo_square": "sherlock_square.png",
+    "protocol_name": "Notional Exponent",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "mstpr-brainbot"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "xiaoming90"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Sherlock",
+        "logo_square": "sherlock_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Notional Exponent",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

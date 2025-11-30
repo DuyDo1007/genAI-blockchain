@@ -1,0 +1,45 @@
+{
+    "id": 62572,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 16,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3420,
+    "title": "[L-14] Risks of modifying `randomAllocationPool` during a transaction",
+    "content": "\n_Resolved_\n\nThe `setCardAllocationPool` function in the Packet contract allows the `SUPER_ADMIN_ROLE` to change the `randomAllocationPool` address at any time.\n\n```solidity\n    function setCardAllocationPool(address newCardAllocationPool) external onlyRole(SUPER_ADMIN_ROLE) {\n        randomAllocationPool = CardAllocationPool(newCardAllocationPool);\n    }\n```\nThis mid-transaction modification can lead to significant issues:\n- First, users may see outdated pool information on the front end that does not match the actual state during transaction execution, potentially leading to disputes and confusion.\n- Second, if the previous pool address's  `ALLOCATION_MANAGER_ROLE` has also been revoked, any subsequent calls to `finalizeOpen` by the previous pool could fail. This failure would result in the packet being temporarily locked, requiring an administrator to manually call `revertBurnRequest` to resolve the situation.\n\nTo mitigate these risks, consider implementing a mechanism that prevents changes to the `randomAllocationPool` during active transactions or requires a confirmation period before the change takes effect.\n\n\n\n",
+    "summary": "",
+    "report_date": "2025-09-11T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/pashov/audits/blob/master/team/md/RipIt-security-review_2025-04-25.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "l-14-risks-of-modifying-randomallocationpool-during-a-transaction-pashov-audit-group-none-ripit_2025-04-25-markdown",
+    "firm_name": "Pashov Audit Group",
+    "firm_logo_square": "Pashov_square.png",
+    "protocol_name": "RipIt_2025-04-25",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Pashov Audit Group"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Pashov Audit Group",
+        "logo_square": "Pashov_square.png"
+    },
+    "protocols_protocol": {
+        "name": "RipIt_2025-04-25",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

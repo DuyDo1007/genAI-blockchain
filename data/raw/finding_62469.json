@@ -1,0 +1,71 @@
+{
+    "id": 62469,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 23,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 1179,
+    "title": "Remove unnecessary ETH handling logic for maker asset",
+    "content": "##### Description\nIn the [`callExecutor()`](https://github.com/BarterLab/argon/blob/f653d58132124854db42d2bd93d0c6b91da2c398/contracts/InchFusionBarterResolver.sol#L93-L123) function, there's logic that checks if the maker asset is ETH and skips token transfer:\n\n```solidity\nif (makerAsset.get() != address(0) && \n    makerAsset.get() != address(0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE)\n   ) {\n    IERC20(makerAsset.get()).safeTransfer(address(executor), makingAmount);\n}\n```\n\nThis logic appears to be leftover code from UniswapX solver implementation and is not needed in the context of 1inch Fusion orders.\n<br/>\n##### Recommendation\nWe recommend removing unnecessary logic.\n\n---\n    ",
+    "summary": "",
+    "report_date": "2025-09-05T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/mixbytes/audits_public/blob/master/Barter%20DAO/InchFusionBarterResolver/README.md#3-remove-unnecessary-eth-handling-logic-for-maker-asset",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "remove-unnecessary-eth-handling-logic-for-maker-asset-mixbytes-none-barter-dao-markdown",
+    "firm_name": "MixBytes",
+    "firm_logo_square": "mixbytes_square.png",
+    "protocol_name": "Barter DAO",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "MixBytes"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "MixBytes",
+        "logo_square": "mixbytes_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Barter DAO",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": [
+        {
+            "tags_tag": {
+                "title": "0x"
+            }
+        },
+        {
+            "tags_tag": {
+                "title": "1/64 Rule"
+            }
+        },
+        {
+            "tags_tag": {
+                "title": "51% Attack"
+            }
+        },
+        {
+            "tags_tag": {
+                "title": "API Inconsistency"
+            }
+        },
+        {
+            "tags_tag": {
+                "title": "Access Control"
+            }
+        }
+    ]
+}

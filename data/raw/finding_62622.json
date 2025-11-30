@@ -1,0 +1,45 @@
+{
+    "id": 62622,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 16,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3422,
+    "title": "[L-01] Deadline not checked for swaps through V2",
+    "content": "\n_Resolved_\n\nIn the `swapTokens()` function, when `swapParams.useV3` is false, `ISwapX.swapV2ExactIn()` is called. This function does not check if `swapParams.deadline` has passed, which can provoke that the swap being executed later than expected at a worse price.\n\nIt is recommended to add the deadline check in the `swapTokens()` function when the swap uses V2.\n\n```diff\n        } else {\n            if (swapParams.poolAddress == address(0)) {\n                revert ZeroAddress();\n            }\n\n+\t\t\tif (block.timestamp > swapParams.deadline) {\n+\t\t\t\trevert TransactionTooOld();\n+\t\t\t}\n```\n\n\n\n",
+    "summary": "",
+    "report_date": "2025-09-12T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/pashov/audits/blob/master/team/md/Funnel-security-review_2025-08-27.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "l-01-deadline-not-checked-for-swaps-through-v2-pashov-audit-group-none-funnel_2025-08-27-markdown",
+    "firm_name": "Pashov Audit Group",
+    "firm_logo_square": "Pashov_square.png",
+    "protocol_name": "Funnel_2025-08-27",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Pashov Audit Group"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Pashov Audit Group",
+        "logo_square": "Pashov_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Funnel_2025-08-27",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

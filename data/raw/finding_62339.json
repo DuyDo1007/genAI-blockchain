@@ -1,0 +1,50 @@
+{
+    "id": 62339,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 11,
+    "impact": "LOW",
+    "finders_count": 2,
+    "protocol_id": 3401,
+    "title": "`GMTokenManager::mintWithAttestation` breaks Check-Effects-Interactions pattern",
+    "content": "**Description:** In [`GMTokenManager::mintWithAttestation`](https://github.com/ondoprotocol/rwa-internal/blob/a74d03f4a71bd9cac09e8223377b47f7d64ca8d4/contracts/globalMarkets/tokenManager/GMTokenManager.sol#L196-L231), the function transfers tokens from the user before performing internal accounting operations such as rate limiting, burning, and minting. This violates the check-effects-interactions pattern, where external calls (like token transfers) should typically come after all internal state updates to reduce risk.\n\nWhile the token being transferred is assumed to be a trusted stablecoin, this ordering increases the surface area for unexpected behavior if any integrated token misbehaves (e.g., via callback hooks, pausable logic, or fee-on-transfer behavior).\n\nConsider reordering operations in `mintWithAttestation` to follow the check-effects-interactions pattern—performing rate limiting, burns, and mints **before** calling `token.transferFrom()`.\n\n**Ondo:** Fixed in commit [`29bdeb9`](https://github.com/ondoprotocol/rwa-internal/pull/470/commits/29bdeb92b8de97be3de6a60d78bf91449be90827)\n\n**Cyfrin:** Verified. rate limiting now done before external calls.",
+    "summary": "",
+    "report_date": "2025-07-14T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/solodit/solodit_content/blob/main/reports/Cyfrin/2025-07-14-cyfrin-ondo-global-markets-v2.0.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "gmtokenmanagermintwithattestation-breaks-check-effects-interactions-pattern-cyfrin-none-ondo-global-markets-markdown",
+    "firm_name": "Cyfrin",
+    "firm_logo_square": "Cyfrin_square.jpg",
+    "protocol_name": "Ondo Global Markets",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Immeas"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Al-Qa'qa'"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Cyfrin",
+        "logo_square": "Cyfrin_square.jpg"
+    },
+    "protocols_protocol": {
+        "name": "Ondo Global Markets",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

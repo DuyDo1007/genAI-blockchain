@@ -1,0 +1,45 @@
+{
+    "id": 62600,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 16,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3421,
+    "title": "[L-03] Missing validation for burned `packetIds` in `addCardBundlesToPacketPool()`",
+    "content": "\n_Resolved_\n\nIn the `CardAllocationPool.addCardBundlesToPacketPool()` function, intended to be called by the redeemer manager to add cards to a specific packet type's pool as a bundle, there is no validation to ensure that the `packetIds` provided belong to the same `packetTypeId` being added.\n\nThis lack of validation can result in inconsistent or incorrect packet assignments. Additionally, it creates a potential security risk, as a malicious redeem manager could exploit this gap to burn any packet listed in the `PacketStore`, leading to the removal of unintended packets and causing possible disruptions in the system.\n\n```solidity\n  function addCardBundlesToPacketPool(\n        uint256 packetType,\n        uint256[] memory cardBundles,\n        uint256[] memory packetIds,\n        bytes32 bundleProvenance\n    ) external noPendingRandomness onlyRole(redeemManagerRoleId) {\n        //...\n\n        packetTypeToCardBundles[packetType].push(CardBundle({cardIds: cardBundles, bundleProvenance: bundleProvenance}));\n        for (uint256 i = 0; i < cardBundles.length; i++) {\n            RipFunPacks(packetNFTAddress).burnFromInventory(packetIds[i]);\n            IERC721(cardNFTAddress).safeTransferFrom(msg.sender, address(this), cardBundles[i]);\n        }\n\n        //...\n    }\n```\n\nRecommendation:\nImplement a validation step to ensure that all `packetIds` provided are associated with the provided `packetTypeId`.\n\n\n\n",
+    "summary": "",
+    "report_date": "2025-09-11T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/pashov/audits/blob/master/team/md/RipIt-security-review_2025-05-10.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "l-03-missing-validation-for-burned-packetids-in-addcardbundlestopacketpool-pashov-audit-group-none-ripit_2025-05-10-markdown",
+    "firm_name": "Pashov Audit Group",
+    "firm_logo_square": "Pashov_square.png",
+    "protocol_name": "RipIt_2025-05-10",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Pashov Audit Group"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Pashov Audit Group",
+        "logo_square": "Pashov_square.png"
+    },
+    "protocols_protocol": {
+        "name": "RipIt_2025-05-10",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

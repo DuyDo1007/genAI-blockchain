@@ -1,0 +1,45 @@
+{
+    "id": 62330,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 16,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3400,
+    "title": "[L-06] The `deposit` function lacks asset support check",
+    "content": "\n_Resolved_\n\nThe `deposit` function allows anyone to send coins to `management`, mainly intended for the router to inject the tokens required for withdrawals after rebalancing. \n```rust\npublic fun deposit<T>(\n    management: &mut DeUSDMintingManagement,\n    global_config: &GlobalConfig,\n    coins: Coin<T>,\n    ctx: &TxContext,\n) {\n    assert_package_version_and_initialized(management, global_config);\n    let amount = coins.value();\n    assert!(amount > 0, EInvalidAmount);\n\n    let balance = get_or_create_balance_store_mut<T>(management);\n    balance.join(coin::into_balance(coins));\n\n    event::emit(Deposit {\n        depositor: ctx.sender(),\n        asset: type_name::get<T>(),\n        amount,\n    });\n}\n```\nHowever, it is recommended to perform an `is_support_asset` check here to avoid mistakenly accepting unsupported assets, as these assets would still require `collateral_manager` and `AdminCap` to transfer out.\n\n\n\n",
+    "summary": "",
+    "report_date": "2025-09-02T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/pashov/audits/blob/master/team/md/Elixir-security-review_2025-08-17.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "l-06-the-deposit-function-lacks-asset-support-check-pashov-audit-group-none-elixir_2025-08-17-markdown",
+    "firm_name": "Pashov Audit Group",
+    "firm_logo_square": "Pashov_square.png",
+    "protocol_name": "Elixir_2025-08-17",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Pashov Audit Group"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Pashov Audit Group",
+        "logo_square": "Pashov_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Elixir_2025-08-17",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

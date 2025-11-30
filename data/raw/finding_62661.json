@@ -1,0 +1,45 @@
+{
+    "id": 62661,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 23,
+    "impact": "HIGH",
+    "finders_count": 1,
+    "protocol_id": 3435,
+    "title": "Arbitrage on Oracle-Driven Price Updates",
+    "content": "##### Description\nThis issue has been identified within the `swap`, `mint`, and `redeem` operations of the `SelfPeggingAsset` contract. \n\nThe pool’s effective price relies on external oracle exchange rates, causing it to instantly reflect any oracle-based updates. Attackers who can detect or anticipate these rate changes (e.g., via mempool monitoring or privileged oracle access) can profit by:\n\n- **Swap before** the oracle change, then **swap again** after the change, or \n- **Mint before** the new rate is applied, then **redeem** once the oracle rate shifts in a favorable direction.\n\nBecause the amplification coefficient `A` can be large, the pool’s price is highly sensitive, allowing attackers to execute substantial swaps with minimal slippage. Attempting to compensate by raising fees poses a trade-off between competitiveness and effective front-run prevention. Even then, sudden high oracle-driven price changes (for instance, 0.5% or greater) can exceed those fees, making arbitrage profitable.\n\nThe issue is classified as **high** severity because high oracle-driven changes can be exploited to consistently extract value, particularly when large trading volumes incur minimal slippage.\n\n##### Recommendation\nWe recommend implementing dynamic fees that temporarily increase when the pool becomes imbalanced, similar to the approach in Curve’s stableswap-ng design. This mitigates arbitrage opportunities caused by sudden oracle updates while keeping fees lower during normal market conditions. Once balances are stable again, fees can revert to a baseline level.\n",
+    "summary": "\nThe report describes a problem with the `SelfPeggingAsset` contract, specifically with the `swap`, `mint`, and `redeem` functions. The issue is that the pool's price is highly sensitive to changes in external oracle exchange rates, allowing attackers to profit by swapping or minting before the rates change and redeeming once the rates shift in their favor. This can result in significant profits for the attackers with minimal slippage. The severity of the issue is considered high because it can consistently be exploited to extract value. The recommendation is to implement dynamic fees that increase temporarily when the pool becomes imbalanced, similar to the approach used by Curve's stableswap-ng design. This will mitigate the arbitrage opportunities caused by sudden oracle updates while keeping fees lower during normal market conditions.",
+    "report_date": "2025-09-19T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/mixbytes/audits_public/blob/master/NUTS%20Finance/Tapio/README.md#2-arbitrage-on-oracle-driven-price-updates",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "arbitrage-on-oracle-driven-price-updates-mixbytes-none-nuts-finance-markdown",
+    "firm_name": "MixBytes",
+    "firm_logo_square": "mixbytes_square.png",
+    "protocol_name": "NUTS Finance",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "MixBytes"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "MixBytes",
+        "logo_square": "mixbytes_square.png"
+    },
+    "protocols_protocol": {
+        "name": "NUTS Finance",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

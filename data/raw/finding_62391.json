@@ -1,0 +1,45 @@
+{
+    "id": 62391,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 34,
+    "impact": "HIGH",
+    "finders_count": 1,
+    "protocol_id": 3404,
+    "title": "[STAKE-6] Unprotected flash loan callback can be abused to manipulate/claim other users' positions",
+    "content": "**Severity:** Critical\n\n**Path:** LeverageStrategy.sol:receiveFlashLoan#L304-L333\n\n**Description:** The Leverage Strategy contract uses flash loans from the osToken Flash Loan module to flash loan osTokens and perform actions, such as deposit, claim and rescue. Each of these functions performs the flash loan with specific parameters in the `userData` field.\n\nThe callback function `receiveFlashLoan` will be called by the Flash Loan module and while the function correctly checks that the caller is the module, it does not check whether the flash loan was initiated by the contract itself. \n\nSo it becomes possible for an attacker to initiate a flash loan with the Leverage Strategy as receiver. The `userData` can then be arbitrarily chosen by the attacker, which depending on the action can be the proxy address, vault address or exit position ID. \n\nThe attacker can make use of the specific Flash Loan callback functions to manipulate any arbitrary proxy and change their leveraged positions or make a claim and cause a deadlock in exiting because `isStrategyProxyExiting` was never cleared. \n```\n    function receiveFlashLoan(uint256 osTokenShares, bytes memory userData) external {\n        // validate sender\n        if (msg.sender != address(_osTokenFlashLoans)) {\n            revert Errors.AccessDenied();\n        }\n\n        // decode userData action\n        (FlashloanAction flashloanType) = abi.decode(userData, (FlashloanAction));\n        if (flashloanType == FlashloanAction.Deposit) {\n            // process deposit flashloan\n            (, address vault, address proxy) = abi.decode(userData, (FlashloanAction, address, address));\n            _processDepositFlashloan(vault, proxy, osTokenShares);\n        } else if (flashloanType == FlashloanAction.ClaimExitedAssets) {\n            // process claim exited assets flashloan\n            (, address vault, address proxy, uint256 exitPositionTicket) =\n                abi.decode(userData, (FlashloanAction, address, address, uint256));\n            _processClaimFlashloan(vault, proxy, exitPositionTicket, osTokenShares);\n        } else if (flashloanType == FlashloanAction.RescueVaultAssets) {\n            // process vault assets rescue flashloan\n            (, address vault, address proxy, uint256 exitPositionTicket) =\n                abi.decode(userData, (FlashloanAction, address, address, uint256));\n            _processVaultAssetsRescueFlashloan(vault, proxy, exitPositionTicket, osTokenShares);\n        } else if (flashloanType == FlashloanAction.RescueLendingAssets) {\n            // process lending assets rescue flashloan\n            (, address proxy, uint256 assets) = abi.decode(userData, (FlashloanAction, address, uint256));\n            _processLendingAssetsRescueFlashloan(proxy, assets, osTokenShares);\n        } else {\n            revert InvalidFlashloanAction();\n        }\n    }\n```\n\n\n**Remediation:**  The `receiveFlashLoan` callback function should check whether the contract itself initiated the flash loan. This can be done using a storage variable that is set to true before the initiating function calls `flashLoan` and set to false after.\n\nFor example:\n```\nfunction deposit(address vault, uint256 osTokenShares) external {\n  [..]\n  if (performingFlashLoan) {\n    revert Errors.Reentrant();\n  }\n  performingFlashLoan = true;\n  // execute flashloan\n  _osTokenFlashLoans.flashLoan(\n    address(this), flashloanOsTokenShares, abi.encode(FlashloanAction.Deposit, vault, proxy)\n  );\n  performingFlashLoan = false;\n  [..]\n}\n\nfunction receiveFlashLoan(uint256 osTokenShares, bytes memory userData) external {\n  if (!performingFlashLoan) {\n    revert Errors.AccessDenied();\n  }\n  [..]\n}\n```\n\n\n**Status:**  Fixed\n\n\n- - -\n\n##Medium Risk",
+    "summary": "\nThis bug report describes a critical issue in a contract called Leverage Strategy. This contract uses flash loans to perform various actions, such as depositing, claiming, and rescuing. The problem is that the contract does not check if the flash loan was initiated by itself, making it vulnerable to attacks. An attacker can manipulate the contract and cause a deadlock, preventing users from exiting their positions. To fix this, the contract needs to check if the flash loan was initiated by itself. This issue has been fixed.",
+    "report_date": "2024-09-19T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/solodit/solodit_content/blob/main/reports/Hexens/2024-09-19-StakeWise.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "stake-6-unprotected-flash-loan-callback-can-be-abused-to-manipulateclaim-other-users-positions-hexens-none-stakewise-markdown",
+    "firm_name": "Hexens",
+    "firm_logo_square": "Hexens_square.png",
+    "protocol_name": "Stakewise",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Hexens"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Hexens",
+        "logo_square": "Hexens_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Stakewise",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

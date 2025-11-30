@@ -1,0 +1,50 @@
+{
+    "id": 62343,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 11,
+    "impact": "LOW",
+    "finders_count": 2,
+    "protocol_id": 3401,
+    "title": "Confusing field name `minimumLiveness` in `PriceData` struct",
+    "content": "**Description:** The [`PriceData`](https://github.com/ondoprotocol/rwa-internal/blob/a74d03f4a71bd9cac09e8223377b47f7d64ca8d4/contracts/globalMarkets/tokenManager/sanityCheckOracle/OndoSanityCheckOracle.sol#L37-L49) struct in `OndoSanityCheckOracle` includes a field named `minimumLiveness`, which actually represents the maximum age a price can be before it's considered stale. The current name may be misleading, as \"minimum liveness\" implies a lower bound on freshness rather than an upper bound on staleness.\n\nConsider renaming the field to something clearer like `maxPriceAge` or `staleThreshold` to better reflect its purpose and improve code readability.\n\n**Ondo:** Fixed in commits [`b453b57`](https://github.com/ondoprotocol/rwa-internal/pull/470/commits/b453b57a8785ee7905d8dc46bee47694f43f152c) and [`9af9735`](https://github.com/ondoprotocol/rwa-internal/pull/470/commits/9af9735587341a0c97a04ce00ace905406b87e8c)\n\n**Cyfrin:** Verified. Renamed to `maxTimeDelay`.",
+    "summary": "",
+    "report_date": "2025-07-14T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/solodit/solodit_content/blob/main/reports/Cyfrin/2025-07-14-cyfrin-ondo-global-markets-v2.0.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "confusing-field-name-minimumliveness-in-pricedata-struct-cyfrin-none-ondo-global-markets-markdown",
+    "firm_name": "Cyfrin",
+    "firm_logo_square": "Cyfrin_square.jpg",
+    "protocol_name": "Ondo Global Markets",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Immeas"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Al-Qa'qa'"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Cyfrin",
+        "logo_square": "Cyfrin_square.jpg"
+    },
+    "protocols_protocol": {
+        "name": "Ondo Global Markets",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

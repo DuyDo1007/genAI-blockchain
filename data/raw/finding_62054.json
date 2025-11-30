@@ -1,0 +1,50 @@
+{
+    "id": 62054,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 8,
+    "impact": "LOW",
+    "finders_count": 2,
+    "protocol_id": 3375,
+    "title": "Version Mismatch for evm-m-extensions in mUSD  Acknowledged",
+    "content": "...\n\nExport to GitHub ...\n\nSet external GitHub Repo ...\n\nExport to Clipboard (json)\n\nExport to Clipboard (text)\n\n#### Resolution\n\nDeployment to mainnet addressed as per M0’s comment:\n\n> We used commit hash [`50de1be2d971131c09a417cc5e359ad60de1b84b`](https://github.com/m0-foundation/evm-m-extensions/compare/90f144deee35071e02b1ff0b62004b8d2435ddfe...50de1be2d971131c09a417cc5e359ad60de1b84b) when deploying to Mainnet.\n>\n> That being said, no change impacted mUSD between `90f144deee35071e02b1ff0b62004b8d2435ddfe` and `50de1be2d971131c09a417cc5e359ad60de1b84b` .\n\nNote: The version of `evm-m-extensions` that is currently used in `mUSD` (where “currently” means precisely: in revision [b5594cd5c8a0b27534bf20f09ff08fd74bb18f7f](https://github.com/m0-foundation/mUSD/tree/b5594cd5c8a0b27534bf20f09ff08fd74bb18f7f), which is the final version we considered in this review - but not the version that was originally deployed) is [909c536deac54de5a5bc3305f57e310c327fb441](https://github.com/m0-foundation/evm-m-extensions/tree/909c536deac54de5a5bc3305f57e310c327fb441) and, therefore, one commit ahead of [50de1be2d971131c09a417cc5e359ad60de1b84b](https://github.com/m0-foundation/evm-m-extensions/tree/50de1be2d971131c09a417cc5e359ad60de1b84b).\n\n#### Description\n\n`MUSD` inherits extensively from contracts in the [`evm-m-extensions`](https://github.com/m0-foundation/evm-m-extensions) repository. While this code itself was not in scope for this audit, we had to check some of it for compatibility with `MUSD` and were asked to consider revision [`011f84f0f6a701a9796fcac1ad29896c60b65344`](https://github.com/m0-foundation/evm-m-extensions/tree/011f84f0f6a701a9796fcac1ad29896c60b65344) for this.\n\nIt should be noted, however, that the submodule that is actually used in the [`mUSD`](https://github.com/m0-foundation/mUSD/) repository is at revision [`90f144deee35071e02b1ff0b62004b8d2435ddfe`](https://github.com/m0-foundation/evm-m-extensions/tree/90f144deee35071e02b1ff0b62004b8d2435ddfe) and therefore behind the commit hash we were given.\n\n#### Recommendation\n\nSince the `evm-m-extensions` are not in scope for this audit, we cannot give a recommendation as to which version to use. From the limited perspective of this review, the revision that is currently utilized in `mUSD` at the relevant commit hash is behind the one we were told was going to be used for `mUSD`.",
+    "summary": "",
+    "report_date": "2025-08-01T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://diligence.consensys.io/audits/2025/08/metamask-usd-token/",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "version-mismatch-for-evm-m-extensions-in-musd-acknowledged-consensys-none-metamask-usd-token-markdown",
+    "firm_name": "ConsenSys",
+    "firm_logo_square": "consensys_square.png",
+    "protocol_name": "MetaMask USD Token",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "George Kobakhidze"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": " Heiko Fisch\n                        "
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "ConsenSys",
+        "logo_square": "consensys_square.png"
+    },
+    "protocols_protocol": {
+        "name": "MetaMask USD Token",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

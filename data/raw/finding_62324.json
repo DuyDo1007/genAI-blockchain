@@ -1,0 +1,45 @@
+{
+    "id": 62324,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 16,
+    "impact": "MEDIUM",
+    "finders_count": 1,
+    "protocol_id": 3400,
+    "title": "[M-02] Orphaned rewards captured by first staker",
+    "content": "\n_Resolved_\n\n## Severity\n\n**Impact:** High\n\n**Likelihood:** Low\n\n## Description\n\nIn contract `sdeusd.move` func `transfer_in_rewards()` and `convert_to_shares()` when rewards are distributed while no sdeUSD holders exist, the first subsequent staker captures all orphaned rewards at 1:1 conversion rate.\n\nIf you check the **vulnerable logic** it doesn't check if there are active stakers.\n```move\n// transfer_in_rewards() - No check for active stakers\npublic fun transfer_in_rewards(...) {\n    // Missing: assert!(total_supply(management) > 0, ENoActiveStakers);\n    update_vesting_amount(management, amount, clock);\n}\n\n// convert_to_shares() - 1:1 ratio when no existing stakers\nif (total_supply == 0 || total_assets == 0) {\n    assets  // First staker gets 1:1 regardless of unvested rewards\n}\n```\n\nLet's take an example **how it occurs**\n1. Protocol has zero sdeUSD holders (total_supply = 0).\n2. 100 deUSD rewards distributed via `transfer_in_rewards()`.\n3. Alice stakes 1000 deUSD during the vesting period → gets 1000 shares (1:1 ratio).\n4. Vesting completes → Alice's 1000 shares now represent 1100 deUSD total assets.\n5. Alice redeems for 100 deUSD profit (orphaned community rewards).\n\nNo validation prevents reward distribution to an empty staker pool, combined with 1:1 conversion, ignoring unvested assets.\n\n### Impact\n\n**First staker after empty periods captures all orphaned community rewards** through timing manipulation.\n\n## Recommendation\n\nPrevent reward distribution when no active stakers exist.\n\n```move\npublic fun transfer_in_rewards(...) {\n    assert!(total_supply(management) > 0, ENoActiveStakers);\n    update_vesting_amount(management, amount, clock);\n    // ... rest of function\n}\n```\n\n\n\n",
+    "summary": "\nThe report describes a bug in a contract called `sdeusd.move`. This bug occurs when rewards are distributed while there are no `sdeUSD` holders. The bug allows the first subsequent staker to capture all orphaned rewards at a 1:1 conversion rate, which means they get all the rewards without having to share with other stakers. This happens because the contract does not check if there are active stakers before distributing rewards. This bug can be exploited by timing the staking process to become the first staker after a period of no active stakers. The report recommends preventing reward distribution when there are no active stakers to fix this bug.",
+    "report_date": "2025-09-02T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/pashov/audits/blob/master/team/md/Elixir-security-review_2025-08-17.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "m-02-orphaned-rewards-captured-by-first-staker-pashov-audit-group-none-elixir_2025-08-17-markdown",
+    "firm_name": "Pashov Audit Group",
+    "firm_logo_square": "Pashov_square.png",
+    "protocol_name": "Elixir_2025-08-17",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Pashov Audit Group"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Pashov Audit Group",
+        "logo_square": "Pashov_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Elixir_2025-08-17",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

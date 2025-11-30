@@ -1,0 +1,45 @@
+{
+    "id": 62558,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 16,
+    "impact": "MEDIUM",
+    "finders_count": 1,
+    "protocol_id": 3420,
+    "title": "[M-14] Upgrade permissions inappropriate for `ROLE_MANAGER_ROLE`",
+    "content": "\n_Resolved_\n\n## Severity\n\n**Impact:** Medium\n\n**Likelihood:** Medium\n\n## Description\n\nThe `_authorizeUpgrade` function in the `RoleBasedAccessControl` contract allows both `SUPER_ADMIN_ROLE` and `ROLE_MANAGER_ROLE` to authorize contract upgrades.\n\n```solidity\n    function _authorizeUpgrade(address newImplementation) internal override onlySuperAdminOrRoleManager {}\n```\n\nThis design violates the best practice of **maintaining a single point of truth** for upgrade authority. Contract upgrades are a highly sensitive operation and should be restricted to a single, clearly defined, and trusted role to avoid ambiguity and reduce the risk of misconfiguration or abuse. Granting this power to multiple roles introduces unnecessary complexity and increases the attack surface.\n\nIn this context, the `ROLE_MANAGER_ROLE` should not possess the authority to perform upgrades, as it is typically not assumed to have the same level of trust or oversight as the `SUPER_ADMIN_ROLE`. A compromised or malicious `ROLE_MANAGER_ROLE` user could abuse this capability to introduce malicious logic or backdoors.\n\nNote that other contracts in the codebase follow a more appropriate pattern where only one specific role is allowed to perform upgrades. For example:\n\n```solidity\n    /// @notice Role ID for super admin, used for contract upgrades\n    /// @dev Constant value that defines the role identifier for upgrade authorization\n    uint256 public constant SUPER_ADMIN_ROLE = 1;\n```\n\nThe same goes for `MINT_MANAGER_ROLE` in the `Card` contract and `redeemManagerRoleId` in `CardAllocationPool`, as it is used as the role for upgrade. Under this situation, even `SUPER_ADMIN_ROLE` couldn't upgrade the contract.\n\n```solidity\n    function _authorizeUpgrade(address newImplementation) internal override onlyRole(MINT_MANAGER_ROLE) {}\n```\n\n```solidity\n    function _authorizeUpgrade(address newImplementation) internal override onlyRole(redeemManagerRoleId) {}\n```\n\n## Recommendations\n\nTo enhance the security of the upgrade mechanism, restrict the upgrade authorization solely to the `SUPER_ADMIN_ROLE`.\n\n\n\n",
+    "summary": "\nThis bug report discusses an issue with the `_authorizeUpgrade` function in the `RoleBasedAccessControl` contract. This function allows both the `SUPER_ADMIN_ROLE` and `ROLE_MANAGER_ROLE` to authorize contract upgrades, which goes against best practices. This could potentially lead to security vulnerabilities and should be restricted to only the `SUPER_ADMIN_ROLE` for better oversight and control. The report recommends making this change to enhance the security of the upgrade mechanism.",
+    "report_date": "2025-09-11T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/pashov/audits/blob/master/team/md/RipIt-security-review_2025-04-25.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "m-14-upgrade-permissions-inappropriate-for-role_manager_role-pashov-audit-group-none-ripit_2025-04-25-markdown",
+    "firm_name": "Pashov Audit Group",
+    "firm_logo_square": "Pashov_square.png",
+    "protocol_name": "RipIt_2025-04-25",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Pashov Audit Group"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Pashov Audit Group",
+        "logo_square": "Pashov_square.png"
+    },
+    "protocols_protocol": {
+        "name": "RipIt_2025-04-25",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

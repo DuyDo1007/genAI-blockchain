@@ -1,0 +1,45 @@
+{
+    "id": 62387,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 34,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 1408,
+    "title": "[FNG-22] Optimisation of NFT transfer out by ID",
+    "content": "**Severity:** Low\n\n**Path:** CERC721NoBorrow.sol:doNFTTransferOutByIds#L179-L214\n\n**Description:**  `CERC721NoBorrow` implements a function `doNFTTransferOutByIds` to transfer NFTs out to the receiver using specific IDs.\n\nIn the function, it loops over each given NFT ID and the currently held NFTs of the user. Once found, the NFT is transferred to the receiver and the NFT is deleted from the `userHeldNFTs` array.\n\nHowever, in the case where the given NFT ID is the last one in the array, it will do a redundant SSTORE of the NFT ID to the last element of the array on line 207 before popping the same value. This can be prevented by checking the index against the length.\n```\n    function doNFTTransferOutByIds(address to, uint[] memory nftIds) internal {\n        uint[] storage userHeldNFTs_ = userHeldNFTs[to];\n        uint len = userHeldNFTs_.length;\n        uint nftCount = nftIds.length;\n        if (len < nftCount) {\n            revert NftAmountTooHigh();\n        }\n\n        IERC721 underlying_ = IERC721(underlying);\n        for (uint i = 0; i < nftCount;) {\n            uint nftID = nftIds[i];\n            uint assetIndex = len;\n            for (uint j = 0; j < len;) {\n                if (userHeldNFTs_[j] == nftID) {\n                    assetIndex = j;\n                    break;\n                }\n                unchecked { j++; }\n            }\n\n            if (assetIndex == len) {\n                revert NftNotFound(nftID);\n            }\n\n            underlying_.transferFrom(address(this), to, nftID);\n\n            // copy last item in list to location of item to be removed, reduce length by 1\n            len = len - 1;\n            userHeldNFTs_[assetIndex] = userHeldNFTs_[len];\n            userHeldNFTs_.pop();\n\n            unchecked { i++; }\n        }\n```\n\n**Remediation:**  Check for the index to be equal to the length and prevent redundant storing a value before deleting it. For example, change line 207 to:\n```\nif (assetIndex != len) {\n  userHeldNFTs_[assetIndex] = userHeldNFTs_[len];\n}\n```\n\n**Status:** Fixed\n\n- - -",
+    "summary": "",
+    "report_date": "2023-11-06T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/solodit/solodit_content/blob/main/reports/Hexens/2023-11-06-Fungify.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "fng-22-optimisation-of-nft-transfer-out-by-id-hexens-none-fungify-markdown",
+    "firm_name": "Hexens",
+    "firm_logo_square": "Hexens_square.png",
+    "protocol_name": "Fungify",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Hexens"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Hexens",
+        "logo_square": "Hexens_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Fungify",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

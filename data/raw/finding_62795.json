@@ -1,0 +1,55 @@
+{
+    "id": 62795,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 37,
+    "impact": "MEDIUM",
+    "finders_count": 3,
+    "protocol_id": 3446,
+    "title": "Token Owner Can Frontrun Evidence Hashes To Block Disputes",
+    "content": "**Update**\nMarked as \"Acknowledged\" by the client. The client provided the following explanation:\n\n> We want to avoid duplicate evidences for a single dispute and given the fact we are using the abc stack so acknowledging for now we might include this in future\n\n**File(s) affected:**`DisputeModule.sol`\n\n**Description:** The `DisputeModule` contract uses a global `isUsedEvidenceHash` mapping to prevent duplicate evidence submission across all disputes. However, this design enables malicious actors to permanently block legitimate disputes by front-running evidence hashes. When a dispute is raised in `raiseDispute()`, the evidence hash is marked as used globally and permanently, even if the dispute is later cancelled via `cancelDispute()`.\n\nSince the Camp network relies on a private mempool, there's no potential for the classic frontrunning exploitation. However, IP Owners may still be able to foresee future evidence hashes that can be blocked by raising throwaway disputes with the same evidence hash, then cancelling before the cooldown period elapses to recover their bond while permanently burning the evidence hash.\n\n**Exploit Scenario:**\n\n1.   Alice discovers Bob's IP contains infringing content and prepares evidence with hash `0xabc123...`\n2.   Alice submits `raiseDispute(bobsIpId, 0xabc123..., disputeTag)` transaction\n3.   Bob monitors the mempool and front-runs with `raiseDispute(randomIpId, 0xabc123..., disputeTag)` using the same evidence hash\n4.   Bob immediately calls `cancelDispute()` on his own dispute, recovering his bond\n5.   Alice's original transaction fails with `EvidenceAlreadyUsed()` revert\n6.   The evidence hash `0xabc123...` remains permanently marked as used in `isUsedEvidenceHash` mapping\n7.   Alice cannot use her evidence against Bob's infringing IP, and Bob's content remains protected from this specific evidence\n\nThis attack can be repeated for any evidence hash, effectively immunizing malicious IPs from all dispute attempts.\n\n**Recommendation:** Implement sender-specific evidence tracking to prevent cross-user evidence hash collisions. This change has the downside of allowing the same evidence to be used in multiple disputes by different users.\n\n```\nfunction raiseDispute(uint256 _targetIpId, bytes32 _disputeEvidenceHash, bytes32 _disputeTag) external returns (uint256 id) {\n    // Create sender-specific evidence key\n    bytes32 senderEvidenceKey = keccak256(abi.encodePacked(_disputeEvidenceHash, msg.sender));\n\n    if (isUsedEvidenceHash[senderEvidenceKey]) revert EvidenceAlreadyUsed();\n    ...\n}\n```",
+    "summary": "\nThe client has acknowledged a bug in the `DisputeModule` contract that allows malicious actors to block legitimate disputes by front-running evidence hashes. This is because the contract uses a global mapping to prevent duplicate evidence submissions, which can be exploited by submitting throwaway disputes with the same evidence hash and then cancelling them before the cooldown period. This permanently marks the evidence hash as used and prevents it from being used in any future disputes. The report recommends implementing sender-specific evidence tracking to prevent cross-user collisions, although this may allow the same evidence to be used in multiple disputes by different users.",
+    "report_date": "2025-09-15T14:18:47.035Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://certificate.quantstamp.com/full/camp-nft/94cdb738-1a01-4f6c-8632-3bdec427161e/index.html",
+    "sponsor_name": "",
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://certificate.quantstamp.com/full/camp-nft/94cdb738-1a01-4f6c-8632-3bdec427161e/index.html",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "token-owner-can-frontrun-evidence-hashes-to-block-disputes-quantstamp-camp-nft-markdown",
+    "firm_name": "Quantstamp",
+    "firm_logo_square": "quantstamp_square.png",
+    "protocol_name": "Camp - NFT",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Paul Clemson"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Gereon Mendler"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Tim Sigl"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Quantstamp",
+        "logo_square": "quantstamp_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Camp - NFT",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

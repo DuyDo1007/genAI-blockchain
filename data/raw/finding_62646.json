@@ -1,0 +1,45 @@
+{
+    "id": 62646,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 30,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3429,
+    "title": "[L-03] Level 5 Users Will Be Obligated to Pay Commissions to Lower Level Users Under Certain Conditions",
+    "content": "\n## Severity\n\nLow Risk\n\n## Description\n\nThere is a slight chance of a Level 5 user having a Level 0 parent, which will lead to the Level 5 user paying commissions to lower-level users. Right now, the `BondDealer::_getHigherLevelParents` function performs the following check:\n\n```solidity\n @> if (parentLevel > currentLevel || (hop == 0 && parentLevel > 0)) {\n```\n\nThis will lead to skipping the break line and will actually compute a `higherLevelParents` array for the highest level possible, leading to the Level 5 user paying commissions to lower-level users instead of the protocol.\n\n## Location of Affected Code\n\nFile: [src/BondDealer.sol#L270](https://github.com/batoshidao/berabtc-vault-token/blob/c68f412b3c7dfd99d3f6302a42bdf772ededb2a3/src/BondDealer.sol#L270)\n\n```solidity\nfunction _getHigherLevelParents(address user) internal view returns (UserInfo[] memory) {\n    UserInfo memory currentUser = userInfos[user];\n    require(currentUser.user != address(0), \"BondDealer: User does not exist\");\n    uint256 currentLevel = uint256(currentUser.level);\n    UserInfo[] memory higherLevelParents = new UserInfo[](6);\n    bool[6] memory found; // Track which levels have been found\n    uint256 count = 0;\n    address cur = currentUser.parent;\n    // Traverse up the parent chain\n    for (uint256 hop = 0; hop < 64 && cur != address(0); hop++) {\n        UserInfo memory parent = userInfos[cur];\n        uint256 parentLevel = uint256(parent.level);\n        // Only consider parents with higher level than current user\n        if (!found[parentLevel]) {\n@>              if (parentLevel > currentLevel || (hop == 0 && parentLevel > 0)) {\n                higherLevelParents[parentLevel] = parent;\n                found[parentLevel] = true;\n                count++;\n                // If we found all possible higher levels, we can stop\n                if (count == 6 - currentLevel || currentLevel == uint256(BondLevel.LEVEL_5)) break;\n            }\n        }\n        if (parentLevel > currentLevel) currentLevel = parentLevel;\n        cur = parent.parent;\n    }\n    // Create result array with only the found higher-level parents\n    UserInfo[] memory result = new UserInfo[](count);\n    if (count > 0) {\n        uint256 resultIndex = 0;\n        for (uint256 i = 0; i < 6; i++) {\n            if (found[i]) {\n                result[resultIndex] = higherLevelParents[i];\n                resultIndex++;\n            }\n        }\n    }\n    return result;\n}\n```\n\n## Impact\n\nLevel 5 users may end up paying commissions to other users instead of paying them to the protocol\n\n## Recommendation\n\nDon't check against `parentLevel` being 0 because it practically does nothing. Even though a Level 0 user finds his way into the result array, it won't do anything because no stake is going to be allocated to him. Another way of fixing this is to just return an empty array if `currentLevel == uint256(BondLevel.LEVEL_5)` before the for loop has even started.\n\n## Team Response\n\nAcknowledged.\n\n",
+    "summary": "",
+    "report_date": "2025-09-17T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 5,
+    "general_score": 5,
+    "source_link": "https://github.com/shieldify-security/audits-portfolio-md/blob/main/Terplayer-BVT-Staking&Distribution-Security-Review.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "l-03-level-5-users-will-be-obligated-to-pay-commissions-to-lower-level-users-under-certain-conditions-shieldify-none-terplayer-bvt-stakingdistribution-markdown",
+    "firm_name": "Shieldify",
+    "firm_logo_square": "Shieldify_square.png",
+    "protocol_name": "Terplayer Bvt Staking&Distribution",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Shieldify Security"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Shieldify",
+        "logo_square": "Shieldify_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Terplayer Bvt Staking&Distribution",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

@@ -1,0 +1,45 @@
+{
+    "id": 62703,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 23,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3435,
+    "title": "Individually Changeable `RiskEngine` per `pToken` Leading to Inconsistency",
+    "content": "##### Description\nThis issue has been identified in the architecture allowing `riskEngine` to be changed individually for each `pToken`. There is no robust mechanism to ensure a coordinated migration for all `pToken`s simultaneously.\n\nPotential issues include:\n- **Incorrect risk calculations**: Different `RiskEngine`s may use varying collateral or liquidity logic, leading to inconsistent borrow allowances and liquidation criteria.\n- **Inconsistent user state**: If some `pToken`s migrate to a new `RiskEngine` while others remain on the old one, the system may fail to recognize a user’s overall collateral or debt, allowing an overborrow or blocking legitimate actions.\n\nThe issue is classified as **low** severity because it requires a particular combination of conditions (e.g., switching or adding a new `RiskEngine`) to become exploitable, but it can still lead to inconsistent accounting and potential exploits.\n\n##### Recommendation\nWe recommend removing the external `setRiskEngine` function from the `PTokenModule` so that the `RiskEngine` cannot be changed arbitrarily per `pToken`. If a migration is unavoidable, consider making the `RiskEngine` reference immutable within the Beacon implementation to ensure consistency across all `pTokens`.\n",
+    "summary": "",
+    "report_date": "2025-09-18T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/mixbytes/audits_public/blob/master/NUTS%20Finance/Pike/README.md#6-individually-changeable-riskengine-per-ptoken-leading-to-inconsistency",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "individually-changeable-riskengine-per-ptoken-leading-to-inconsistency-mixbytes-none-nuts-finance-markdown",
+    "firm_name": "MixBytes",
+    "firm_logo_square": "mixbytes_square.png",
+    "protocol_name": "NUTS Finance",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "MixBytes"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "MixBytes",
+        "logo_square": "mixbytes_square.png"
+    },
+    "protocols_protocol": {
+        "name": "NUTS Finance",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

@@ -1,0 +1,115 @@
+{
+    "id": 62509,
+    "kind": "GIT",
+    "auditfirm_id": 3,
+    "impact": "MEDIUM",
+    "finders_count": 14,
+    "protocol_id": 3104,
+    "title": "M-17: User unable to migrate under certain edge case",
+    "content": "\nSource: https://github.com/sherlock-audit/2025-06-notional-exponent-judging/issues/674 \n\n## Found by \nBigsam, Ledger\\_Patrol, Ragnarok, Riceee, X0sauce, aman, coffiasd, dan\\_\\_vinci, dhank, h2134, hard1k, shiazinho, theweb3mechanic, xiaoming90\n\n### Summary\n\n-\n\n### Root Cause\n\n-\n\n### Internal Pre-conditions\n\n-\n\n### External Pre-conditions\n\n-\n\n### Attack Path\n\nDuring migration, the `assetToRepay` parameter of the `_exitWithRepay` function is always set to `type(uint256).max`, as shown in Line 237 below.\n\nhttps://github.com/sherlock-audit/2025-06-notional-exponent/blob/main/notional-v4/src/routers/AbstractLendingRouter.sol#L237\n\n```solidity\nFile: AbstractLendingRouter.sol\n221:     /// @dev Enters a position or migrates shares from a previous lending router\n222:     function _enterOrMigrate(\n223:         address onBehalf,\n224:         address vault,\n225:         address asset,\n226:         uint256 assetAmount,\n227:         bytes memory depositData,\n228:         address migrateFrom\n229:     ) internal returns (uint256 sharesReceived) {\n230:         if (migrateFrom != address(0)) {\n231:             // Allow the previous lending router to repay the debt from assets held here.\n232:             ERC20(asset).checkApprove(migrateFrom, assetAmount);\n233:             sharesReceived = ILendingRouter(migrateFrom).balanceOfCollateral(onBehalf, vault);\n234: \n235:             // Must migrate the entire position\n236:             ILendingRouter(migrateFrom).exitPosition(\n237:                 onBehalf, vault, address(this), sharesReceived, type(uint256).max, bytes(\"\")\n238:             );\n239:         } else {\n```\n\nAssume that Bob has supplied collateral, but no debt, and he wants to migrate from the previous lending router to a new lending router.\n\nSince `assetToRepay` is set to `type(uint256).max`, the `assetToRepay` will be overwritten to zero (0) in Line 193 below. In addition, since Bob does not have any debt, which means that he has no borrow shares, the `MORPHO.position(morphoId(m), onBehalf).borrowShares` at Line 192 below will return zero (0). In this case, `sharesToRepay` will be zero (0)\n\nhttps://github.com/sherlock-audit/2025-06-notional-exponent/blob/main/notional-v4/src/routers/MorphoLendingRouter.sol#L192\n\n```solidity\nFile: MorphoLendingRouter.sol\n177:     function _exitWithRepay(\n178:         address onBehalf,\n179:         address vault,\n180:         address asset,\n181:         address receiver,\n182:         uint256 sharesToRedeem,\n183:         uint256 assetToRepay,\n184:         bytes calldata redeemData\n185:     ) internal override {\n186:         MarketParams memory m = marketParams(vault, asset);\n187: \n188:         uint256 sharesToRepay;\n189:         if (assetToRepay == type(uint256).max) {\n190:             // If assetToRepay is uint256.max then get the morpho borrow shares amount to\n191:             // get a full exit.\n192:             sharesToRepay = MORPHO.position(morphoId(m), onBehalf).borrowShares;\n193:             assetToRepay = 0;\n194:         }\n195: \n196:         bytes memory repayData = abi.encode(\n197:             onBehalf, vault, asset, receiver, sharesToRedeem, redeemData, _isMigrate(receiver)\n198:         );\n199: \n200:         // Will trigger a callback to onMorphoRepay\n201:         MORPHO.repay(m, assetToRepay, sharesToRepay, onBehalf, repayData);\n202:     }\n\n```\n\nNote that both `assetToRepay` and `sharesToRepay` are zero (0). At Line 201 above, the `Morpho.repay()` function will be executed with the following parameter values:\n\n```solidity\nMORPHO.repay(m, assetToRepay, sharesToRepay, onBehalf, repayData); \nMORPHO.repay(m, 0, 0, onBehalf, repayData); \n```\n\nWhen inspecting Morpho's `Morpho.repay()` function, the repay function will revert at Line 278 due to the `UtilsLib.exactlyOneZero(assets, shares)` check because `assets` and `shares` cannot be both zero at the same time.\n\nhttps://github.com/morpho-org/morpho-blue/blob/731e3f7ed97cf15f8fe00b86e4be5365eb3802ac/src/Morpho.sol#L278\n\n```solidity\nFile: Morpho.sol\n269:     function repay(\n270:         MarketParams memory marketParams,\n271:         uint256 assets, // @audit-info if migrate, assets = assetToRepay = 0\n272:         uint256 shares, // @audit-info if migrate, shares = MORPHO.position(morphoId(m), onBehalf).borrowShares;\n273:         address onBehalf,\n274:         bytes calldata data\n275:     ) external returns (uint256, uint256) {\n276:         Id id = marketParams.id();\n277:         require(market[id].lastUpdate != 0, ErrorsLib.MARKET_NOT_CREATED);\n278:         require(UtilsLib.exactlyOneZero(assets, shares), ErrorsLib.INCONSISTENT_INPUT);\n279:         require(onBehalf != address(0), ErrorsLib.ZERO_ADDRESS);\n```\n\nhttps://github.com/morpho-org/morpho-blue/blob/731e3f7ed97cf15f8fe00b86e4be5365eb3802ac/src/libraries/UtilsLib.sol#L13\n\n```solidity\nFile: UtilsLib.sol\n11: library UtilsLib {\n12:     /// @dev Returns true if there is exactly one zero among `x` and `y`.\n13:     function exactlyOneZero(uint256 x, uint256 y) internal pure returns (bool z) {\n14:         assembly {\n15:             z := xor(iszero(x), iszero(y))\n16:         }\n17:     }\n```\n\n### Impact\n\nMedium. Migration function is a core functionality in the protocol. This report shows that the migration will be DOS or not work under certain edge case.\n\n### PoC\n\n_No response_\n\n### Mitigation\n\nSkip the repayment if debt is zero, and proceed with the migration.\n\n## Discussion\n\n**sherlock-admin2**\n\nThe protocol team fixed this issue in the following PRs/commits:\nhttps://github.com/notional-finance/notional-v4/pull/9\n\n\n\n\n",
+    "summary": "\nThis bug report discusses a potential issue found by a group of individuals on a lending router protocol. The bug is related to the migration function of the protocol, where a parameter called `assetToRepay` is always set to a maximum value, which can cause problems when a user wants to migrate from the previous lending router to a new one. This is because the value of `assetToRepay` is overwritten to zero, and since the user has no debt, the `sharesToRepay` parameter will also be zero. This can cause the `Morpho.repay()` function to revert, as it requires that either `assets` or `shares` is not zero. The impact of this bug is medium, as it can cause the migration function to not work properly. The protocol team has fixed this issue in a recent pull request.",
+    "report_date": "2025-07-18T15:00:00.000Z",
+    "contest_prize_txt": "75500 USDC",
+    "contest_link": "https://app.sherlock.xyz/audits/contests/1001",
+    "sponsor_name": "",
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "",
+    "github_link": "https://github.com/sherlock-audit/2025-06-notional-exponent-judging/issues/674",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "1001",
+    "slug": "m-17-user-unable-to-migrate-under-certain-edge-case-sherlock-notional-exponent-git",
+    "firm_name": "Sherlock",
+    "firm_logo_square": "sherlock_square.png",
+    "protocol_name": "Notional Exponent",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "h2134"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "hard1k"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Ledger\\_Patrol"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "aman"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "dan\\_\\_vinci"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "X0sauce"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "shiazinho"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "xiaoming90"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Ragnarok"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Riceee"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "dan\\_\\_vinci"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "theweb3mechanic"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "dhank"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "coffiasd"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Bigsam"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Sherlock",
+        "logo_square": "sherlock_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Notional Exponent",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

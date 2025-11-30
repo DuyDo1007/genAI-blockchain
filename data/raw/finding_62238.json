@@ -1,0 +1,50 @@
+{
+    "id": 62238,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 11,
+    "impact": "LOW",
+    "finders_count": 2,
+    "protocol_id": 3393,
+    "title": "Add `deadline` parameter for mint and burn requests in `RequestsManager`",
+    "content": "**Description:** `RequestsManager::requestMint` and `requestBurn` allow callers to specify the minimum output amount but don't allow callers to specify a deadline for the request to be completed.\n\nMinimum output amounts become \"stale\" over time; what users would expect as the minimum today could be different tomorrow and different again next week.\n\nIt would be ideal to allow callers of `RequestsManager::requestMint` and `requestBurn` to specify a deadline by which the requests must be completed. Past the deadline completion should revert but cancellation must remain possible.\n\n**Avant:**\nConsidering users can cancel mint and burn requests at any time, and they have already specified their minimum expected output amount, we believe the suggested extra constraint might not add much value while increasing the complexity of the UX.",
+    "summary": "",
+    "report_date": "2025-08-28T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/solodit/solodit_content/blob/main/reports/Cyfrin/2025-08-28-cyfrin-avant-max-v2.0.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "add-deadline-parameter-for-mint-and-burn-requests-in-requestsmanager-cyfrin-none-avant-max-markdown",
+    "firm_name": "Cyfrin",
+    "firm_logo_square": "Cyfrin_square.jpg",
+    "protocol_name": "Avant Max",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Dacian"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Jorge"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Cyfrin",
+        "logo_square": "Cyfrin_square.jpg"
+    },
+    "protocols_protocol": {
+        "name": "Avant Max",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

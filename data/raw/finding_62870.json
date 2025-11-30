@@ -1,0 +1,45 @@
+{
+    "id": 62870,
+    "kind": "PDF",
+    "auditfirm_id": 9,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3450,
+    "title": "Inconsistent implementation between blacklist functions and batch versions",
+    "content": "## Diﬃculty: High\n\n## Type: Conﬁguration\n\n## Description\nThe blacklist management functions have inconsistent implementations between their single-account and batch versions. The batch functions lack important validations and event emissions that are present in their single-account counterparts, creating potential security and transparency issues.\n\nThe `addToBlacklist` function includes validation to prevent blacklisting blacklist managers and zero addresses, while `addBatchToBlacklist` lacks these checks. Similarly, `removeFromBlacklist` uses a delete operation and emits events, while `removeBatchFromBlacklist` sets the value to false and does not emit events. These inconsistencies can lead to unexpected behavior and reduced transparency in blacklist operations.\n\n```solidity\nfunction addToBlacklist(address account) external onlyRole(BLACKLIST_MANAGER_ROLE) {\n    require(!hasRole(BLACKLIST_MANAGER_ROLE, account), \"Account is a blacklist manager\");\n    require(account != address(0), \"Account is the zero address\");\n    _blacklisted[account] = true;\n    emit AddedToBlacklist(account);\n}\n\nfunction addBatchToBlacklist(address[] memory accounts) external onlyRole(BLACKLIST_MANAGER_ROLE) {\n    for (uint256 i = 0; i < accounts.length; i++) {\n        _blacklisted[accounts[i]] = true;\n    }\n}\n```\n\n**Figure 6.1:** Inconsistent blacklist function implementations\n\n## Exploit Scenario\nAn admin uses `addBatchToBlacklist` to blacklist multiple accounts, including the zero address. The batch function will successfully blacklist the zero address without any validation, bypassing the security check present in the single-account version. This will break the mint and burn logic since the zero address is used internally for these operations.\n\n## Recommendations\n- **Short term:** Update the batch functions to include the same validations and event emissions as their single-account counterparts, ensuring consistent behavior across all blacklist operations.\n- **Long term:** Implement comprehensive unit tests that cover all blacklist scenarios and consider creating a shared internal function to avoid code duplication and ensure consistency.",
+    "summary": "",
+    "report_date": "2025-10-03T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://github.com/trailofbits/publications/blob/master/reviews/2025-10-radiustechnology-evmauth-securityreview.pdf",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/trailofbits/publications/blob/master/reviews/2025-10-radiustechnology-evmauth-securityreview.pdf",
+    "github_link": "",
+    "pdf_link": "https://solodit-bucket.s3.amazonaws.com/storage/reports/trailofbits/2025-10-radiustechnology-evmauth-securityreview.pdf",
+    "pdf_page_from": 23,
+    "contest_id": "",
+    "slug": "inconsistent-implementation-between-blacklist-functions-and-batch-versions-trailofbits-none-radius-technology-evmauth-pdf",
+    "firm_name": "TrailOfBits",
+    "firm_logo_square": "trailofbits_square.png",
+    "protocol_name": "Radius Technology EVMAuth",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Quan Nguyen Trail of Bits PUBLIC"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "TrailOfBits",
+        "logo_square": "trailofbits_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Radius Technology EVMAuth",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

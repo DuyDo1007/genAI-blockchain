@@ -1,0 +1,110 @@
+{
+    "id": 62098,
+    "kind": "GIT",
+    "auditfirm_id": 3,
+    "impact": "MEDIUM",
+    "finders_count": 14,
+    "protocol_id": 3327,
+    "title": "M-2: No slippage control",
+    "content": "\nSource: https://github.com/sherlock-audit/2025-07-allbridge-core-yield-judging/issues/241 \n\n## Found by \n0xDemon, 0xloophole, BobbyAudit, EgisSecurity, Emine, Hurricane, Mishkat6451, MysteryAuditor, WillyCode20, X0sauce, alicrali33, omeiza, veerendravamshi, xiaoming90\n\n### Summary\n\n-\n\n### Root Cause\n\n-\n\n### Internal Pre-conditions\n\n-\n\n### External Pre-conditions\n\n-\n\n### Attack Path\n\nIt was observed that the `PortfolioToken.deposit()` function does not have slippage controls.\n\nhttps://github.com/sherlock-audit/2025-07-allbridge-core-yield/blob/main/core-auto-evm-contracts/contracts/PortfolioToken.sol#L33\n\n```solidity\nFile: PortfolioToken.sol\n28:     /**\n29:      * @dev Deposit tokens into the pool.\n30:      * @param amount The amount of tokens to deposit.\n31:      * @param index The index of the pool to deposit to.\n32:      */\n33:     function deposit(uint amount, uint index) external {\n```\n\nAs a result, during deposits, users will be subjected to slippage, leading to them receiving fewer portfolio tokens/real amount than expected.\n\nThe pool of the AllBridge protocol uses a formula similar to Curve's StableSwap.\n\nThe following Python script is directly translated from the [`PoolUtils.getD()`](https://github.com/sherlock-audit/2025-07-allbridge-core-yield/blob/main/core-auto-evm-contracts/contracts/lib/PoolUtils.sol#L8) function. The script will compute the number of pool shares minted based on the current reserve (X and Y, USDT and vUSD) of the pool.\n\n```python\nimport math\n\ndef compute_D(x, y, a):\n    xy = x * y\n    p1 = a * xy * (x + y)\n    p2 = (xy * ((a << 2) - 1)) // 3\n    p3 = math.sqrt(p1 * p1 + p2 * p2 * p2)\n    \n    if p3 > p1:\n        d_ = math.pow(p3 - p1, 1/3)\n        d_ = math.pow(p1 + p3, 1/3) - d_\n    else:\n        d_ = math.pow(p1 + p3, 1/3) + math.pow(p1 - p3, 1/3)\n    \n    return d_ * 2\n\ndef simulate_deposit(x, y, a, deposit):\n    old_D = compute_D(x, y, a)\n    total = x + y\n    add_x = deposit * x // total\n    add_y = deposit * y // total\n    new_D = compute_D(x + add_x, y + add_y, a)\n    lp_minted = new_D - old_D\n    return lp_minted, old_D, new_D\n\n\na = 10\ndeposit = 100\n\nx1, y1 = 1000, 1000\nlp_minted_1, D0_1, D1_1 = simulate_deposit(x1, y1, a, deposit)\n\nx2, y2 = 1500, 500\nlp_minted_2, D0_2, D1_2 = simulate_deposit(x2, y2, a, deposit)\n\nx3, y3 = 1800, 200\nlp_minted_3, D0_3, D1_3 = simulate_deposit(x3, y3, a, deposit)\n\nprint(\"Scenario 1 (Balanced):\")\nprint(f\"  LP minted: {lp_minted_1}\")\nprint(f\"  D before: {D0_1}\")\nprint(f\"  D after: {D1_1}\\n\")\n\nprint(\"Scenario 2 (Imbalanced):\")\nprint(f\"  LP minted: {lp_minted_2}\")\nprint(f\"  D before: {D0_2}\")\nprint(f\"  D after: {D1_2}\\n\")\n\nprint(\"Scenario 3 (More Imbalanced):\")\nprint(f\"  LP minted: {lp_minted_3}\")\nprint(f\"  D before: {D0_3}\")\nprint(f\"  D after: {D1_3}\")\n```\n\nNote that for StableSwap formula or implementation:\n\n- If the pool is balanced, depositing 100 USDT will mint around 100 pool shares (e.g., 99.99999999999818)\n- However, when the pool is imbalanced (as shown in the 3rd scenario), depositing 100 USDT will only mint 96 pool shares.\n\n```python\nScenario 1 (Balanced):\n  LP minted: 99.99999999999818\n  D before: 2000.0\n  D after: 2099.999999999998\n\nScenario 2 (Imbalanced):\n  LP minted: 99.22424784315808\n  D before: 1984.4849568631507\n  D after: 2083.709204706309\n\nScenario 3 (More Imbalanced):\n  LP minted: 96.21928342445199\n  D before: 1924.3856684890352\n  D after: 2020.6049519134872\n```\n\nThis proves that the amount of pool shares minted to the `PortfolioToken` contract is dependent on the current state/reserve of the pool when the transaction is executed, and is subject to slippage.\n\nAssume that the share price is 1:1 in the `PortfolioToken` contract. One (1) pool share/virtual token will mint one (1) portfolio token/real token.\n\nAlice deposits 100 USDT to the `PortfolioToken` contract, and expects that 99.99999 portfolio tokens/real tokens will be minted to her. However, due to the slippage, she only received 96 portfolio tokens/real tokens in return, resulting in a loss to Alice. If Alice redeems his 96 portfolio, she will receive only around 96 USDT back.\n\nNote that the pool is not always balanced. The pool can become imbalanced for many reasons. For instance, if there is a large cross-chain transfer that swaps a large number of vUSD to USDT OR swaps a large number of USDT to vUSD, the pool will become imbalanced.\n\nNote that it is expected that the imbalance pool will be arbitrage back to a balanced pool. However, an important point is that arbitrage does not occur immediately, as it takes time for the bots to notice the imbalance. If Alice's deposit transaction is executed immediately after a large swap/cross-chain transfer, she will suffer significant slippage due to imbalances in the pool.\n\n### Impact\n\nLoss of funds for the victims, as demonstrated in the report.\n\n### PoC\n\n_No response_\n\n### Mitigation\n\n_No response_\n\n## Discussion\n\n**sherlock-admin2**\n\nThe protocol team fixed this issue in the following PRs/commits:\nhttps://github.com/allbridge-public/core-auto-evm-contracts/pull/1\n\n\n\n\n\n",
+    "summary": "\nThis bug report discusses an issue found by multiple users in the AllBridge protocol. The issue is related to the `PortfolioToken.deposit()` function, which does not have slippage controls. This means that users may receive fewer portfolio tokens/real tokens than expected when depositing, resulting in a loss of funds. The report also includes a Python script that demonstrates how the number of pool shares minted is dependent on the current state of the pool, leading to potential slippage during deposits. The impact of this issue is a loss of funds for users. The protocol team has fixed the issue in their code.",
+    "report_date": "2025-07-28T15:00:00.000Z",
+    "contest_prize_txt": "19000 USDC",
+    "contest_link": "https://app.sherlock.xyz/audits/contests/1051",
+    "sponsor_name": "",
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "",
+    "github_link": "https://github.com/sherlock-audit/2025-07-allbridge-core-yield-judging/issues/241",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "1051",
+    "slug": "m-2-no-slippage-control-sherlock-allbridge-core-yield-git",
+    "firm_name": "Sherlock",
+    "firm_logo_square": "sherlock_square.png",
+    "protocol_name": "Allbridge Core Yield",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "MysteryAuditor"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "X0sauce"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "0xloophole"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "veerendravamshi"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "BobbyAudit"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "xiaoming90"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "0xDemon"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Hurricane"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "EgisSecurity"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "omeiza"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "alicrali33"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Mishkat6451"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "WillyCode20"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Emine"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Sherlock",
+        "logo_square": "sherlock_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Allbridge Core Yield",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

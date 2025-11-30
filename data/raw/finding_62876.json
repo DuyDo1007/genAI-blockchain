@@ -1,0 +1,45 @@
+{
+    "id": 62876,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 30,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3454,
+    "title": "[L-02] No Upper Bound on `rewardRatePerSecond()` Function",
+    "content": "\n## Severity\n\nLow Risk\n\n## Description\n\nThe `setParameters()` and `initialize()` functions only enforce `_ratePerSecond > 0` and do not limit how large `rewardRatePerSecond` can be. Since reward calculation multiplies `rewardRatePerSecond * delta * m` before dividing, there may be an edge case where the owner can set an arbitrarily large `_ratePerSecond` and immediately cause intermediate multiplication overflow in `_claim()`. The `_claim()` function will then always revert, which will block claiming, unstaking and burning, leaving NFTs and rewards unusable (DoS).\nIn general, adding an upper bound limit for `rewardRatePerSecond` would be a good practice.\n\n## Location of Affected Code\n\nFile: [src/NFTStaking.sol#L66](https://github.com/Honeypot-Finance/new_nft_staking/blob/02d5afe0b5327642f48fffe29ec2cb4607a078e7/src/NFTStaking.sol#L66)\n\n```solidity\nfunction initialize(\n    IERC721 _nft,\n    RewardsToken _rewards,\n    uint256 _ratePerSecond,\n    uint256 _burnBonusBps,\n    address initialOwner\n) public initializer {\n    require(address(_nft) != address(0), \"ZERO_NFT\");\n    require(address(_rewards) != address(0), \"ZERO_REWARDS\");\n    require(_burnBonusBps <= MAX_BPS, \"BPS_EXCEEDS_MAX\");\n    require(_ratePerSecond > 0, \"ZERO_RATE\");\n\n    __ReentrancyGuard_init();\n    __Ownable_init(initialOwner);\n    __UUPSUpgradeable_init();\n\n    nft = _nft;\n    rewards = _rewards;\n    rewardRatePerSecond = _ratePerSecond;\n    burnBonusBps = _burnBonusBps;\n\n    emit ParametersUpdated(_ratePerSecond, _burnBonusBps);\n}\n```\n\nFile: [src/NFTStaking.sol#L124](https://github.com/Honeypot-Finance/new_nft_staking/blob/02d5afe0b5327642f48fffe29ec2cb4607a078e7/src/NFTStaking.sol#L124)\n\n```solidity\n// Update parameters (only owner)\nfunction setParameters(\n    uint256 _ratePerSecond,\n    uint256 _burnBonusBps\n) external onlyOwner {\n    require(_burnBonusBps <= MAX_BPS, \"BPS_EXCEEDS_MAX\");\n    require(_ratePerSecond > 0, \"ZERO_RATE\");\n\n    rewardRatePerSecond = _ratePerSecond;\n    burnBonusBps = _burnBonusBps;\n\n    emit ParametersUpdated(_ratePerSecond, _burnBonusBps);\n}\n```\n\n## Recommendation\n\nAdd upper bound limit for `rewardRatePerSecond()` state variable in `initialize()` and `setParameters()` functions.\n\n## Team Response\n\nAcknowledged.\n\n",
+    "summary": "",
+    "report_date": "2025-10-08T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/shieldify-security/audits-portfolio-md/blob/main/HoneypotFinance-NFTStaking-Security-Review.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "l-02-no-upper-bound-on-rewardratepersecond-function-shieldify-none-honeypotfinance-nftstaking-markdown",
+    "firm_name": "Shieldify",
+    "firm_logo_square": "Shieldify_square.png",
+    "protocol_name": "Honeypotfinance Nftstaking",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Shieldify Security"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Shieldify",
+        "logo_square": "Shieldify_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Honeypotfinance Nftstaking",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

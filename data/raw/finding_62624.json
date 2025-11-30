@@ -1,0 +1,45 @@
+{
+    "id": 62624,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 16,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3422,
+    "title": "[L-03] Swap reverts when `tokenIn` is `WETH`",
+    "content": "\n_Resolved_\n\nWhen `tokenIn` is `WETH`, `SwapX.swapV3ExactIn()` expects receiving native tokens.\n\n```solidity\nFile: SwapX.sol\n\n        if (params.tokenIn == WETH || params.tokenIn == address(0)) {\n            params.tokenIn = WETH;\n            require(msg.value >= params.amountIn, \"SwapX: amount in and value mismatch\");\n```\n\nHowever, in `FunnelVaultUpgradeable.swapTokens()`, when `tokenIn` is `WETH`, no native tokens are sent in the call to `swapV3ExactIn()` and `WETH` is instead approved for `SwapX`, which will cause the transaction to revert.\n\nWhile this limitation can be circumvented by calling `withdrawNative()` and using `address(0)` as `tokenIn`, it is unclear if this is the expected behavior. If this is the case, consider reverting early with an explicit error message when `tokenIn` is `WETH`. Otherwise, consider applying the following changes:\n\n```diff\n        if (swapParams.tokenIn == address(0)) {\n            if (swapParams.amountIn > address(this).balance) {\n                revert InsufficientBalance();\n            }\n        } else {\n            if (swapParams.amountIn > IERC20(swapParams.tokenIn).balanceOf(address(this))) {\n                revert InsufficientTokenBalance();\n            }\n-           IERC20(swapParams.tokenIn).forceApprove(swapRouter, swapParams.amountIn);\n+           if (swapParams.tokenIn == WETH) {\n+\t\t\t\tIWETH(WETH).withdraw(swapParams.amountIn);\n+\t\t\t} else {\n+\t\t\t\tIERC20(swapParams.tokenIn).forceApprove(swapRouter, swapParams.amountIn);\n+\t\t\t}\n        }\n\n(...)\n\n-           if (params.tokenIn == address(0)) {\n+\t\t\tif (params.tokenIn == address(0) || params.tokenIn == WETH) {\n                amountOut = ISwapX(swapRouter).swapV3ExactIn{value: params.amountIn}(params);\n```\n\n\n\n",
+    "summary": "",
+    "report_date": "2025-09-12T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/pashov/audits/blob/master/team/md/Funnel-security-review_2025-08-27.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "l-03-swap-reverts-when-tokenin-is-weth-pashov-audit-group-none-funnel_2025-08-27-markdown",
+    "firm_name": "Pashov Audit Group",
+    "firm_logo_square": "Pashov_square.png",
+    "protocol_name": "Funnel_2025-08-27",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Pashov Audit Group"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Pashov Audit Group",
+        "logo_square": "Pashov_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Funnel_2025-08-27",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

@@ -1,0 +1,45 @@
+{
+    "id": 62561,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 16,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3420,
+    "title": "[L-03] Precision loss from `Divide-Before-Multiply` in price calculation",
+    "content": "\n_Acknowledged_\n\n In the `SpinLottery` contract, the calculation of `avgBasePrice` in the function `calculateSpinCost` involves a division operation before a multiplication operation.\n\n```solidity\n        // Calculate weighted average price across all active rarities\n        for (uint8 i = 1; i <= maxRarityId; i++) {\n            RarityConfig memory config = rarityConfigs[i];\n            if (config.active) {\n                totalWeightedPrice += uint256(config.basePrice) * config.weight;\n            }\n        }\n```\n\nThis approach can lead to precision loss, which is not in favor of the protocol.\nTo mitigate the risk of precision loss, adjust the calculation to perform the division after the multiplication.\n\n\n\n",
+    "summary": "",
+    "report_date": "2025-09-11T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/pashov/audits/blob/master/team/md/RipIt-security-review_2025-04-25.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "l-03-precision-loss-from-divide-before-multiply-in-price-calculation-pashov-audit-group-none-ripit_2025-04-25-markdown",
+    "firm_name": "Pashov Audit Group",
+    "firm_logo_square": "Pashov_square.png",
+    "protocol_name": "RipIt_2025-04-25",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Pashov Audit Group"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Pashov Audit Group",
+        "logo_square": "Pashov_square.png"
+    },
+    "protocols_protocol": {
+        "name": "RipIt_2025-04-25",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

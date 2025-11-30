@@ -1,0 +1,45 @@
+{
+    "id": 62618,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 16,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3421,
+    "title": "[L-21] DoS vulnerability in spin due to pending prize",
+    "content": "\n_Resolved_\n\nConsider a scenario with three rarity pools:\n\nRarity 1: 1 prize available.\nRarity 2: 10 prizes available.\nRarity 3: 10 prizes available.\n\n\nUser1 calls `spin()`\nFor rarity 1, pendingCount becomes 1\nAny subsequent user calling spin() will trigger:\n\n```solidity\n// For rarity 1:\n// available=1, pending=1, pendingCounts[1]=1\n// available - pending = 0, which is < pendingCounts[1]\nif (available - pending < pendingCounts[i]) {\n    revert InsufficientPrizes();\n}\n```\n\nThe function reverts, blocking access until the VRF callback completes.\nAn attacker can leverage this by calling spin N number of times where N is the number of prizes of the rarityId with the least number of prizes.\n\nThough this is done this way to prevent scenarios where prize was of the same rarity for two spins and if one spin consumed the final prize nft then the next spin's prize wouldnt have a prize nft to be transferred , there should be safeguards to ensure there are enough prizes so that such griefing can not be done.\n\nRecommendations:\nA possible solution can be if a rarity prize pool is consumed then increment the pending count of the next available rarity.\n\n\n",
+    "summary": "",
+    "report_date": "2025-09-11T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/pashov/audits/blob/master/team/md/RipIt-security-review_2025-05-10.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "l-21-dos-vulnerability-in-spin-due-to-pending-prize-pashov-audit-group-none-ripit_2025-05-10-markdown",
+    "firm_name": "Pashov Audit Group",
+    "firm_logo_square": "Pashov_square.png",
+    "protocol_name": "RipIt_2025-05-10",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Pashov Audit Group"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Pashov Audit Group",
+        "logo_square": "Pashov_square.png"
+    },
+    "protocols_protocol": {
+        "name": "RipIt_2025-05-10",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

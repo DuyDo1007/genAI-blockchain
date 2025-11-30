@@ -1,0 +1,45 @@
+{
+    "id": 62749,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 30,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3440,
+    "title": "[L-06] `uniquePlayersCount` Not Updated After Eliminations Leading to Unnecessary Memory Allocation",
+    "content": "\n## Severity\n\nLow Risk\n\n## Description\n\nThe variable `uniquePlayersCount` is never decreased after the elimination of cells in a round.  \nAs a result, when arrays like `tempWinners`, `uniquePlayers`, and `playerTotalStakes` are pre-allocated using `round.uniquePlayersCount`, they may reserve **more memory than required**.\n\nThis does not break core functionality but leads to **wasted memory allocation and higher gas usage**, especially in rounds with multiple eliminations where the actual number of unique players is significantly smaller than the pre-allocated size.\n\n## Location of Affected Code\n\nFile: [contracts/Revolver.sol#L848](https://github.com/xgrisha666x/revolver-contract/blob/b9c318f97f10a4f496bda8959aeb90696402e114/contracts/Revolver.sol#L848)\n\n```solidity\nfunction _distributeProportionalPayouts( Round storage round, uint256 payoutPool, uint256 roundId ) private returns (address[] memory) {\n  // code\n  // Pre-allocate arrays based on maximum possible size\n  address[] memory tempWinners = new address[](round.uniquePlayersCount);\n  address[] memory uniquePlayers = new address[](round.uniquePlayersCount);\n  uint256[] memory playerTotalStakes = new uint256[](round.uniquePlayersCount);\n  uint256 winnerCount = 0;\n  uint256 uniquePlayerCount = 0;\n  uint256 totalActiveStake = 0;\n\n  unchecked {\n      // Single pass: collect active stakes and unique players\n      for (uint256 i = 1; i <= NUM_CELLS; ++i) {\n          Cell storage cell = round.cells[i];\n          if (!cell.isActive) continue;\n\n          uint256 playersLength = cell.players.length;\n          for (uint256 j = 0; j < playersLength; ++j) {\n              address player = cell.players[j];\n              uint256 stakeInCell = cell.stakeByPlayer[player];\n              if (stakeInCell == 0) continue;\n\n              // Find or add player to unique list\n              uint256 playerIndex = type(uint256).max;\n              for (uint256 k = 0; k < uniquePlayerCount; ++k) {\n                  if (uniquePlayers[k] == player) {\n                      playerIndex = k;\n                      break;\n                  }\n              }\n\n              if (playerIndex == type(uint256).max) {\n                  // New player\n                  playerIndex = uniquePlayerCount;\n                  uniquePlayers[uniquePlayerCount] = player;\n                  playerTotalStakes[uniquePlayerCount] = stakeInCell;\n                  uniquePlayerCount++;\n              } else {\n                  // Existing player - add to their stake\n                  playerTotalStakes[playerIndex] += stakeInCell;\n              }\n\n              totalActiveStake += stakeInCell;\n          }\n      }\n\n      // Distribute payouts based on collected stakes\n      for (uint256 i = 0; i < uniquePlayerCount; ++i) {\n          address player = uniquePlayers[i];\n          uint256 playerStake = playerTotalStakes[i];\n          uint256 playerPayout = (playerStake * payoutPool) / totalActiveStake;\n          round.playerInfo[player].payout = playerPayout;\n          prizeBalance[player] += playerPayout;\n          tempWinners[winnerCount] = player;\n          winnerCount++;\n      }\n  }\n\n  // Create final winners array with exact size\n  address[] memory winners = new address[](winnerCount);\n  for (uint256 i = 0; i < winnerCount; ++i) {\n      winners[i] = tempWinners[i];\n  }\n\n  return winners;\n}\n```\n\n## Recommendation\n\n- Recalculate or adjust `uniquePlayersCount` whenever players are eliminated.\n- Alternatively, allocate arrays dynamically based on the **current number of active players** instead of relying solely on the initial `uniquePlayersCount`.\n\n## Team Response\n\nAcknowledged.\n\n",
+    "summary": "",
+    "report_date": "2025-09-24T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/shieldify-security/audits-portfolio-md/blob/main/SoulsClub-Revolver-Security-Review.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "l-06-uniqueplayerscount-not-updated-after-eliminations-leading-to-unnecessary-memory-allocation-shieldify-none-soulsclub-revolver-markdown",
+    "firm_name": "Shieldify",
+    "firm_logo_square": "Shieldify_square.png",
+    "protocol_name": "Soulsclub Revolver",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Shieldify Security"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Shieldify",
+        "logo_square": "Shieldify_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Soulsclub Revolver",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

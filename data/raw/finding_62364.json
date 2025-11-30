@@ -1,0 +1,45 @@
+{
+    "id": 62364,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 34,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3403,
+    "title": "[FTN-6] Hardcoded value instead of constant variable",
+    "content": "**Severity:** Low\n\n**Path:** beacon-chain/core/epoch/epoch_processing.go:ProcessTransactionsGasPerPeriodUpdate()\n\n**Description:** Function `ProcessTransactionsGasPerPeriodUpdate()` calculates the gas update transaction per period. In the calculation of gas for the period, it is multiplied by the constant cost of the transaction. This value is hardcoded, which can lead to problems when changing the constant cost per transaction. \n```\nfunc ProcessTransactionsGasPerPeriodUpdate(state state.BeaconState) (state.BeaconState, error) {\n    period := uint64(params.BeaconConfig().EpochsPerActivityPeriod)\n    txsPerPeriod := ((state.TransactionsGasPerPeriod()+state.TransactionsPerLatestEpoch()*21000)*period - state.TransactionsGasPerPeriod()) / periodc\n    if err := state.SetTransactionsGasPerPeriod(txsPerPeriod); err != nil {\n        return nil, err\n    }\n    if err := state.SetTransactionsPerLatestEpoch(0); err != nil {\n        return nil, err\n    }\n\n    return state, nil\n}\n```\n\n**Remediation:**  We recommend to use constant variables instead of hardcoded values.\n\n**Status:** Fixed\n\n- - -",
+    "summary": "",
+    "report_date": "2023-04-06T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/solodit/solodit_content/blob/main/reports/Hexens/2023-04-06-Bahamut.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "ftn-6-hardcoded-value-instead-of-constant-variable-hexens-none-bahamut-markdown",
+    "firm_name": "Hexens",
+    "firm_logo_square": "Hexens_square.png",
+    "protocol_name": "Bahamut",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Hexens"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Hexens",
+        "logo_square": "Hexens_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Bahamut",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

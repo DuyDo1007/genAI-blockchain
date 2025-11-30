@@ -1,0 +1,50 @@
+{
+    "id": 62937,
+    "kind": "PDF",
+    "auditfirm_id": 6,
+    "impact": "LOW",
+    "finders_count": 2,
+    "protocol_id": 3463,
+    "title": "Convert to shares and assets take into consideration the fees",
+    "content": "## Severity: Low Risk\n\n## Context\nVaultV2.sol#L636-L644\n\n## Description\nWhen converting shares to assets and vice versa using `convertToShares` and `convertToAssets`, the corresponding preview functions call `accrueInterestView()`. Finally, the performance and management fee shares are used when deriving the final value. According to EIP-4626, these conversion endpoints **MUST NOT** be inclusive of any fees that are charged against assets in the Vault.\n\n## Recommendation\nEither ensure that the `convertToShares` and `convertToAssets` functions do not take into consideration the fees, or perhaps add a `@dev` NatSpec comment to highlight this.\n\n## Morpho\nFixed in PR 724.\n\n## Spearbit\nNatSpec comments have been added.",
+    "summary": "",
+    "report_date": "2025-10-13T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Morpho-Vaults-v2-fixes-Spearbit-Security-Review-August-2025.pdf",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Morpho-Vaults-v2-fixes-Spearbit-Security-Review-August-2025.pdf",
+    "github_link": "",
+    "pdf_link": "https://solodit-bucket.s3.amazonaws.com/storage/reports/spearbit/Morpho-Vaults-v2-fixes-Spearbit-Security-Review-August-2025.pdf",
+    "pdf_page_from": 5,
+    "contest_id": "",
+    "slug": "convert-to-shares-and-assets-take-into-consideration-the-fees-spearbit-none-morpho-vaults-v2-fix-review-pdf",
+    "firm_name": "Spearbit",
+    "firm_logo_square": "spearbit_square.png",
+    "protocol_name": "Morpho Vaults v2 Fix Review",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Saw-mon and Natalie"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "MiloTruck"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Spearbit",
+        "logo_square": "spearbit_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Morpho Vaults v2 Fix Review",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

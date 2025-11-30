@@ -1,0 +1,45 @@
+{
+    "id": 62748,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 30,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3440,
+    "title": "[L-05] Incorrect round Termination Path Allows Unfair Commission Deduction",
+    "content": "\n## Severity\n\nLow Risk\n\n## Description\n\nThe `finishGame()` function can be called directly instead of proceeding through the intended round-elimination flow.  \nWhen this happens, the protocol prematurely finishes the round using `finishGameProportional()`, which applies commission deductions.\n\nThis creates a scenario where:\n\n- Users lose part of their funds to commission **without the round being fairly resolved through eliminations**.\n- The purpose of joining the round is undermined, as players are penalized by commission despite the game not being played out.\n- The outcome appears arbitrary and unfair, damaging trust in the protocol.\n\nEffectively, this function enables an unintended shortcut that benefits the protocol while penalizing users for no reason, making participation economically irrational.\n\n## Location of Affected Code\n\nFile: [contracts/Revolver.sol#L515](https://github.com/xgrisha666x/revolver-contract/blob/b9c318f97f10a4f496bda8959aeb90696402e114/contracts/Revolver.sol#L515)\n\n```solidity\nfunction finishGame(uint256 traceId) external onlyBackend {\n    Round storage round = rounds[currentRoundId];\n    if (round.status != RoundStatus.Gathering) revert InvalidState();\n    if (round.uniquePlayersCount == 0) revert InvalidState();\n    round.status = RoundStatus.Finished;\n    finishGameProportional(currentRoundId);\n}\n```\n\n## Recommendation\n\n- Enforce that game termination only occurs via the designed elimination-based flow unless an exceptional safeguard condition (e.g., emergency halt) is triggered.\n- If `finishGame()` is required for backend operations, ensure it bypasses commission deductions.\n\n## Team Response\n\nAcknowledged.\n\n",
+    "summary": "",
+    "report_date": "2025-09-24T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/shieldify-security/audits-portfolio-md/blob/main/SoulsClub-Revolver-Security-Review.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "l-05-incorrect-round-termination-path-allows-unfair-commission-deduction-shieldify-none-soulsclub-revolver-markdown",
+    "firm_name": "Shieldify",
+    "firm_logo_square": "Shieldify_square.png",
+    "protocol_name": "Soulsclub Revolver",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Shieldify Security"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Shieldify",
+        "logo_square": "Shieldify_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Soulsclub Revolver",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

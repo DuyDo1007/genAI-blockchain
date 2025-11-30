@@ -1,0 +1,70 @@
+{
+    "id": 62472,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 16,
+    "impact": "MEDIUM",
+    "finders_count": 1,
+    "protocol_id": 3413,
+    "title": "[M-02] Late participation advantage in `MemePredictionMarket`",
+    "content": "\n_Resolved_\n\n## Severity\n\n**Impact:** Medium\n\n**Likelihood:** Medium\n\n## Description\n\nThe current design of MemePredictionMarket allows users to make predictions for most of the round's duration (e.g., a 24-hour round with prediction open for 23 hours), which unintentionally benefits late participants. These users can observe more price action and make better-informed decisions than early participants, leading to an unfair advantage.\n\nExample scenario:\n\n- At the beginning of the round, the token price is 10.\n- A user joins early and makes a prediction.\n- Near the deadline (e.g., hour 23), the price rises to 15.\n- A new user sees this trend and makes the same bullish prediction, with a much higher confidence of winning.\n\nThis system disproportionately rewards those who join late, potentially disincentivizing early participation and harming the fairness of the prediction market.\n\n## Recommendations\n\nImplement time-based weighting: Earlier predictions could receive higher weight or rewards to compensate for increased uncertainty.\n\nincorporate price delta-based weighting: If a user joins after a significant price movement (e.g., from 10 to 20), their prediction reward could be adjusted based on the reduced risk taken.\n\n\n\n",
+    "summary": "\nThe MemePredictionMarket has a bug where late participants have an unfair advantage over early participants. This is because they can observe more price action and make better predictions, leading to a disproportionate reward for late joiners. To fix this, the report recommends implementing time-based weighting or incorporating price delta-based weighting to compensate for the increased uncertainty and risk for early participants.",
+    "report_date": "2025-09-04T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 5,
+    "general_score": 0,
+    "source_link": "https://github.com/pashov/audits/blob/master/team/md/MCP-security-review_2025-08-07.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "m-02-late-participation-advantage-in-memepredictionmarket-pashov-audit-group-none-mcp_2025-08-07-markdown",
+    "firm_name": "Pashov Audit Group",
+    "firm_logo_square": "Pashov_square.png",
+    "protocol_name": "MCP_2025-08-07",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Pashov Audit Group"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Pashov Audit Group",
+        "logo_square": "Pashov_square.png"
+    },
+    "protocols_protocol": {
+        "name": "MCP_2025-08-07",
+        "protocols_protocolcategoryscore": [
+            {
+                "protocols_protocolcategory": {
+                    "title": "NFT Lending"
+                },
+                "score": 0.5
+            },
+            {
+                "protocols_protocolcategory": {
+                    "title": "RWA"
+                },
+                "score": 0.5
+            },
+            {
+                "protocols_protocolcategory": {
+                    "title": "RWA Lending"
+                },
+                "score": 0.5
+            },
+            {
+                "protocols_protocolcategory": {
+                    "title": "Staking Pool"
+                },
+                "score": 0.5
+            }
+        ]
+    },
+    "issues_issuetagscore": []
+}

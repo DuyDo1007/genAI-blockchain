@@ -1,0 +1,50 @@
+{
+    "id": 62052,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 8,
+    "impact": "LOW",
+    "finders_count": 2,
+    "protocol_id": 3375,
+    "title": "Consider Allowing approve Even When Contract Is Paused ✓ Fixed",
+    "content": "...\n\nExport to GitHub ...\n\nSet external GitHub Repo ...\n\nExport to Clipboard (json)\n\nExport to Clipboard (text)\n\n#### Resolution\n\nFixed in [commit abe4331467aaee24c64670e05f96f198b0bf6036](https://github.com/m0-foundation/mUSD/pull/15/commits/abe4331467aaee24c64670e05f96f198b0bf6036) by removing the `_beforeApprove()` hook from the `MUSD` contract.\n\nNote: The behavior of `evm-m-extensions` discussed in the “Remark” section below remains unchanged, i.e., (1) accounts – even if unfrozen – can’t revoke approvals for frozen accounts, and (2) frozen accounts can’t revoke approvals at all. Since `evm-m-extensions` is out of scope for this review, we set the finding to “Fixed”, but the “Remark” part is really only “Acknowledged”.\n\n#### Description\n\nThe `MUSD` contract is pausable. More specifically, it inherits from OpenZeppelin’s `PausableUpgradeable` and calls `_requireNotPaused();` in `_beforeApprove`, `_beforeWrap`, `_beforeUnwrap`, and `_beforeTransfer`. This means that allowance changes, wrapping and unwrapping, as well as transfers are not possible when the contract is paused.\n\nFor example, `_beforeApprove` looks as follows:\n\n**src/MUSD.sol:L101-L111**\n\n```\n/**\n * @dev   Hook called before approval of mUSD.\n * @param account The sender's address.\n * @param spender The spender's address.\n * @param amount  The amount to be approved.\n */\nfunction _beforeApprove(address account, address spender, uint256 amount) internal view override {\n    _requireNotPaused();\n\n    super._beforeApprove(account, spender, amount);\n}\n```\n\nAs a side note, forced transfers, claiming yield (which entirely goes to a dedicated account), freezing, and unfreezing do not respect the paused status, since these actions are only possible from privileged addresses. M0 has confirmed that this is intentional.\n\nWe’d like to call into question whether changing the allowance – and in particular decreasing it or revoking an approval entirely – should be affected by the paused status of the contract: First of all, in OpenZeppelin’s pausable ERC-20 contract, `approve` calls are exempt from the pause, so `MUSD`’s behavior would be different from a standard OZ `ERC20Pausable` or `ERC20PausableUpgradeable`. Second, the ability to revoke approvals even when the contract is paused might be beneficial from a security perspective. It is conceivable, for instance, that the contract was paused because of an ongoing hack; in this case users could revoke their approvals during a pause and, thereby, secure their funds. Or even without a hack, a user might just want to be on the safe side and revoke an approval regardless of whether the contract is paused or not.\n\nIn conclusion, we believe it is better to allow users to revoke approvals even when the contract is paused (or in other exceptional situations; see the remark below).\n\n#### Recommendation\n\nAs discussed above, there are valid reasons why it might make sense to allow `approve` calls – in general or at least those that reduce the allowance or set it to zero – even when the contract is paused. There are two ways to address this:\n\n1. *Allow `approve` calls also when the contract is paused.* This is the same behavior as a standard OpenZeppelin pausable ERC-20 contract and has the security benefits mentioned. It is also very easy to implement, as `_beforeApprove` can just be removed from `MUSD`. The downside is that increasing the allowance is also possible, which has no security benefit – but we don’t see a problem with this either.\n2. *Only allow `approve` calls that reduce the allowance or maybe even only calls that set it to zero.* This would bring the discussed security benefits, without unnecessarily permitting an allowance increase. The downside is that it is more difficult to implement and that this behavior is different from the well-known OpenZeppelin codebase’s.\n\n#### Remark\n\nThere is a similar situation regarding the `_beforeApproved` hook in `MYieldToOne`: that it can be undesirable to be unable to revoke or reduce approvals in some situations, even if a frozen account is involved. For instance, assume a contract C is deemed malicious and, therefore, frozen. Now even legit (i.e., unfrozen) users can’t revoke their approval for that contract. Of course, it seems likely that C never gets unfrozen (so no transfers to or initiated by C could ever happen) and users have to trust the `FREEZE_MANAGER_ROLE` *anyway*, but it’s still unfortunate if users can’t revoke approvals at will. Similarly, there are conceivable (if a bit contrived) scenarios, where it would be important for an erroneously frozen – and later to be unfrozen – account to be able to revoke approvals even while the account is still frozen.\n\nSince this is technically out of scope for the current review, we’re not discussing this topic extensively in this report. We have, however, discussed it with M0 separately, as this behavior is inherited by – and therefore relevant for – `mUSD`.",
+    "summary": "",
+    "report_date": "2025-08-01T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://diligence.consensys.io/audits/2025/08/metamask-usd-token/",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "consider-allowing-approve-even-when-contract-is-paused-fixed-consensys-none-metamask-usd-token-markdown",
+    "firm_name": "ConsenSys",
+    "firm_logo_square": "consensys_square.png",
+    "protocol_name": "MetaMask USD Token",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "George Kobakhidze"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": " Heiko Fisch\n                        "
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "ConsenSys",
+        "logo_square": "consensys_square.png"
+    },
+    "protocols_protocol": {
+        "name": "MetaMask USD Token",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

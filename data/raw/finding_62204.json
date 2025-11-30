@@ -1,0 +1,50 @@
+{
+    "id": 62204,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 11,
+    "impact": "LOW",
+    "finders_count": 2,
+    "protocol_id": 3392,
+    "title": "Unbounded `depositAddresses` can cause `CompliantDepositRegistry::challengeLatestBatch` to revert due to out of gas",
+    "content": "**Description:** `CompliantDepositRegistry::challengeLatestBatch` contains an unbounded loop that removes deposit addresses from the latest batch by calling `depositAddresses.pop()` repeatedly. When a large batch of deposit addresses is added via `CompliantDepositRegistry::addDepositAddresses`, challenging this batch could consume excessive gas, potentially exceeding the block gas limit and causing the transaction to revert. This creates a Denial of Service (DoS) vulnerability where legitimate challenges cannot be executed.\n\n```solidity\nfunction challengeLatestBatch() public onlyRole(CANCELER_ROLE) {\n        require(latestBatchUnlockTime >= block.timestamp, NoChallengeAfterUnlock());\n\n        uint256 _finalizedAddressesLength = finalizedAddressesLength;\n        // Get rid of the challenged batch by removing it from the list\n        uint256 batchLength = depositAddresses.length - _finalizedAddressesLength;\n        for (uint256 i; i < batchLength; i++) {\n            depositAddresses.pop();\n        }<---------\n\n        // Reset the challenge period to allow a new batch to be generated\n        latestBatchUnlockTime = block.timestamp;\n\n        emit BatchChallenged(_finalizedAddressesLength, block.timestamp, batchLength);\n    }\n\n```\n\n**Impact:** Large batches become unchallengeable, allowing malicious or incorrect deposit addresses to be finalized.\n\n**Proof of Concept:** **Recommended Mitigation:**\nImplement limits on the amount of addresses that can be added through  `CompliantDepositRegistry::addDepositAddresses`.\n\n**Syntetika:**\nFixed in commit [319e7ea](https://github.com/SyntetikaLabs/monorepo/commit/319e7ead926e9973e1257337893c031522506bab) by changing `challengeLatestBatch` to allow cancelling in batches.\n\n**Cyfrin:** Verified.",
+    "summary": "",
+    "report_date": "2025-08-01T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/solodit/solodit_content/blob/main/reports/Cyfrin/2025-08-01-cyfrin-syntetika-v2.0.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "unbounded-depositaddresses-can-cause-compliantdepositregistrychallengelatestbatch-to-revert-due-to-out-of-gas-cyfrin-none-syntetika-markdown",
+    "firm_name": "Cyfrin",
+    "firm_logo_square": "Cyfrin_square.jpg",
+    "protocol_name": "Syntetika",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Dacian"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Jorge"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Cyfrin",
+        "logo_square": "Cyfrin_square.jpg"
+    },
+    "protocols_protocol": {
+        "name": "Syntetika",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

@@ -1,0 +1,45 @@
+{
+    "id": 62371,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 34,
+    "impact": "MEDIUM",
+    "finders_count": 1,
+    "protocol_id": 1390,
+    "title": "[ASTRO-20] Incorrect withdraw preview calculations",
+    "content": "**Severity:** Medium\n\n**Path:** Crate.sol\n\n**Description:** In the contract Crate, the withdraw preview function miscalculates how many shares are needed to withdraw a fixed amount of assets.\n\nThe _withdraw function calculates the output amount:\n```\n_amount = (_amount * (MAX_BPS - withdrawFee)) / MAX_BPS;\n```\n\nwhile previewFunction uses the following formula:\n```\n(convertToShares(_assets) * (MAX_BPS + withdrawFee)) / MAX_BPS\n```\nWhilst the correct way to calculate the result will be to use formula:\n```\nconvertToShares((_assets * MAX_BPS)/(MAX_BPS-withdrawfee)\n```\nAs the majority of users will be using the frontend to preview and make the withdrawals, this will eventually make them burn incorrect amounts of shares.\n```\n    function previewWithdraw(uint256 _assets) public view returns (uint256) {\n        return (convertToShares(_assets) * (MAX_BPS + withdrawFee)) / MAX_BPS;  \n    }\n```\n\n**Remediation:**  Change the preview formula to convertToShares`((_assets * MAX_BPS)/(MAX_BPS-withdrawfee))`.\n\n**Status:** Fixed\n\n\n- - -",
+    "summary": "\nA bug has been identified in the contract Crate that affects the withdraw preview function. The function is not correctly calculating the amount of shares needed to withdraw a fixed amount of assets. This can lead to users burning incorrect amounts of shares when using the frontend to preview and make withdrawals. The formula used in the preview function is incorrect and needs to be changed to `convertToShares((_assets * MAX_BPS)/(MAX_BPS-withdrawfee))` in order to fix the issue. This bug has been classified as medium severity and has already been fixed.",
+    "report_date": "2023-04-17T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/solodit/solodit_content/blob/main/reports/Hexens/2023-04-17-Astrolab.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "astro-20-incorrect-withdraw-preview-calculations-hexens-none-astrolab-markdown",
+    "firm_name": "Hexens",
+    "firm_logo_square": "Hexens_square.png",
+    "protocol_name": "Astrolab",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Hexens"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Hexens",
+        "logo_square": "Hexens_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Astrolab",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

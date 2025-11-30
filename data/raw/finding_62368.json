@@ -1,0 +1,45 @@
+{
+    "id": 62368,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 34,
+    "impact": "MEDIUM",
+    "finders_count": 1,
+    "protocol_id": 1390,
+    "title": "[ASTRO-24] Wrong rebalance implementation",
+    "content": "**Severity:** Medium\n\n**Path:** Crate.sol\n\n**Description:** When a user withdraws their assets or shares using the `withdraw()` or `redeem()` functions, the pool is not being rebalanced. Therefore, if the case of another user also wants to withdraw, they may end up withdrawing the wrong amount of shares since the shares will not be rebalanced at that point. This can result in a lower price for the shares, causing the second user to receive fewer assets than they should. Additionally, the protocol will earn more from this transaction.\n```\n    function _withdraw(\n        uint256 _amount,\n        uint256 _shares,\n        uint256 _minAmountOut,\n        uint256 _deadline,\n        address _receiver,\n        address _owner\n    ) internal nonReentrant returns (uint256 recovered) {\n        if (_amount == 0 || _shares == 0) revert AmountZero();\n\n        // We spend the allowance if the msg.sender isn't the receiver\n        if (msg.sender != _owner) {\n            _spendAllowance(_owner, msg.sender, _shares);\n        }\n\n        // Check for rounding error since we round down in previewRedeem.\n        if (convertToAssets(_shares) == 0)\n            revert IncorrectAssetAmount(convertToAssets(_shares));\n\n        // We burn the tokens\n        _burn(_owner, _shares);\n\n        // Allows to take a withdraw fee\n        _amount = (_amount * (MAX_BPS - withdrawFee)) / MAX_BPS;\n\n        if (liquidityPoolEnabled) {\n            // We don't take into account the eventual slippage, since it will\n            // be paid to the depositoors\n            liquidityPool.debt -= Math.min(_amount, liquidityPool.debt);\n            try\n                liquidityPool.swap.swapVirtualToAsset(\n                    _amount,\n                    _minAmountOut,\n                    _deadline,\n                    _receiver\n                )\n            returns (uint256 dy) {\n                recovered = dy;\n            } catch {\n                // if the swap fails, we send the funds available\n                asset.safeTransfer(_receiver, _amount);\n                recovered = _amount;\n            }\n        } else {\n            // If the liquidity pool is not enabled, we send the funds available\n            // This allows for the bootstrapping of the pool at start\n            asset.safeTransfer(_receiver, _amount);\n            recovered = _amount;\n        }\n\n        if (_minAmountOut > 0 && recovered < _minAmountOut)\n            revert IncorrectAssetAmount(recovered);\n\n        emit Withdraw(msg.sender, _receiver, _owner, _amount, _shares);\n        return (recovered);\n    }\n\n    // !SECTION\n\n    /*//////////////////////////////////////////////////////////////\n                        // SECTION LIQUIDITY MANAGEMENT\n    //////////////////////////////////////////////////////////////*/\n\n    // TODO: Should this function be whitelisted?\n    /// @notice Rebalance the Liquidity pool using idle funds and liquid strats\n    function rebalanceLiquidityPool()\n        public\n        whenNotPaused\n        returns (uint256 earned)\n    {\n        // Reverts if we the LP is not enabled\n        if (!liquidityPoolEnabled) revert LiquidityPoolNotSet();\n\n        // We check if we have enough funds to rebalance\n        uint256 toSwap = _getAmountToSwap(\n            asset.balanceOf(address(this)),\n            liquidityPool\n        );\n\n        if (toSwap == 0) revert NoFundsToRebalance();\n        uint256 recovered = liquidityPool.swap.swapAssetToVirtual(\n            toSwap,\n            block.timestamp + 100\n        );\n        liquidityPool.debt += recovered;\n        earned = recovered - Math.min(toSwap, recovered);\n\n        emit LiquidityRebalanced(recovered, earned);\n        emit SharePriceUpdated(sharePrice(), block.timestamp);\n    }\n```\n\n\n**Remediation:**  Consider rebalancing before each withdrawal to ensure the correctness of the output amount. For not getting reverted, in case of the pool is already rebalanced, consider changing `revert` from `rebalanceLiquidityPool()` to f.e `if` statement implementation.\n\n**Status:**  Fixed\n\n\n- - -",
+    "summary": "\nThis bug report describes a medium severity issue in the Crate.sol code. When a user withdraws their assets or shares using the `withdraw()` or `redeem()` functions, the pool is not being rebalanced. This means that if another user also wants to withdraw, they may receive the wrong amount of shares and assets. This can result in a lower price for the shares and the protocol earning more from the transaction. The suggested solution is to rebalance the pool before each withdrawal and change the `revert` statement to an `if` statement to prevent the transaction from being reverted. This bug has been fixed.",
+    "report_date": "2023-04-17T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/solodit/solodit_content/blob/main/reports/Hexens/2023-04-17-Astrolab.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "astro-24-wrong-rebalance-implementation-hexens-none-astrolab-markdown",
+    "firm_name": "Hexens",
+    "firm_logo_square": "Hexens_square.png",
+    "protocol_name": "Astrolab",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Hexens"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Hexens",
+        "logo_square": "Hexens_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Astrolab",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

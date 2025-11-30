@@ -1,0 +1,45 @@
+{
+    "id": 62057,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 7,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3377,
+    "title": "Missing Interface Validation for Whitelist Contracts",
+    "content": "The [`ManagedOptimisticOracleV2`](https://github.com/UMAprotocol/managed-oracle/blob/fc03083eca91c880efa8918c6d9532af9362f00d/src/optimistic-oracle-v2/implementation/ManagedOptimisticOracleV2.sol) contract includes several functions that accept external contract addresses expected to implement the `DisableableAddressWhitelistInterface`, such as the [`setDefaultProposerWhitelist`](https://github.com/UMAprotocol/managed-oracle/blob/fc03083eca91c880efa8918c6d9532af9362f00d/src/optimistic-oracle-v2/implementation/ManagedOptimisticOracleV2.sol#L216), [`setRequesterWhitelist`](https://github.com/UMAprotocol/managed-oracle/blob/fc03083eca91c880efa8918c6d9532af9362f00d/src/optimistic-oracle-v2/implementation/ManagedOptimisticOracleV2.sol#L225), and [`requestManagerSetProposerWhitelist`](https://github.com/UMAprotocol/managed-oracle/blob/fc03083eca91c880efa8918c6d9532af9362f00d/src/optimistic-oracle-v2/implementation/ManagedOptimisticOracleV2.sol#L304) functions. However, these functions do not verify whether the provided addresses actually implement the expected interface, which can result in runtime errors or incorrect behavior if an invalid contract is passed.\n\nConsider supporting the [ERC-165 standard](https://eips.ethereum.org/EIPS/eip-165) in both the `AddressWhitelist` and `DisableableAddressWhitelist` contracts to facilitate safe and standardized interface detection. In addition, consider enforcing interface compliance through runtime checks to ensure that the provided whitelist contracts implement the `DisableableAddressWhitelistInterface`.\n\n***Update:** Resolved in [pull request #17](https://github.com/UMAprotocol/managed-oracle/pull/17) at commit [7bb517c](https://github.com/UMAprotocol/managed-oracle/pull/17/commits/7bb517c71a94bd6d2aef2b661efb3e0e79de75dd). The `DisableableAddressWhitelist` contract was replaced with `DisabledAddressWhitelist`, thereby changing the implementation from an owner-controlled toggle for the enforcement of the list to a hard-coded implementation that can be set in the `ManagedOptimisticOracleV2` contract. Both the `DisabledAddressWhitelist` and `AddressWhitelist` contract now extend `ERC165` while `ManagedOptimisticOracleV2` performs runtime checks whenever a whitelist is set.*",
+    "summary": "",
+    "report_date": "2025-08-26T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://blog.openzeppelin.com/managed-optimistic-oracle-audit",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "missing-interface-validation-for-whitelist-contracts-openzeppelin-none-managed-optimistic-oracle-audit-markdown",
+    "firm_name": "OpenZeppelin",
+    "firm_logo_square": "openzeppelin_square.png",
+    "protocol_name": "Managed Optimistic Oracle Audit",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "OpenZeppelin"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "OpenZeppelin",
+        "logo_square": "openzeppelin_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Managed Optimistic Oracle Audit",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

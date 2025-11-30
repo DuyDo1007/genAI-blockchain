@@ -1,0 +1,45 @@
+{
+    "id": 62407,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 34,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3405,
+    "title": "[LOGLAB-7] Missing Asset/Product Check When Setting New Strategy",
+    "content": "**Severity:** Low\n\n**Path:** src/vault/LogarithmVault.sol#L232-L248\n\n**Description:** The `setStrategy` function in the vault allows setting a new strategy without asserting the new asset/product stay unchanged. This means a new strategy can be applied to the vault without validating if its asset matches the vault's current asset, potentially leading to incompatibilities.\n```\nfunction setStrategy(address _strategy) external onlyOwner {\n    LogarithmVaultStorage storage $ = _getLogarithmVaultStorage();\n\n    IERC20 _asset = IERC20(asset());\n    address prevStrategy = strategy();\n\n    if (prevStrategy != address(0)) {\n        IStrategy(prevStrategy).stop();\n        _asset.approve(prevStrategy, 0);\n    }\n\n    require(_strategy != address(0));\n    $.strategy = _strategy;\n    _asset.approve(_strategy, type(uint256).max);\n\n    emit StrategyUpdated(_msgSender(), _strategy);\n} \n```\n\n**Remediation:**  The `setStrategy` function should validate that the new strategy’s asset matches the vault’s asset and perhaps check that the new strategy’s product is consistent with the previous strategy’s product.\n\n**Status:** Fixed\n\n- - -",
+    "summary": "",
+    "report_date": "2024-11-25T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/solodit/solodit_content/blob/main/reports/Hexens/2024-11-25-BasisOS.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "loglab-7-missing-assetproduct-check-when-setting-new-strategy-hexens-none-basisos-markdown",
+    "firm_name": "Hexens",
+    "firm_logo_square": "Hexens_square.png",
+    "protocol_name": "Basisos",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Hexens"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Hexens",
+        "logo_square": "Hexens_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Basisos",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

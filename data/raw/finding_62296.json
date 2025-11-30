@@ -1,0 +1,55 @@
+{
+    "id": 62296,
+    "kind": "PDF",
+    "auditfirm_id": 6,
+    "impact": "MEDIUM",
+    "finders_count": 3,
+    "protocol_id": 3396,
+    "title": "Mini pool reserves for unique tokens can be reinitialised",
+    "content": "## Severity: Medium Risk\n\n## Context\n(No context files were provided by the reviewer)\n\n## Description\nMini pool reserves can be reinitialized. This is due to the following factors:\n\n1. For unique tokens, one can add them to `ATokenERC6909` multiple times but with different incremental IDs.\n\n2. In `MiniPoolReserveLogic`, we have:\n\n```solidity\nfunction init(\n    DataTypes.MiniPoolReserveData storage reserve,\n    address asset,\n    IAERC6909 aTokenAddress,\n    uint256 aTokenID,\n    uint256 variableDebtTokenID,\n    address interestRateStrategyAddress\n) internal {\n    require(\n        aTokenAddress.getUnderlyingAsset(aTokenID) == asset, // this just checks to make sure the\n        `asset` has been added in `aTokenAddress`, !\n        Errors.RL_RESERVE_ALREADY_INITIALIZED\n    );\n    reserve.liquidityIndex = uint128(WadRayMath.ray());\n    reserve.variableBorrowIndex = uint128(WadRayMath.ray());\n    reserve.aTokenAddress = address(aTokenAddress);\n    reserve.aTokenID = aTokenID;\n    reserve.variableDebtTokenID = variableDebtTokenID;\n    reserve.interestRateStrategyAddress = interestRateStrategyAddress;\n}\n```\n\nThis will cause:\n\n1. `liquidityIndex` and `variableBorrowIndex` to be reset.\n2. `aTokenID` and `variableDebtTokenID` to be updated, thus all user accounting will be lost.\n3. `interestRateStrategyAddress` to be updated, which for stateful IRMs can cause an issue.\n\n## Recommendation\n1. Make sure there is only one reserve per unique token, just like the non-rebasing AToken of the main lending pool.\n\n2. The mini pool needs to be restructured so that adding a unique token multiple times would not override the reserve of the previously added unique token.\n\n## Astera\nFixed in commit b46b15a3.\n\n## Spearbit\nFix verified.",
+    "summary": "\nThis bug report discusses a medium risk issue in the Mini Pool Reserve feature. The problem occurs when unique tokens are added to the ATokenERC6909 multiple times with different incremental IDs. This causes the liquidity and variable borrow indexes to be reset, user accounting to be lost, and potential issues with stateful interest rate models. The report recommends restructuring the mini pool to prevent this issue and mentions that it has been fixed in a recent commit. A third party has also verified the fix.",
+    "report_date": "2025-08-29T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Astera-Spearbit-Security-Review-December-2024.pdf",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Astera-Spearbit-Security-Review-December-2024.pdf",
+    "github_link": "",
+    "pdf_link": "https://solodit-bucket.s3.amazonaws.com/storage/reports/spearbit/Astera-Spearbit-Security-Review-December-2024.pdf",
+    "pdf_page_from": 30,
+    "contest_id": "",
+    "slug": "mini-pool-reserves-for-unique-tokens-can-be-reinitialised-spearbit-none-astera-pdf",
+    "firm_name": "Spearbit",
+    "firm_logo_square": "spearbit_square.png",
+    "protocol_name": "Astera",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Saw-mon and Natalie"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Cergyk"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Jonatas Martins"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Spearbit",
+        "logo_square": "spearbit_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Astera",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

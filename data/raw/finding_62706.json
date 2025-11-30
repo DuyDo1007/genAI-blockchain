@@ -1,0 +1,45 @@
+{
+    "id": 62706,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 23,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3435,
+    "title": "Confusing Error Handling in `mintFresh` and `redeemFresh` Functions",
+    "content": "##### Description\nThis issue has been identified in the `mintFresh` and `redeemFresh` functions. Both enforce that only one of two parameters (`mintTokensIn` and `mintAmountIn` for `mintFresh`; `redeemTokensIn` and `redeemAmountIn` for `redeemFresh`) can be non-zero at a time. If both are provided as non-zero, the code reverts with `CommonError.ZeroValue()` — an error name that does not accurately describe the situation.\n\nBecause `ZeroValue` suggests that a parameter was unexpectedly zero, it can confuse developers attempting to diagnose a revert. In reality, the revert is caused by providing two non-zero parameters simultaneously.\n\n##### Recommendation\nWe recommend replacing the `ZeroValue` error with a more descriptive name—for example, `NonZeroValuesNotAllowed` or `OnlyOneInputAllowed`. This ensures the revert message accurately describes why the check fails and simplifies debugging.\n",
+    "summary": "",
+    "report_date": "2025-09-18T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/mixbytes/audits_public/blob/master/NUTS%20Finance/Pike/README.md#9-confusing-error-handling-in-mintfresh-and-redeemfresh-functions",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "confusing-error-handling-in-mintfresh-and-redeemfresh-functions-mixbytes-none-nuts-finance-markdown",
+    "firm_name": "MixBytes",
+    "firm_logo_square": "mixbytes_square.png",
+    "protocol_name": "NUTS Finance",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "MixBytes"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "MixBytes",
+        "logo_square": "mixbytes_square.png"
+    },
+    "protocols_protocol": {
+        "name": "NUTS Finance",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

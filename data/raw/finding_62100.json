@@ -1,0 +1,60 @@
+{
+    "id": 62100,
+    "kind": "GIT",
+    "auditfirm_id": 3,
+    "impact": "MEDIUM",
+    "finders_count": 4,
+    "protocol_id": 3050,
+    "title": "M-2: Enabling the whitelist can grant a malicious operator a temporary whitelisted status",
+    "content": "\nSource: https://github.com/sherlock-audit/2025-06-symbiotic-relay-judging/issues/361 \n\n## Found by \nZiusz, klaus, maigadoh, zark\n\n### Summary\n\nN/A\n\n### Root Cause\n\nThe root cause of this vulnerability is that in order for `unwhitelist` call to success, the operator must be whitelisted.\n\n```solidity\n    function _unwhitelistOperator(\n        address operator\n    ) internal virtual {\n        if (!isOperatorWhitelisted(operator)) {\n            revert OperatorsWhitelist_OperatorNotWhitelisted();\n        }\n        _getOperatorsWhitelistStorage()._whitelisted[operator] = false;\n        if (isWhitelistEnabled() && isOperatorRegistered(operator)) {\n            _unregisterOperator(operator);\n        }\n\n        emit UnwhitelistOperator(operator);\n    }\n```\n[Link to code](https://github.com/sherlock-audit/2025-06-symbiotic-relay/blob/435a21fd81bcd588439feef3108580f535b9e5eb/middleware-sdk/src/contracts/modules/voting-power/extensions/OperatorsWhitelist.sol#L96C1-L108C6)\n\n### Internal Pre-conditions\n\nN/A\n\n### External Pre-conditions\n\nN/A\n\n### Attack Path\n\n1. Whitelist mode is off.\n2. Owner enables whitelist mode.\n3. Malicious operator front runs owner by registering.\n4. Now, if owner wants to unregister him, he must grant him the whitelist role and then unwhitelist him.\n5. This would mean that the malicious operator would be granted the whitelist role for at least one block.\n6. Since this is an SDK, it is very possible that the whitelist role will be connected with further abilities.\n\n### Impact\n\nMalicious actor can frontrun the whitelist mode enabled and in this way force the owners to whitelist him (in order to unwhitelist him) for at least one block. So the malicious actor can gain any abilities that a whitelisted operator can do without this being the goal of the owners of the network. If we take into account that the owner of the `Middleware` may be the `Network` which has time delays in the calls, this worsen the situation.\n\n### PoC\n\nN/A\n\n### Mitigation\n\nAllow the `unwhitelist` of an operator even if he is not whitelisted but the whitelist mode is on.\n\n## Discussion\n\n**sherlock-admin2**\n\nThe protocol team fixed this issue in the following PRs/commits:\nhttps://github.com/symbioticfi/relay-contracts/pull/33/commits/e655574ab282e2c42065166f1d6f8ef4a5004665\n\n\n\n\n",
+    "summary": "\nThis bug report discusses a vulnerability found by a group of users in the code of a project called \"Symbiotic Relay.\" The root cause of the vulnerability is that in order for a certain function to work, the operator must be whitelisted. However, if the whitelist mode is turned off and then turned on again, a malicious operator can front run the owner by registering and forcing them to whitelist them for at least one block. This would give the malicious operator access to abilities that were not intended for them. The team responsible for the project has fixed the issue in their code.",
+    "report_date": "2025-07-10T15:00:00.000Z",
+    "contest_prize_txt": "100000 USDC",
+    "contest_link": "https://app.sherlock.xyz/audits/contests/967",
+    "sponsor_name": "",
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "",
+    "github_link": "https://github.com/sherlock-audit/2025-06-symbiotic-relay-judging/issues/361",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "967",
+    "slug": "m-2-enabling-the-whitelist-can-grant-a-malicious-operator-a-temporary-whitelisted-status-sherlock-symbiotic-relay-git",
+    "firm_name": "Sherlock",
+    "firm_logo_square": "sherlock_square.png",
+    "protocol_name": "Symbiotic Relay",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "klaus"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Ziusz"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "maigadoh"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "zark"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Sherlock",
+        "logo_square": "sherlock_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Symbiotic Relay",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

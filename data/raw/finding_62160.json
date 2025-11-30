@@ -1,0 +1,60 @@
+{
+    "id": 62160,
+    "kind": "PDF",
+    "auditfirm_id": 6,
+    "impact": "LOW",
+    "finders_count": 4,
+    "protocol_id": 3384,
+    "title": "Checks missing to make sure immutable parameters of the _marketHubRiskManagement match with",
+    "content": "## MarketHubEntry\n\n**Severity:** Low Risk  \n**Context:** MarketHubEntry.sol#L35-L45  \n\n**Description:**  \nChecks missing to make sure immutable parameters of the `_marketHubRiskManagement` match with `MarketHubEntry`:\n- `_permissionController`\n- `_marketFactory`\n- `_router`\n- `_treasury`\n- `_maxEnteredMarkets`\n\n**Recommendation:**  \nMake sure to add a check for the above immutable parameters in the constructor to ensure they match with the ones in `_marketHubRiskManagement`.\n\n**Pendle Finance:** Won't fix. We'll make sure they get deployed at the same time with the same parameters.  \n**Spearbit:** Acknowledged.",
+    "summary": "",
+    "report_date": "2025-08-22T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Pendle-Spearbit-Security-Review-August-2025.pdf",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Pendle-Spearbit-Security-Review-August-2025.pdf",
+    "github_link": "",
+    "pdf_link": "https://solodit-bucket.s3.amazonaws.com/storage/reports/spearbit/Pendle-Spearbit-Security-Review-August-2025.pdf",
+    "pdf_page_from": 42,
+    "contest_id": "",
+    "slug": "checks-missing-to-make-sure-immutable-parameters-of-the-_markethubriskmanagement-match-with-spearbit-none-pendle-core-v3-pdf",
+    "firm_name": "Spearbit",
+    "firm_logo_square": "spearbit_square.png",
+    "protocol_name": "Pendle Core v3",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Saw-mon and Natalie"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Ethan"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Desmond Ho"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "RustyRabbit"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Spearbit",
+        "logo_square": "spearbit_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Pendle Core v3",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

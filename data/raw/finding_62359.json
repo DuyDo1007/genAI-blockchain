@@ -1,0 +1,45 @@
+{
+    "id": 62359,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 34,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 967,
+    "title": "[BAB-1] Missing zero address checks",
+    "content": "**Severity:** Informational\n\n**Path:** TokensController.sol:setBabylonCore (L43-45), BabylonEditionsExtension.sol:setBabylonCore (L60-66), RandomProvider.sol:setBabylonCore (L46-48)\n\n**Description:** In all of the contracts, the parameter core for the function setBabylonCore is not checked against the zero address. If this address is set to the zero address, then no one can call the functions TokensController.sol:sendItem, BabylonEditionsExtension.sol:mintEdition, RandomProvider.sol:fulfillRandomWords and RandomProvider.sol:requestRandom.\n```\ncontract TokensController is ITokensController, Ownable {\n    [..]\n    function setBabylonCore(address core) external onlyOwner {\n        _core = core;\n    }\n    [..]\n}\n\ncontract RandomProvider is IRandomProvider, Ownable, VRFConsumerBaseV2 {\n    [..]\n    function setBabylonCore(IBabylonCore core) external onlyOwner {\n        _core = core;\n    }\n    [..]\n}\n\ncontract BabylonEditionsExtension is Ownable, IEditionsExtension, ICreatorExtensionTokenURI {\n    [..]\n    function setBabylonCore(address core) external onlyOwner {\n        _core = core;\n    }\n    [..]\n}\n```\n\n**Remediation:**  Add a check to validate the parameter core again the zero address. \n\nFor example:\n```\nrequire(core != address(0), \"NOT_ZERO\");\n```\n\n**Status:** Fixed\n\n\n- - -",
+    "summary": "",
+    "report_date": "2023-01-17T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/solodit/solodit_content/blob/main/reports/Hexens/2023-01-17-Babylon.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "bab-1-missing-zero-address-checks-hexens-none-babylon-markdown",
+    "firm_name": "Hexens",
+    "firm_logo_square": "Hexens_square.png",
+    "protocol_name": "Babylon",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Hexens"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Hexens",
+        "logo_square": "Hexens_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Babylon",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

@@ -1,0 +1,105 @@
+{
+    "id": 62061,
+    "kind": "GIT",
+    "auditfirm_id": 2,
+    "impact": "HIGH",
+    "finders_count": 13,
+    "protocol_id": 2159,
+    "title": "[H-01] A reserve’s `d_supply` is incorrectly updated and stored after flash loan execution",
+    "content": "\n\n<https://github.com/code-423n4/2025-02-blend/blob/f23b3260763488f365ef6a95bfb139c95b0ed0f9/blend-contracts-v2/pool/src/pool/submit.rs# L86>\n\n<https://github.com/code-423n4/2025-02-blend/blob/f23b3260763488f365ef6a95bfb139c95b0ed0f9/blend-contracts-v2/pool/src/pool/submit.rs# L101>\n\n<https://github.com/code-423n4/2025-02-blend/blob/f23b3260763488f365ef6a95bfb139c95b0ed0f9/blend-contracts-v2/pool/src/pool/actions.rs# L187>\n\n<https://github.com/code-423n4/2025-02-blend/blob/f23b3260763488f365ef6a95bfb139c95b0ed0f9/blend-contracts-v2/pool/src/pool/actions.rs# L412>\n\n<https://github.com/code-423n4/2025-02-blend/blob/f23b3260763488f365ef6a95bfb139c95b0ed0f9/blend-contracts-v2/pool/src/pool/actions.rs# L417>\n\n### Finding description and impact\n\nExecuting `contract.flash_loan(...)` will subsequently call `submit.execute_submit_with_flash_loan(...)` where the `Pool` struct is loaded with `Pool.config` assigned to the pool’s configuration and all other `Pool` fields are empty: `let mut pool = Pool::load(e)`.\n\nAfter that, the Reserve of the asset that will be borrowed as a flash loan is loaded - `let mut reserve = pool.load_reserve(e, &flash_loan.asset, true)`. The function `pool.load_reserve(...)` caches the Address of the asset in the array `Pool.reserves_to_store` and loads the Reserve from storage since the Reserve is not yet present in the Map `Pool.reserves`.\n\nThe execute function then adds the flash loan amount as a liability for the user through `from_state.add_liabilities(e, &mut reserve, d_tokens_minted)` which will update the `d_supply` of the Reserve. However, the execute function has not cached the Reserve in `Pool.reserves` through the function `pool.cache_reserve(...)`.\n```\n\npub fn execute_submit_with_flash_loan(...) -> Positions {\n    ...\n    let mut pool = Pool::load(e);\n    let mut from_state = User::load(e, from);\n    ...\n    {\n        let mut reserve = pool.load_reserve(e, &flash_loan.asset, true);\n        let d_tokens_minted = reserve.to_d_token_up(e, flash_loan.amount);\n        from_state.add_liabilities(e, &mut reserve, d_tokens_minted);\n        ...\n    }\n    let actions = build_actions_from_request(e, &mut pool, &mut from_state, requests);\n    ...\n    pool.store_cached_reserves(e);\n    ...\n}\n```\n\nThe execute function then continues to process the rest of the user’s requests by calling `build_actions_from_request(...)`. However, if the asset used for the flash loan is also used in the requests, such as a Repay Request to payback the flash loaned amount, `build_actions_from_request(...)` will call; for example, `apply_repay(...)` which will attempt to load the Reserve for the same token that was borrowed by the user.\n\nSince the flash loan asset’s Reserve wasn’t originally cached with `pool.cache_reserve()`, the Reserve will again be loaded from storage where the `d_supply` is the value before the flash loan liability was added. The `apply_repay()` function will then subtract the repaid flash loan amount from the stale `d_supply` (before the flash loan liability was accounted for) and will call `pool.cache_reserve()` to cache the reserve in `Pool.reserves`. Finally, after `build_actions_from_request(...)` has finished processing requests, the reserves cached in `Pool.reserves` are saved in storage through `pool.store_cached_reserves(e)` and the flash loaned asset’s Reserve will be stored with an incorrect `d_supply`.\n```\n\nfn apply_repay(...) -> (i128, i128) {\n    let mut reserve = pool.load_reserve(e, &request.address, true);\n    ...\n    if d_tokens_burnt > cur_d_tokens {\n        ...\n        user.remove_liabilities(e, &mut reserve, cur_d_tokens);\n        pool.cache_reserve(reserve);\n        ...\n    } else {\n        ...\n        user.remove_liabilities(e, &mut reserve, d_tokens_burnt);\n        pool.cache_reserve(reserve);\n        ...\n    }\n}\n```\n\nA summary through an example:\n\n* Asset X has a Reserve with `d_supply = 500` and a 1:1 rate of X tokens to `d_tokens`\n* User calls `contract.flash_loan(...)` with a `Flash_Loan.asset = X`, `Flash_Loan.amount = 250` and a Repay Request where\n  `Request.asset = X` and `Request.amount = 250`\n* X Reserve is loaded with `d_supply = 500`\n* Call to `from_state.add_liabilities(e, &mut reserve, d_tokens_minted)` sets `d_supply = 750`\n* X Reserve is not cached or saved in storage\n* `build_actions_from_request(...)` processes the Repay Request\n* `apply_repay(...)` calls `pool.load_reserve(...)`\n* The X Reserve is again loaded from storage with `d_supply = 500`\n* `apply_repay(...)` calls `user.remove_liabilities(...)` which sets `d_supply = 250`\n* `apply_repay(...)` saves in cache X Reserve with `d_supply = 250`\n* Finally, `pool.store_cached_reserves(e)` is called and X Reserve is saved in storage with `d_supply = 250`\n\n### Impact\n\nA core invariant of the system is violated where for a Reserve, the sum of all user’s liabilities must be equal to `d_supply`. There are numerous places where `d_supply` is used within the protocol and when updated incorrectly will cause erroneous calculations:\n\n* The function `reserve.utilization()` uses `d_supply` to determine how much of the Reserve’s liquidity can be given as a loan. An incorrect decrease in `d_supply` will allow borrowing assets even if the maximum utilization ratio is met.\n* The utilization of the reserve is also used in calculating the accrual fees of the Reserve in `reserve.load(...)` which downstream calls `interest.calc_accrual(...)`. An incorrect update of the accrued interest can be of benefit to some users and a drawback to others.\n* Since `d_supply` is an `i128` value, a `d_supply` that is lower than the sum of all user’s liabilities in the Reserve can cause `d_supply` to become negative when `user.remove_liabilities(...)` is executed. As per the assumptions of the protocol, `d_supply` should never be a negative number.\n* The distribution of BLEND token emissions will be incorrect when `d_supply` incorrectly decreases, allowing users to illegally claim more BLEND tokens than they are owed, damaging other Reserve’s emission rewards and denying other users from claiming rewards.\n\nA short example of an attack idea where a malicious user claims illegally BLEND token emissions:\n\n* Assume Reserve for token X with `d_supply = N`.\n* Assume a malicious user has some existing liability, participating in the `d_supply` for Reserve X .\n* Malicious user calls `contract.flash_loan(...)` and exploits to reduce the `d_supply = 1` with a Flash Loan amount of `N-1` and a Repay Request of `N-1`.\n* When time passes, `distributor.update_emission_data(...)` will update the index (reward per token) for the Reserve X according to `d_supply = 1`; i.e. inflating the reward per token (there are still other users that have liabilities but `d_supply` does not reflect that).\n* Malicious user calls `contract.claim()` for Reserve X where he will claim an inflated amount of accrued rewards since the index (reward per token) is inflated.\n* Subsequent accounts of the malicious user or regular users can continue claiming their rewards for Reserve X with an inflated index, therefore, stealing other Reserves rewards.\n\n### Proof of Concept\n\n* In `/blend-contracts-v2/pool/src/pool/submit.rs`\n* Apply the modifications below to the the test `test_submit_with_flash_loan_process_flash_loan_first()`\n* Change directory to `/blend-contracts-v2/pool`\n* Run with `cargo test pool::submit::tests::test_submit_with_flash_loan_process_flash_loan_first -- --nocapture --exact`\n* Inspect the `@` audit tags in the test and the log output in the console\n```\n\n-use soroban_sdk::{panic_with_error, Address, Env, Map, Vec};\n+use soroban_sdk::{panic_with_error, Address, Env, Map, Vec, log};\n#[test]\nfn test_submit_with_flash_loan_process_flash_loan_first() {\n    let e = Env::default();\n    e.cost_estimate().budget().reset_unlimited();\n    e.mock_all_auths_allowing_non_root_auth();\n\n    e.ledger().set(LedgerInfo {\n        timestamp: 600,\n        protocol_version: 22,\n        sequence_number: 1234,\n        network_id: Default::default(),\n        base_reserve: 10,\n        min_temp_entry_ttl: 10,\n        min_persistent_entry_ttl: 10,\n        max_entry_ttl: 3110400,\n    });\n\n    let bombadil = Address::generate(&e);\n    let samwise = Address::generate(&e);\n    let pool = testutils::create_pool(&e);\n    let (oracle, oracle_client) = testutils::create_mock_oracle(&e);\n\n    let (flash_loan_receiver, _) = testutils::create_flashloan_receiver(&e);\n\n    let (underlying_0, underlying_0_client) = testutils::create_token_contract(&e, &bombadil);\n    let (mut reserve_config, mut reserve_data) = testutils::default_reserve_meta();\n    reserve_config.max_util = 9500000;\n    reserve_data.b_supply = 100_0000000;\n+   // @audit d-supply is 5e8\n    reserve_data.d_supply = 50_0000000;\n    testutils::create_reserve(&e, &pool, &underlying_0, &reserve_config, &reserve_data);\n\n    let (underlying_1, underlying_1_client) = testutils::create_token_contract(&e, &bombadil);\n    let (reserve_config, reserve_data) = testutils::default_reserve_meta();\n    testutils::create_reserve(&e, &pool, &underlying_1, &reserve_config, &reserve_data);\n\n    oracle_client.set_data(\n        &bombadil,\n        &Asset::Other(Symbol::new(&e, \"USD\")),\n        &vec![\n            &e,\n            Asset::Stellar(underlying_0.clone()),\n            Asset::Stellar(underlying_1.clone()),\n        ],\n        &7,\n        &300,\n    );\n    oracle_client.set_price_stable(&vec![&e, 1_0000000, 5_0000000]);\n\n    let pool_config = PoolConfig {\n        oracle,\n        min_collateral: 1_0000000,\n        bstop_rate: 0_1000000,\n        status: 0,\n        max_positions: 4,\n    };\n    e.as_contract(&pool, || {\n        storage::set_pool_config(&e, &pool_config);\n\n        underlying_0_client.mint(&samwise, &1_0000000);\n        underlying_0_client.approve(&samwise, &pool, &100_0000000, &10000);\n\n        let pre_pool_balance_0 = underlying_0_client.balance(&pool);\n        let pre_pool_balance_1 = underlying_1_client.balance(&pool);\n\n        // pool has 100 supplied and 50 borrowed for asset_0\n        // -> max util is 95%\n+       // @audit flash loan amount is 2.5e8\n+       // @audit after the FlashLoan request\n+       // @audit d_supply will be (5e8 + 2.5e8) = 7.5e8\n        let flash_loan: FlashLoan = FlashLoan {\n            contract: flash_loan_receiver,\n            asset: underlying_0.clone(),\n            amount: 25_0000000,\n        };\n-\n+\n+       // @audit after the Repay request to repay the borrowed through FLashLoan request\n+       // @audit d_supply should be (7.5e8 - ~2.5e8) = ~5e8\n        let requests = vec![\n            &e,\n            Request {\n                request_type: RequestType::Repay as u32,\n-                    address: underlying_0,\n+                    address: underlying_0.clone(),\n                amount: 25_0000010,\n            },\n        ];\n        let positions = execute_submit_with_flash_loan(&e, &samwise, flash_loan, requests);\n-\n+\n+       // @audit inspect this log to see d_supply is ~2.5e8 instead of ~5e8\n+       // @audit d_supply has erroneously decreased by 2.5e8\n+\n+       log!(&e, \"D_SUPPLY POST FLASH LOAN: {}\", storage::get_res_data(&e, &underlying_0).d_supply);\n        assert_eq!(positions.liabilities.len(), 0);\n        assert_eq!(positions.collateral.len(), 0);\n        assert_eq!(positions.supply.len(), 0);\n\n        assert_eq!(underlying_0_client.balance(&pool), pre_pool_balance_0 + 1,);\n        assert_eq!(underlying_1_client.balance(&pool), pre_pool_balance_1,);\n\n        // rounding causes 1 stroops to be lost\n        assert_eq!(underlying_0_client.balance(&samwise), 0_9999999);\n        assert_eq!(underlying_1_client.balance(&samwise), 0);\n\n        // check allowance is used\n        assert_eq!(\n            underlying_0_client.allowance(&samwise, &pool),\n            100_0000000 - 25_0000001\n        );\n    });\n}\n```\n\n### Recommended mitigation steps\n\nIn `submit.execute_submit_with_flash_loan()`, use `pool.cache_reserve()` to cache the Reserve of the Flash Loan asset after adding the flash loan amount as a liability for the user.\n\n**markus\\_pl10 (Script3) confirmed**\n\n**[mootz12 (Script3) commented:](https://code4rena.com/audits/2025-02-blend-v2-audit-certora-formal-verification/submissions/F-4?commentParent=Aa5KrVgCsGw)**\n\n> Fixed to add `cache_reserve()` call after applying state changes.\n\n**[Blend mitigated](https://github.com/code-423n4/2025-04-blend-mitigation?tab=readme-ov-file# mitigation-of-high--medium-severity-issues):**\n\n> [Commit e4ed914](https://github.com/blend-capital/blend-contracts-v2/commit/e4ed914e45433f160bb4f066fd517667b7d8907b) to clean up flash loans implementation.\n\n**Status:** Mitigation confirmed. Full details in reports from [0xAlix2](https://code4rena.com/audits/2025-04-blend-v2-mitigation-review/submissions/S-8), [Testerbot](https://code4rena.com/audits/2025-04-blend-v2-mitigation-review/submissions/S-58), [0x007](https://code4rena.com/audits/2025-04-blend-v2-mitigation-review/submissions/S-43), [oakcobalt](https://code4rena.com/audits/2025-04-blend-v2-mitigation-review/submissions/S-25) and [rscodes](https://code4rena.com/audits/2025-04-blend-v2-mitigation-review/submissions/S-75).\n\n---\n\n",
+    "summary": "\nThis bug report discusses a potential issue in the code for a project called Blend. The issue involves a function called `contract.flash_loan()` which can lead to incorrect calculations and manipulation of the system. This is due to a failure to properly cache a reserve in the `Pool.reserves` array, resulting in an incorrect `d_supply` value for the reserve. This can have various impacts on the system, such as allowing users to borrow more assets than they should be able to and incorrect distribution of rewards. A proof of concept is provided to demonstrate how this issue can be exploited. The recommended mitigation is to add a `pool.cache_reserve()` call after applying state changes in the `submit.execute_submit_with_flash_loan()` function. The project has confirmed that they have implemented this mitigation.",
+    "report_date": "2025-08-13T00:00:00.000Z",
+    "contest_prize_txt": "125000",
+    "contest_link": "https://code4rena.com/reports/2025-02-blend-v2-audit-certora-formal-verification",
+    "sponsor_name": "Blend",
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://code4rena.com/reports/2025-02-blend-v2-audit-certora-formal-verification",
+    "github_link": "https://code4rena.com/audits/2025-02-blend-v2-audit-certora-formal-verification/submissions/F-4",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "492",
+    "slug": "h-01-a-reserves-d_supply-is-incorrectly-updated-and-stored-after-flash-loan-execution-code4rena-blend-blend-git",
+    "firm_name": "Code4rena",
+    "firm_logo_square": "code4rena_square.png",
+    "protocol_name": "Blend",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "carrotsmuggler"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "rapid"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "klau5"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "oakcobalt"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Testerbot"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Tricko"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "mahdikarimi"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "audithare"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "rscodes"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "aldarion"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "0xAlix2"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "0x007"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "alexxander"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Code4rena",
+        "logo_square": "code4rena_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Blend",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

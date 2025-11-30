@@ -1,0 +1,50 @@
+{
+    "id": 62128,
+    "kind": "PDF",
+    "auditfirm_id": 9,
+    "impact": "HIGH",
+    "finders_count": 2,
+    "protocol_id": 3383,
+    "title": "Wallet can be embedded in iframe, enabling clickjacking attacks",
+    "content": "## Diﬃculty: High\n\n## Type: Data Validation\n\n### Description\nThe wallet SDK allows the wallet UI to be embedded in an iframe instead of opening in a popup window. This creates a clickjacking vulnerability where a malicious dapp can overlay the wallet interface with hidden elements or misleading UI, tricking users into signing transactions or messages without their knowledge. Any dapp could make a user sign a malicious message, thinking they are signing a safe message.\n\n### Exploit Scenario\nA malicious dapp embeds the wallet in an iframe and overlays it with transparent elements or misleading UI. The user sees what appears to be a legitimate wallet interface but is actually interacting with hidden elements that trigger unwanted actions, such as signing a transaction with different parameters than what is displayed.\n\n**Figure 9.1** provides a proof of concept showing the possibility of opening the wallet in an iframe.\n\n```javascript\nimport { rpcErrors } from \"@metamask/rpc-errors\";\n\nconst POPUP_WIDTH = 420;\nconst POPUP_HEIGHT = 650;\n\nexport const openPopup = (url: URL): Window => {\n    const left = (window.innerWidth - POPUP_WIDTH) / 2 + window.screenX;\n    const top = (window.innerHeight - POPUP_HEIGHT) / 2 + window.screenY;\n    const popupId = `wallet_${window?.crypto?.randomUUID()}`;\n\n    // Try to find an existing iframe with this name/id\n    let iframe = document.querySelector(`iframe[name='${popupId}']`) as HTMLIFrameElement | null;\n    if (!iframe) {\n        iframe = document.createElement('iframe');\n        iframe.id = popupId;\n        iframe.name = popupId;\n        iframe.allow = \"publickey-credentials-get *\";\n        iframe.style.width = `${POPUP_WIDTH}px`;\n        iframe.style.height = `${POPUP_HEIGHT}px`;\n        iframe.style.position = 'fixed';\n        iframe.style.right = '20px';\n        iframe.style.bottom = '20px';\n        iframe.style.zIndex = '9999';\n        iframe.style.border = '1px solid #ccc';\n        document.body.appendChild(iframe);\n    }\n    iframe.style.display = 'block';\n\n    // Use window.open with the popupId as the target to load the URL in the iframe\n    const popup = window.open(url.toString(), popupId);\n    if (!iframe.contentWindow || !popup) {\n        throw rpcErrors.internal('Pop up window failed to open');\n    }\n\n    // Focus is not relevant for iframes, but you can scroll to it if needed\n    // iframe.contentWindow?.focus();\n    return iframe.contentWindow as Window;\n};\n\nexport const closePopup = (popup: Window | null) => {\n    if (popup && !popup.closed) {\n        popup.close();\n    }\n};\n```\n\n**Figure 9.1**: Modiﬁed `popup.ts` file that creates an iframe instead of a popup window\n\n### Recommendations\n- Short term: Implement Content-Security-Policy headers with the `frame-ancestors` directive set to none and X-Frame-Options headers set to DENY to prevent the wallet from being embedded in iframes.\n- Long term: Ensure that the wallet can be opened only in a popup window or new tab, and implement additional security measures to prevent any form of embedding.",
+    "summary": "\nThe report describes a bug in the wallet SDK that allows the wallet UI to be embedded in an iframe instead of opening in a popup window. This creates a security vulnerability where a malicious dapp can overlay the wallet interface with hidden elements or misleading UI, tricking users into signing transactions or messages without their knowledge. The report provides a proof of concept showing how this can be exploited. The recommendations for fixing this bug include implementing Content-Security-Policy headers and X-Frame-Options headers to prevent the wallet from being embedded in iframes, and ensuring that the wallet can only be opened in a popup window or new tab.",
+    "report_date": "2025-08-15T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://github.com/trailofbits/publications/blob/master/reviews/2025-08-gemini-smartwallet-securityreview.pdf",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/trailofbits/publications/blob/master/reviews/2025-08-gemini-smartwallet-securityreview.pdf",
+    "github_link": "",
+    "pdf_link": "https://solodit-bucket.s3.amazonaws.com/storage/reports/trailofbits/2025-08-gemini-smartwallet-securityreview.pdf",
+    "pdf_page_from": 24,
+    "contest_id": "",
+    "slug": "wallet-can-be-embedded-in-iframe-enabling-clickjacking-attacks-trailofbits-none-gemini-smart-wallet-pdf",
+    "firm_name": "TrailOfBits",
+    "firm_logo_square": "trailofbits_square.png",
+    "protocol_name": "Gemini Smart Wallet",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Coriolan Pinhas Trail of Bits PUBLIC"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Anish Naik"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "TrailOfBits",
+        "logo_square": "trailofbits_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Gemini Smart Wallet",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

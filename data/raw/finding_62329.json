@@ -1,0 +1,45 @@
+{
+    "id": 62329,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 16,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3400,
+    "title": "[L-05] Unavailable view function",
+    "content": "\n_Resolved_\n\nThe `cooldown_underlying_amount` and `cooldown_end_time` functions take a `UserCooldown` and return its `underlying_amount` and `cooldown_end` fields.\n```rust\n/// Get the underlying amount from a cooldown\npublic fun cooldown_underlying_amount(cooldown: &UserCooldown): u64 {\n    cooldown.underlying_amount\n}\n\n/// Get the cooldown end time\npublic fun cooldown_end_time(cooldown: &UserCooldown): u64 {\n    cooldown.cooldown_end\n}\n```\nHowever, these two view functions are actually unusable because `UserCooldown` is a field within `SdeUSDManagement`, which cannot be directly accessed by external modules. Moreover, the module does not contain any function that returns a reference to `UserCooldown`. Therefore, these two functions cannot be used in practice.\n\nIt is recommended to remove these two functions entirely. Alternatively, they can be converted into helper functions for use by the `get_user_cooldown_info` function.\n\n\n\n",
+    "summary": "",
+    "report_date": "2025-09-02T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/pashov/audits/blob/master/team/md/Elixir-security-review_2025-08-17.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "l-05-unavailable-view-function-pashov-audit-group-none-elixir_2025-08-17-markdown",
+    "firm_name": "Pashov Audit Group",
+    "firm_logo_square": "Pashov_square.png",
+    "protocol_name": "Elixir_2025-08-17",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Pashov Audit Group"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Pashov Audit Group",
+        "logo_square": "Pashov_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Elixir_2025-08-17",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

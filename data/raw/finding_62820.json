@@ -1,0 +1,65 @@
+{
+    "id": 62820,
+    "kind": "GIT",
+    "auditfirm_id": 3,
+    "impact": "MEDIUM",
+    "finders_count": 5,
+    "protocol_id": 3398,
+    "title": "M-5: `DeliHookConstantProduct` swapping `exactOutput` and `_feeFromOutput` is incorrect",
+    "content": "\nSource: https://github.com/sherlock-audit/2025-09-bmx-deli-swap-judging/issues/200 \n\n## Found by \n0x73696d616f, cergyk, jayjoshix, silver\\_eth, x15\n\n### Summary\n\n`DeliHookConstantProduct` intends to preserve K in all swaps in order to forward fees to the `FeeProcessor`, and is achieved for all swap types. However, this is performed with an incorrect calculation when doing **exactOutput oneForZero**, in which the K is preserved, but the fee charged is incorrect, as will be demonstrated.\n\nSuppose the state of the v2 pool is:\nToken0 = 1000\nToken1 = 1000\nFeeCurrency = token0\n\n**ExactInput, oneForZero swap (zeroForOne == false)**\n\nexactInput = 100 token1\nspecifiedAmount = 100\nNow, let's calculate the _pendingFeeAmount from [_calculateOutputFee()](https://github.com/sherlock-audit/2025-09-bmx-deli-swap/blob/main/deli-swap-contracts/src/DeliHookConstantProduct.sol#L610):\n\n_getAmountOut(false, 100, 1000, 1000, 1e4):\nfeeBasis = 1e6 - 1e4 = 990000\namountInWithFee = 100 * 990000 = 99000000\nnumerator = 99000000 * 1000 = 99000000000\ndenominator = 1000 * 1e6 + 99000000 = 1099000000\namountOut = 99000000000 / 1099000000 = 90.0818926297\noutputWithFee = 90.0818926297\n\n_getAmountOut(false, 100, 1000, 1000, 0):\nfeeBasis = 1e6 - 0 = 1e6\namountInWithFee = 100 * 1e6 = 1e8\nnumerator = 1e8 * 1000 = 1e11\ndenominator = 1000 * 1e6 + 1e8 = 1100000000\namountOut = 1e11 / 1100000000 = 90.9090909091\noutputWithoutFee =  90.9090909091\n\noutputFee = outputWithoutFee - outputWithFee = 90.9090909091 - 90.0818926297 = 0.8271982794\nSo, _pendingFeeAmount = 0.8271982794\n\nWe need to get the [unspecified](https://github.com/sherlock-audit/2025-09-bmx-deli-swap/blob/main/deli-swap-contracts/src/base/MultiPoolCustomCurve.sol#L346) amount, which is the amountOut in this case, and is [implemented](https://github.com/sherlock-audit/2025-09-bmx-deli-swap/blob/main/deli-swap-contracts/src/DeliHookConstantProduct.sol#L286) by the DeliHookConstantProduct, which internally calls [getAmountOut](https://github.com/sherlock-audit/2025-09-bmx-deli-swap/blob/main/deli-swap-contracts/src/DeliHookConstantProduct.sol#L311). We have already calculated this value above, which is the outputWithFee, 90.0818926297.\nHence, unspecifiedAmount = 90.0818926297.\n\n[returnDelta](https://github.com/sherlock-audit/2025-09-bmx-deli-swap/blob/main/deli-swap-contracts/src/base/MultiPoolCustomCurve.sol#L361) becomes (100, -90.0818926297).\n\nThen, in [`DeliHookConstantProduct::_updateReservesAfterSwap()`](https://github.com/sherlock-audit/2025-09-bmx-deli-swap/blob/main/deli-swap-contracts/src/DeliHookConstantProduct.sol#L550):\n\nspecifiedAmount = 100\n[amountOut](https://github.com/sherlock-audit/2025-09-bmx-deli-swap/blob/main/deli-swap-contracts/src/DeliHookConstantProduct.sol#L561-L562) = 90.0818926297\n[delta0](https://github.com/sherlock-audit/2025-09-bmx-deli-swap/blob/main/deli-swap-contracts/src/DeliHookConstantProduct.sol#L568) = -90.0818926297\n[delta1](https://github.com/sherlock-audit/2025-09-bmx-deli-swap/blob/main/deli-swap-contracts/src/DeliHookConstantProduct.sol#L569) = 100\n[delta0](https://github.com/sherlock-audit/2025-09-bmx-deli-swap/blob/main/deli-swap-contracts/src/DeliHookConstantProduct.sol#L597) -= 0.8271982794 = -90.9090909091 (_pendingFeeAmount = 0.8271982794)\nreserves = (1000 - 90.9090909091, 1000 + 100) = (909.090909091, 1100)\n\nAnd the final K is 909.090909091 * 1100 = 1000000, same as initially, which adds up.\n\nThen, in the [Hooks.sol](https://github.com/Uniswap/v4-core/blob/main/src/libraries/Hooks.sol#L312) code of Uniswap v4, swapDelta becomes swapDelta = swapDelta - hookDelta = 0 - (hookDeltaUnspecified, hookDeltaSpecified) = 0 - (-90.0818926297, 100) = (+90.0818926297, -100), which comes from returnDelta above, but switched due to the Hooks.sol logic.\n\nAs a result, the user will receive +90.0818926297 token0 and pay 100 token1, and the K of the reserves is kept intact, while the FeeProcessor will collect all the fees.\n\nHowever, it doesn't work correctly for exactOutput, zeroForOne == false, the K will be correct but the fee charged is incorrect.\n\n**ExactOutput, oneForZero swap (zeroForOne == false)**\n\nexactOutput = 90.0818926297 token0 (amount received from 1st example)\nspecifiedAmount = 90.0818926297\nNow, let's calculate the _pendingFeeAmount, which in this [case](https://github.com/sherlock-audit/2025-09-bmx-deli-swap/blob/main/deli-swap-contracts/src/DeliHookConstantProduct.sol#L654) is (amountSpecified * uint256(key.fee)) / 1_000_000 = 90.0818926297 * 1e4 / 1e6 = 0.90081892629, already different from the example above and is incorrect.\n\nWe need to get the [unspecified](https://github.com/sherlock-audit/2025-09-bmx-deli-swap/blob/main/deli-swap-contracts/src/base/MultiPoolCustomCurve.sol#L346) amount, which is the amountIn in this case, and is [implemented](https://github.com/sherlock-audit/2025-09-bmx-deli-swap/blob/main/deli-swap-contracts/src/DeliHookConstantProduct.sol#L286) by the DeliHookConstantProduct, which [does](https://github.com/sherlock-audit/2025-09-bmx-deli-swap/blob/main/deli-swap-contracts/src/DeliHookConstantProduct.sol#L317-L318):\n```solidity\ntargetOut = amountSpecified * (1e6 + fee) / 1e6 = 90.0818926297 * (1e6 + 1e4) / 1e6 = 90.982711556.\namountUnspecified = _getAmountIn(false, 90.982711556, 1000, 1000, 0) = (reserveIn * amountOut * 1e6) / ((reserveOut - amountOut) * feeBasis) = (1000 * 90.982711556) / (1000 - 90.982711556) = 100.089088197\n```\n\n[returnDelta](https://github.com/sherlock-audit/2025-09-bmx-deli-swap/blob/main/deli-swap-contracts/src/base/MultiPoolCustomCurve.sol#L369) becomes (-90.0818926297, 100.089088197).\n\nThen, in [`DeliHookConstantProduct::_updateReservesAfterSwap()`](https://github.com/sherlock-audit/2025-09-bmx-deli-swap/blob/main/deli-swap-contracts/src/DeliHookConstantProduct.sol#L550):\n\nspecifiedAmount = 90.0818926297\n[amountIn](https://github.com/sherlock-audit/2025-09-bmx-deli-swap/blob/main/deli-swap-contracts/src/DeliHookConstantProduct.sol#L574-L577) = 100.089088197 (same as before)\n[delta0](https://github.com/sherlock-audit/2025-09-bmx-deli-swap/blob/main/deli-swap-contracts/src/DeliHookConstantProduct.sol#L587) = -90.0818926297\n[delta1](https://github.com/sherlock-audit/2025-09-bmx-deli-swap/blob/main/deli-swap-contracts/src/DeliHookConstantProduct.sol#L588) = 100.089088197\n[delta0](https://github.com/sherlock-audit/2025-09-bmx-deli-swap/blob/main/deli-swap-contracts/src/DeliHookConstantProduct.sol#L597) -= 0.90081892629 = -90.982711556 (_pendingFeeAmount = 0.90081892629)\nreserves = (1000 - 90.982711556, 1000 + 100.089088197) = (909.090909091, 1100.0890882)\n\nThe final K is 909.017288444 * 1100.0890882 = 1000000, same as initially, which again adds up.\n\nThen, in the [Hooks.sol](https://github.com/Uniswap/v4-core/blob/main/src/libraries/Hooks.sol#L312) code of Uniswap v4, swapDelta becomes swapDelta = swapDelta - hookDelta = 0 - (hookDeltaSpecified, hookDeltaUnspecified) = 0 - (-90.0818926297, 100.089088197) = (+90.0818926297, -100.089088197), which comes from returnDelta above, but switched due to the Hooks.sol logic.\n\nAs a result, the user will receive +90.0818926297 token0 and pay 100.089088197 token1.\n\n**Final result**\n\nFrom the 2 analogous examples above, in both the user gets 90.0818926297 token0, but pays 100 token1 in the first example (exactInput) and 100.089088197 in the second example (exactOutput).\n\nIn the second example the user is overpaying a significantly higher fee than supposed. Instead of being 0.8271982794, it is 0.90081892629, a very significant error of (0.90081892629 - 0.8271982794) / 0.8271982794 = 8.9 %, high severity.\n\n### Root Cause\n\nThere are several instances where it needs to be changed and the root cause can be attributed to it (calculation takes place in several steps)\n1. https://github.com/sherlock-audit/2025-09-bmx-deli-swap/blob/main/deli-swap-contracts/src/DeliHookConstantProduct.sol#L317-L318\n2. https://github.com/sherlock-audit/2025-09-bmx-deli-swap/blob/main/deli-swap-contracts/src/DeliHookConstantProduct.sol#L576-L577\n3. https://github.com/sherlock-audit/2025-09-bmx-deli-swap/blob/main/deli-swap-contracts/src/DeliHookConstantProduct.sol#L654\n\n### Internal Pre-conditions\n\nNone\n\n### External Pre-conditions\n\nNone\n\n### Attack Path\n\n1. User does an exactOutput, zeroForOne == false swap and pays too many fees.\n\n### Impact\n\nUser suffers a loss of 8.9%.\n\n### PoC\n\nAdd the 2 following tests to SwapLifecycle_V2.t.sol:\n```solidity\nfunction testExactInputSwapZeroForOne() public {\n    uint256 inputAmount = 5 ether;\n    \n    (uint128 r0Before, uint128 r1Before) = hook.getReserves(pid);\n    uint256 bmxBefore = bmx.balanceOf(address(this));\n    uint256 wbltBefore = wblt.balanceOf(address(this));\n\n    // Perform exact input swap\n    poolManager.unlock(abi.encode(address(bmx), inputAmount, true));\n\n    (uint128 r0After, uint128 r1After) = hook.getReserves(pid);\n\n    // Verify token balances\n    assertEq(bmxBefore - bmx.balanceOf(address(this)), inputAmount, \"BMX spent should match input\");\n    uint256 outputAmount = wblt.balanceOf(address(this)) - wbltBefore;\n\n    assertEq(outputAmount, 4748297375815592703);\n}\n\nfunction testExactOutputZeroForOne() public {\n    uint256 outputAmount = 4748297375815592703;\n    \n    (uint128 r0Before, uint128 r1Before) = hook.getReserves(pid);\n    uint256 bmxBefore = bmx.balanceOf(address(this));\n    uint256 wbltBefore = wblt.balanceOf(address(this));\n\n    // Perform exact output swap\n    poolManager.unlock(abi.encode(address(bmx), outputAmount, false));\n\n    (uint128 r0After, uint128 r1After) = hook.getReserves(pid);\n\n    // Verify output received\n    assertEq(wblt.balanceOf(address(this)) - wbltBefore, outputAmount, \"wBLT received should match output\");\n    uint256 inputAmount = bmxBefore - bmx.balanceOf(address(this));\n    \n    assertEq(inputAmount, 5000702855111981996); //@audit bigger than above of 5 ether\n}\n```\n\n### Mitigation\n\nHinted at the solution in the root cause, to verify the fix, the fees have to match when swapping the same amounts.\n\n",
+    "summary": "\nThis bug report discusses a problem found in the `DeliHookConstantProduct` code, which is used to preserve K in all swaps in order to forward fees to the `FeeProcessor`. The issue occurs when performing an **exactOutput oneForZero** swap, where the K is preserved but the fee charged is incorrect. The report provides an example of this and explains the incorrect calculation that leads to the problem. The root cause is attributed to the calculation taking place in several steps. The impact of this bug is that users may suffer a loss of 8.9%. The report also includes a proposed solution and hints at how to verify the fix.",
+    "report_date": "2025-09-16T15:00:00.000Z",
+    "contest_prize_txt": "47000 USDC",
+    "contest_link": "https://app.sherlock.xyz/audits/contests/1154",
+    "sponsor_name": "",
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "",
+    "github_link": "https://github.com/sherlock-audit/2025-09-bmx-deli-swap-judging/issues/200",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "1154",
+    "slug": "m-5-delihookconstantproduct-swapping-exactoutput-and-_feefromoutput-is-incorrect-sherlock-bmx-deli-swap-git",
+    "firm_name": "Sherlock",
+    "firm_logo_square": "sherlock_square.png",
+    "protocol_name": "BMX Deli Swap",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "cergyk"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "x15"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "jayjoshix"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "0x73696d616f"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "silver\\_eth"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Sherlock",
+        "logo_square": "sherlock_square.png"
+    },
+    "protocols_protocol": {
+        "name": "BMX Deli Swap",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

@@ -1,0 +1,45 @@
+{
+    "id": 62395,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 34,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3404,
+    "title": "[STAKE-8] flashloanOsTokenShares should be validated as non-zero before the flashloan",
+    "content": "**Severity:** Low\n\n**Path:** src/leverage/LeverageStrategy.sol#L165-L178\n\n**Description:** In the `deposit()` function, there's a check that returns without executing the flashloan if `leverageOsTokenShares == 0`. However, the `flashloanOsTokenShares` variable, calculated by `_getFlashloanOsTokenShares()`, may still be 0 even when `leverageOsTokenShares` > 0.\n```\nuint256 flashloanOsTokenShares = _getFlashloanOsTokenShares(vault, leverageOsTokenShares); \n```\nThis can cause reverts because of borrowing zero during deposit when `leverageOsTokenShares` is very small. \nTherefore, to avoid the zero flashloan, it should check `flashloanOsTokenShares` instead of `leverageOsTokenShares`.\n```\nfunction deposit(address vault, uint256 osTokenShares) external {\n    if (osTokenShares == 0) revert Errors.InvalidShares();\n\n    // fetch strategy proxy\n    (address proxy,) = _getOrCreateStrategyProxy(vault, msg.sender);\n    if (isStrategyProxyExiting[proxy]) revert Errors.ExitRequestNotProcessed();\n\n    // transfer osToken shares from user to the proxy\n    IStrategyProxy(proxy).execute(\n        address(_osToken), abi.encodeWithSelector(_osToken.transferFrom.selector, msg.sender, proxy, osTokenShares)\n    );\n\n    // fetch vault state and lending protocol state\n    (uint256 stakedAssets, uint256 mintedOsTokenShares) = _getVaultState(vault, proxy);\n    (uint256 borrowedAssets, uint256 suppliedOsTokenShares) = _getBorrowState(proxy);\n\n    // check whether any of the positions exist\n    uint256 leverageOsTokenShares = osTokenShares;\n    if (stakedAssets != 0 || mintedOsTokenShares != 0 || borrowedAssets != 0 || suppliedOsTokenShares != 0) {\n        // supply osToken shares to the lending protocol\n        _supplyOsTokenShares(proxy, osTokenShares);\n        suppliedOsTokenShares += osTokenShares;\n\n        // borrow max amount of assets from the lending protocol\n        uint256 maxBorrowAssets =\n            Math.mulDiv(_osTokenVaultController.convertToAssets(suppliedOsTokenShares), _getBorrowLtv(), _wad);\n        if (borrowedAssets >= maxBorrowAssets) {\n            // nothing to borrow\n            emit Deposited(vault, msg.sender, osTokenShares, 0);\n            return;\n        }\n        uint256 assetsToBorrow;\n        unchecked {\n            // cannot underflow because maxBorrowAssets > borrowedAssets\n            assetsToBorrow = maxBorrowAssets - borrowedAssets;\n        }\n        _borrowAssets(proxy, assetsToBorrow);\n\n        // mint max possible osToken shares\n        leverageOsTokenShares = _mintOsTokenShares(vault, proxy, assetsToBorrow, type(uint256).max);\n        if (leverageOsTokenShares == 0) {\n            // no osToken shares to leverage\n            emit Deposited(vault, msg.sender, osTokenShares, 0);\n            return;\n        }\n    }\n\n    // calculate flash loaned osToken shares\n    uint256 flashloanOsTokenShares = _getFlashloanOsTokenShares(vault, leverageOsTokenShares);\n\n    // execute flashloan\n    _osTokenFlashLoans.flashLoan(\n        address(this), flashloanOsTokenShares, abi.encode(FlashloanAction.Deposit, vault, proxy)\n    );\n\n    // emit event\n    emit Deposited(vault, msg.sender, osTokenShares, flashloanOsTokenShares);\n}\n```\n\n**Remediation:**  Replace the check for `leverageOsTokenShares == 0` with `flashloanOsTokenShares`, as follows:\n```\n      // mint max possible osToken shares\n      leverageOsTokenShares = _mintOsTokenShares(vault, proxy, assetsToBorrow, type(uint256).max);\n  }\n\n  // calculate flash loaned osToken shares\n  uint256 flashloanOsTokenShares = _getFlashloanOsTokenShares(vault, leverageOsTokenShares);\n  \n  if (flashloanOsTokenShares == 0) {\n      // no osToken shares to leverage\n      emit Deposited(vault, msg.sender, osTokenShares, 0);\n      return;\n  }\n  // execute flashloan\n  _osTokenFlashLoans.flashLoan(\n      address(this), flashloanOsTokenShares, abi.encode(FlashloanAction.Deposit, vault, proxy)\n  );\n```\n\n**Status:** Fixed\n\n- - -",
+    "summary": "",
+    "report_date": "2024-09-19T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/solodit/solodit_content/blob/main/reports/Hexens/2024-09-19-StakeWise.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "stake-8-flashloanostokenshares-should-be-validated-as-non-zero-before-the-flashloan-hexens-none-stakewise-markdown",
+    "firm_name": "Hexens",
+    "firm_logo_square": "Hexens_square.png",
+    "protocol_name": "Stakewise",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Hexens"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Hexens",
+        "logo_square": "Hexens_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Stakewise",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

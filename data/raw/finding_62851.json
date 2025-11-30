@@ -1,0 +1,45 @@
+{
+    "id": 62851,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 30,
+    "impact": "MEDIUM",
+    "finders_count": 1,
+    "protocol_id": 3449,
+    "title": "[M-01] Session with Duplicate Tokens Can Not Be Settled",
+    "content": "\n## Severity\n\nMedium Risk\n\n## Description\n\nWhen creating sessions, users can put the same token twice, where there is no check in either `CredibleAccountModule::enableSession()` or `InvoiceManager::createInvoice()` that prevents this behaviour.\n\nThe problem is that when claiming, both functions that are called `CredibleAccountModule::claim()` and `InvoiceManager::creditTokensToInvoice()` are catching the first appearance of the token only, so in case the token is repeated, the second lock of these tokens can't be reached.\n\nSo all sessions that are made by duplicating one token in `LockedTokens` will be acceptable when enabling the session and creating the invoice, but when finalizing it (claiming all sessions for settling the invoice), it will be impossible, as the second instance of the token will not get reached.\n\n## Location of Affected Code\n\nFile: [CredibleAccountModule.sol#L723](https://github.com/etherspot/etherspot-modular-accounts/blob/9019f2a78c36e74bdb1df4029672998cb4631162/src/modules/validators/CredibleAccountModule.sol#L723)\n\n```solidity\nfunction claim(address _sessionKey, address _token, uint256 _amount) external nonReentrant returns (bool) {\n    // code\n\n    for (uint256 i; i < tokenLength;) {\n>>    if (tokens[i].token == _token) {\n>>      if (tokens[i].claimedAmount != 0) revert CredibleAccountModule_TokenAlreadyClaimed(_sessionKey, _token);\n            // code\n        }\n        // code\n      }\n    }\n    // code\n}\n```\n\nFile: [InvoiceManager.sol#L202-L206](https://github.com/etherspot/etherspot-modular-accounts/blob/9019f2a78c36e74bdb1df4029672998cb4631162/src/invoice_manager/InvoiceManager.sol#L202-L206)\n\n```solidity\nfunction creditTokensToInvoice(address _sessionKey, address _token, uint256 _amount) ... {\n  // code\n  for (uint256 i; i < tokenData.length; ++i) {\n>>   if (tokenData[i].token == _token) {\n          tokenFound = true;\n          tokenIndex = i;\n          break;\n     }\n  }\n\n  if (!tokenFound) revert IM_TokenNotFoundInInvoice(_sessionKey, _token);\n\n  // code\n}\n```\n\n## Impact\n\nInability to settle sessions with a duplicate token.\n\n## Recommendation\n\n- We should prevent token duplication either in `CredibleAccountModule::enableSession()` or at `InvoiceManager::createInvoice()`.\n- If this is a supported behaviour, we go and search if the token is the same and is claimed instead of reverting in both `CredibleAccountModule::claim()` and `InvoiceManager::creditTokensToInvoice()`\n\n## Team Response\n\nFixed.\n\n",
+    "summary": "\nThis bug report discusses an issue where users are able to enter the same token twice when creating sessions. This can cause problems when trying to finalize the session and settle the invoice, as the second instance of the token will not be reached. The affected code is located in the CredibleAccountModule and InvoiceManager files, where there is no check to prevent token duplication. This bug can result in the inability to settle sessions with a duplicate token. The recommended solution is to prevent token duplication in either the CredibleAccountModule or InvoiceManager, or to search for the token and check if it has already been claimed before reverting. The team has responded that the issue has been fixed.",
+    "report_date": "2025-10-03T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/shieldify-security/audits-portfolio-md/blob/main/Etherspot-GasTankPaymasterModule-Extended-Security-Review.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "m-01-session-with-duplicate-tokens-can-not-be-settled-shieldify-none-etherspot-gastankpaymastermodule-extended-markdown",
+    "firm_name": "Shieldify",
+    "firm_logo_square": "Shieldify_square.png",
+    "protocol_name": "Etherspot Gastankpaymastermodule Extended",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Shieldify Security"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Shieldify",
+        "logo_square": "Shieldify_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Etherspot Gastankpaymastermodule Extended",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

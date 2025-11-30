@@ -1,0 +1,45 @@
+{
+    "id": 62640,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 30,
+    "impact": "MEDIUM",
+    "finders_count": 1,
+    "protocol_id": 3429,
+    "title": "[M-01] 64-hop Traversal in `getHigherLevelParents()` Enables Commission Bypass Via Long Chains",
+    "content": "\n## Severity\n\nMedium Risk\n\n## Description\n\nThe `getHigherLevelParents()` traverses up to 64 parent hops and only returns the nearest parent for each strictly higher level. An attacker can create a chain of 64 accounts with the same/lower levels, ensuring no strictly higher-level parent is found within the hop limit. When `BvtRewardVault.deposit()` uses this list, `totalHigherLevelCommissionAmountRate` remains 0 and the entire capped commission is routed to `recipientComission`, bypassing intended parent payouts.\n\n## Location of Affected Code\n\nFile: [src/BondDealer.sol#L250](https://github.com/batoshidao/berabtc-vault-token/blob/c68f412b3c7dfd99d3f6302a42bdf772ededb2a3/src/BondDealer.sol#L250)\n\n```solidity\nfunction _getHigherLevelParents(address user) internal view returns (UserInfo[] memory) {\n  // code\n  // Traverse up the parent chain\n  for (uint256 hop = 0; hop < 64 && cur != address(0); hop++) {\n      UserInfo memory parent = userInfos[cur];\n      uint256 parentLevel = uint256(parent.level);\n\n      // Only consider parents with higher level than current user\n      if (parentLevel > currentLevel && !found[parentLevel]) {\n          higherLevelParents[parentLevel] = parent;\n          found[parentLevel] = true;\n          count++;\n          // If we found all possible higher levels, we can stop\n          if (count == 6 - currentLevel - 1) break;\n      }\n      cur = parent.parent;\n  }\n  // code\n}\n```\n\n## Impact\n\n- Systematic bypass of parent commission distribution.\n- Breaks incentive design for higher-level parents since funds are diverted to `recipientComission` instead.\n- No direct loss of funds, but materially intended revenue sharing.\n\n## Recommendation\n\nConsider removing or increasing the hop limit.\n\n## Team Response\n\nAcknowledged.\n\n",
+    "summary": "\nThe bug report describes a problem in the code that could potentially be exploited by attackers. The code in question is located in a file called `BondDealer.sol` and can be found on line 250. The function in question is called `getHigherLevelParents()` and it is responsible for finding the nearest parent with a higher level in a chain of 64 accounts. However, an attacker can create a chain of accounts with the same or lower levels, which would prevent the function from finding a higher-level parent within the hop limit. This would result in a systematic bypass of commission distribution to higher-level parents, which goes against the intended design of the system. The team has acknowledged the issue and recommends either removing or increasing the hop limit to prevent this exploit.",
+    "report_date": "2025-09-17T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/shieldify-security/audits-portfolio-md/blob/main/Terplayer-BVT-Staking&Distribution-Security-Review.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "m-01-64-hop-traversal-in-gethigherlevelparents-enables-commission-bypass-via-long-chains-shieldify-none-terplayer-bvt-stakingdistribution-markdown",
+    "firm_name": "Shieldify",
+    "firm_logo_square": "Shieldify_square.png",
+    "protocol_name": "Terplayer Bvt Staking&Distribution",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Shieldify Security"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Shieldify",
+        "logo_square": "Shieldify_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Terplayer Bvt Staking&Distribution",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

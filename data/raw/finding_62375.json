@@ -1,0 +1,45 @@
+{
+    "id": 62375,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 34,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 1390,
+    "title": "[ASTRO-15] Possible freeze of native tokens",
+    "content": "**Severity:** Low\n\n**Path:**  Allocator.sol, BridgeConnectorHomeSTG.sol\n\n**Description:** The contract Allocator and BridgeConnectorHomeSTG, despite having payable functions that accept ether (or other native tokens), also have a payable fallback function. \n\nNevertheless, the contracts are not designed to accept native tokens other than in payable functions.  \n\nIn the case of an Allocator contract, there is no function implemented to sweep the wrongfully sent native tokens. Thus the tokens might eventually get “frozen” in the contract. The BridgeConnectorHomeSTG contract has the sweeping function, but the logic is overall redundant.\n```\nreceive() external payable {}\n```\n\n**Remediation:**  Consider removing the receive() function.\n\n**Status:** Fixed\n\n- - -",
+    "summary": "",
+    "report_date": "2023-04-17T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/solodit/solodit_content/blob/main/reports/Hexens/2023-04-17-Astrolab.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "astro-15-possible-freeze-of-native-tokens-hexens-none-astrolab-markdown",
+    "firm_name": "Hexens",
+    "firm_logo_square": "Hexens_square.png",
+    "protocol_name": "Astrolab",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Hexens"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Hexens",
+        "logo_square": "Hexens_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Astrolab",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

@@ -1,0 +1,45 @@
+{
+    "id": 62587,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 16,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3420,
+    "title": "[L-29] Indexing issues in `removeCardBundlesFromPacketPool()`",
+    "content": "\n_Resolved_\n\nThe `removeCardBundlesFromPacketPool` function in the `CardAllocationPool` contract allows for the removal of card bundles by passing their indices.\n\n```solidity\n    function removeCardBundlesFromPacketPool(uint256 packetType, uint256[] memory cardBundleIndexes)\n        external\n        onlyRole(redeemManagerRoleId)\n    {\n        CardBundle[] storage cardBundles = packetTypeToCardBundles[packetType];\n\n        for (uint256 i = 0; i < cardBundleIndexes.length; i++) {\n            uint256 index = cardBundleIndexes[i];\n\n            // transfer the cards to the caller\n            for (uint256 j = 0; j < cardBundles[index].cardIds.length; j++) {\n                IERC721(cardNFTAddress).transferFrom(address(this), msg.sender, cardBundles[index].cardIds[j]);\n            }\n\n            // Swap selected card bundle with last unselected card bundle and pop\n            cardBundles[index] = cardBundles[cardBundles.length - 1];\n            cardBundles.pop();\n        }\n\n        emit CardBundlesRemovedFromPool(packetType, cardBundleIndexes);\n    }\n```\n\nHowever, this approach is flawed due to the **dynamic nature of the indices**. When bundles are removed during the `fulfillRandomWords` process, the selected bundle is swapped with the last bundle in the array and then removed.\n\n```solidity\n        uint256 index = uint256(keccak256(abi.encode(randomSeed, 1))) % availableCardBundles.length;\n        selectedCardBundle = availableCardBundles[index].cardIds;\n\n        // Swap selected card bundle with last unselected card bundle and pop\n        availableCardBundles[index] = availableCardBundles[availableCardBundles.length - 1];\n        availableCardBundles.pop();\n```\n\nThis can lead to several issues:\n- If the admin initially attempts to remove the last bundle, but the last bundle has been swapped to a different position, potentially causing a denial of service (DoS) due to Out-of-bounds.\n- Conversely, if a bundle that was intended for removal has already been selected in the `instant Open` process and is removed in a previous operation(`fulfillRandomWords`),  the function may end up removing the last bundle instead, leading to incorrect state management and unintended consequences.\n\nRecommendations:\n\nTo address these issues, consider implementing a more robust mechanism for managing the removal of card bundles.\n\n\n\n",
+    "summary": "",
+    "report_date": "2025-09-11T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/pashov/audits/blob/master/team/md/RipIt-security-review_2025-04-25.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "l-29-indexing-issues-in-removecardbundlesfrompacketpool-pashov-audit-group-none-ripit_2025-04-25-markdown",
+    "firm_name": "Pashov Audit Group",
+    "firm_logo_square": "Pashov_square.png",
+    "protocol_name": "RipIt_2025-04-25",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Pashov Audit Group"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Pashov Audit Group",
+        "logo_square": "Pashov_square.png"
+    },
+    "protocols_protocol": {
+        "name": "RipIt_2025-04-25",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

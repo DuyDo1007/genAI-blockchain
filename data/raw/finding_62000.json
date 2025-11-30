@@ -1,0 +1,55 @@
+{
+    "id": 62000,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 37,
+    "impact": "MEDIUM",
+    "finders_count": 3,
+    "protocol_id": 3365,
+    "title": "Missing Input Validation in `REST``Api` Wrapper Function",
+    "content": "**Update**\nMarked as \"Fixed\" by the client. Addressed in: `ef55a351c4bc64ea308816b4027e354fc080897a`. Additional fixes in: `cc05e3065dd10d4d1d4792302d973fa59d9d2a1f`\n\nThe client provided the following explanation:\n\n> Add timeout handling and abort controller for API requests Add path validation for fetch from saucerswap\n\n**File(s) affected:**`wallet/index.ts`\n\n**Description:** The `utils/fetchFromSaucerswap.ts` file defines a function responsible for wrapping calls to a REST API that does not perform any form of input validation or sanitization on the data it receives. This is a critical omission, particularly when the function serves as an interface between client-controlled input and backend systems or external services.\n\nIn a RESTful architecture, API wrapper functions often act as intermediaries that forward parameters to internal logic or upstream services. Without validation, this function may inadvertently forward:\n\n*   Malformed requests that result in broken API behavior or error responses.\n*   Dangerous input that could lead to injection vulnerabilities if the data is used in templated queries or shell commands downstream.\n*   Improper identifiers or resource references, leading to access control issues (e.g., unauthorized access to user data).\n*   Payloads causing Denial of Service (DoS) through resource exhaustion or parsing complexity.\n\nAdditionally, relying on the upstream REST API to perform validation is a fragile security model. If the API changes, or if error handling is inconsistent, unvalidated inputs could still result in security or reliability issues.\n\nREST APIs are inherently exposed to user-controlled input via HTTP query parameters, headers, and JSON bodies, all of which must be treated as untrusted and validated explicitly.\n\n**Recommendation:**\n\n*   Validate all input parameters before making the REST API call:\n    *   Use schema validation libraries to define and enforce input structure.\n    *   Validate types, required fields, ranges, formats (e.g., UUIDs, emails), and disallow unknown fields.\n\n*   Sanitize input where appropriate (e.g., escaping characters for URLs or headers).\n*   Normalize input to a consistent structure or case to avoid inconsistent behavior.\n*   Implement defensive logic to avoid forwarding harmful or malformed payloads to the REST API.\n*   Log validation failures internally and return appropriate error messages to the client without exposing stack traces or internal error formats.\n*   Optionally, rate-limit or throttle requests to this function to reduce abuse risk, especially if downstream REST APIs have cost or rate constraints.\n*   Also implement a timeout for each call to avoid a connection overflow possibility in the event of a DDos attack.\n*   The `path` variable passed to the `fetchFromSaucerswapApi()` function should go through sufficient validation \n\nRobust input validation is a fundamental layer of defense, especially in REST-based architectures where loosely-typed JSON structures and variable payloads are common. Any component that bridges user input to REST API calls must enforce strict validation to maintain reliability and security.",
+    "summary": "\nThe client found a bug in the `wallet/index.ts` file, specifically in the `utils/fetchFromSaucerswap.ts` function. This function is responsible for sending requests to a REST API, but it does not validate or sanitize the data it receives. This can lead to various security and reliability issues, such as broken API behavior, injection vulnerabilities, and unauthorized access to user data. The recommendation is to implement strict input validation, sanitization, and normalization, as well as defensive logic and rate-limiting to prevent abuse. Additionally, a timeout should be implemented to prevent a potential DDos attack. It is important to have robust input validation in REST-based architectures to ensure security and reliability.",
+    "report_date": "2025-08-26T12:12:16.438Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://certificate.quantstamp.com/full/saucer-swap-wallet/d30efab8-8abd-46b1-bba5-6360b87e3aa3/index.html",
+    "sponsor_name": "",
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://certificate.quantstamp.com/full/saucer-swap-wallet/d30efab8-8abd-46b1-bba5-6360b87e3aa3/index.html",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "missing-input-validation-in-restapi-wrapper-function-quantstamp-saucerswap-wallet-markdown",
+    "firm_name": "Quantstamp",
+    "firm_logo_square": "quantstamp_square.png",
+    "protocol_name": "SaucerSwap Wallet",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Albert Heinle"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Darren Jensen"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Jonathan Mevs"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Quantstamp",
+        "logo_square": "quantstamp_square.png"
+    },
+    "protocols_protocol": {
+        "name": "SaucerSwap Wallet",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

@@ -1,0 +1,38 @@
+{
+    "id": 62533,
+    "kind": "GIT",
+    "auditfirm_id": 2,
+    "impact": "LOW",
+    "finders_count": 0,
+    "protocol_id": 3373,
+    "title": "[01] An attacker can force the distributor to mint MOR rewards in a period of no new generated yield",
+    "content": "\nThe `distributeRewards()` function of the Distributor contract determines reward amounts to be distributed to DepositPool appropriately. The reward token minted is MOR tokens in this case. In the current implementation of the onchain distribution contracts, over 3k MOR is being minted/distributed daily.\n\nThe issue is that once we upgrade the contracts to v7, each deposit pool will now have a portion of MOR based on the yield they contributed from timestamp x to timestamp y. This leaves room for an attacker to force the Distributor into minting MOR tokens even on days where there was no actual yield gains.\n\n<https://github.com/code-423n4/2025-08-morpheus/blob/main/contracts/capital-protocol/Distributor.sol# L330-L410>\n```\n\n function distributeRewards(uint256 rewardPoolIndex_) public {\n        //// Base validation\n        IRewardPool rewardPool_ = IRewardPool(rewardPool);\n        rewardPool_.onlyExistedRewardPool(rewardPoolIndex_);\n\n        uint128 lastCalculatedTimestamp_ = rewardPoolLastCalculatedTimestamp[rewardPoolIndex_];\n        require(lastCalculatedTimestamp_ != 0, \"DR: `rewardPoolLastCalculatedTimestamp` isn't set\");\n        //// End\n\n        //// Calculate the reward amount\n        uint256 rewards_ = IRewardPool(rewardPool).getPeriodRewards(\n            rewardPoolIndex_,\n            lastCalculatedTimestamp_,\n            uint128(block.timestamp)\n        );\n\n        if (rewards_ == 0) return;\n        //// End\n\n        // Stop execution when the reward pool is private\n        if (!rewardPool_.isRewardPoolPublic(rewardPoolIndex_)) {\n            _onlyExistedDepositPool(rewardPoolIndex_, depositPoolAddresses[rewardPoolIndex_][0]);\n            distributedRewards[rewardPoolIndex_][depositPoolAddresses[rewardPoolIndex_][0]] += rewards_;\n\n            rewardPoolLastCalculatedTimestamp[rewardPoolIndex_] = uint128(block.timestamp);\n\n            return;\n        }\n\n        // Validate that public reward pools await `minRewardsDistributePeriod`\n        if (block.timestamp <= lastCalculatedTimestamp_ + minRewardsDistributePeriod) return;\n        rewardPoolLastCalculatedTimestamp[rewardPoolIndex_] = uint128(block.timestamp);\n\n        //// Update prices\n        updateDepositTokensPrices(rewardPoolIndex_);\n        //// End\n\n        //// Calculate `yield` from all deposit pools\n        uint256 length_ = depositPoolAddresses[rewardPoolIndex_].length;\n        uint256 totalYield_ = 0;\n        uint256[] memory yields_ = new uint256[](length_);\n\n        for (uint256 i = 0; i < length_; i++) {\n            DepositPool storage depositPool = depositPools[rewardPoolIndex_][depositPoolAddresses[rewardPoolIndex_][i]];\n\n            address yieldToken_;\n            if (depositPool.strategy == Strategy.AAVE) {\n                yieldToken_ = depositPool.aToken;\n            } else if (depositPool.strategy == Strategy.NONE) {\n                // The current condition coverage cannot be achieved in the current version.\n                // Added to avoid errors in the future.\n                yieldToken_ = depositPool.token;\n            }\n\n@>            uint256 balance_ = IERC20(yieldToken_).balanceOf(address(this));\n            uint256 decimals_ = IERC20Metadata(yieldToken_).decimals();\n@>            uint256 underlyingYield_ = (balance_ - depositPool.lastUnderlyingBalance).to18(decimals_);\n            uint256 yield_ = underlyingYield_ * depositPool.tokenPrice;\n\n            depositPool.lastUnderlyingBalance = balance_;\n\n            yields_[i] = yield_;\n            totalYield_ += yield_;\n        }\n\n        if (totalYield_ == 0) {\n            undistributedRewards += rewards_;\n            return;\n        }\n        //// End\n\n        //// Calculate `depositPools` shares and reward amount for each `depositPool`\n        for (uint256 i = 0; i < length_; i++) {\n            if (yields_[i] == 0) continue;\n\n            distributedRewards[rewardPoolIndex_][depositPoolAddresses[rewardPoolIndex_][i]] +=\n                (yields_[i] * rewards_) /\n                totalYield_;\n        }\n        //// End\n    }\n```\n\n**Proper scenario:**\n\n1. DepositPool A is connected to reward pool 0 which is a public reward pool and have Aave strategy connected to it in the Distributor when we call `addDepositPool()`.\n2. Users deposit 10k wstETH or wBTC etc on day 1. 10k wBTC is minted to the distributor contract.\n3. On day 2, the total shares grow from 10k to 10.01 wBTC because now the liquidity index in Aave have grown, interest has accrued etc but the idea is that from day 1 to day 2, the distributor has earned 0.01 wBTC yield.\n4. Now, the distributor will mint e.g 3k MOR tokens for that day in which yield was earned and users each get a claim of that based on their stake.\n\n**Attack scenario:**\n\n1. Suppose the strategy in this case is not Aave but rather another strategy such as `NONE`. This means there is a strategy, it is not `NO_YIELD` but it also isn’t Aave. For example, stETH would be one such strategy.\n2. If users stake 10k stETH on day 1, then a slash occur that forces stETH to rebase negative slightly, let’s assume a -0.001 stETH.\n3. On day 2, the shares/balance of the distributor in stETH becomes 10k stETH - -0.001 stETH, this means no yield and instead a negative rebase and users would have to wait for another day or 2 for the rebase to become positive again and exceed total deposit (10k stETH) before MOR tokens being minted will then resume\n4. However, an attacker can donate 0.0011 stETH to the distributor and force all 3k MOR tokens to be minted for that zero-yield day.\n\n",
+    "summary": "",
+    "report_date": "2025-09-11T00:00:00.000Z",
+    "contest_prize_txt": "20000",
+    "contest_link": "https://code4rena.com/reports/2025-08-morpheus",
+    "sponsor_name": "Morpheus",
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://code4rena.com/reports/2025-08-morpheus",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "520",
+    "slug": "01-an-attacker-can-force-the-distributor-to-mint-mor-rewards-in-a-period-of-no-new-generated-yield-code4rena-morpheus-morpheus-git",
+    "firm_name": "Code4rena",
+    "firm_logo_square": "code4rena_square.png",
+    "protocol_name": "Morpheus",
+    "bookmarked": false,
+    "read": false,
+    "auditfirms_auditfirm": {
+        "name": "Code4rena",
+        "logo_square": "code4rena_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Morpheus",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

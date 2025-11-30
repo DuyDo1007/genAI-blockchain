@@ -1,0 +1,45 @@
+{
+    "id": 62459,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 16,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3411,
+    "title": "[L-03] Uncleared `staker_pool_info` left upon unstake action",
+    "content": "\n_Acknowledged_\n\nWhen a staker performs unstake action, their pool info remains intact, which includes their added `pools`,  `commission`, and `commission_commitment`. \n\nHowever, this data nolonger serves any purpose as there is no functionality that utilizes it anymore.\nThis therefore results in orphaned data within the system.\n\n**Mitigation**\n\nClear this mapping during `unstake_action()`:\n```diff\n    ---snip---\n    // Return delegated stake to pools and zero their balances.\n    self.transfer_to_pools_when_unstake(:staker_address, :staker_pool_info);\n\n+   // now clear this mapping\n+   self.staker_pool_info.write(\n+       staker_address,\n+       InternalStakerPoolInfoV2 {\n+           commission: Option::None,\n+           pools: IterableMapTrait::new(),\n+           commission_commitment: Option::None,\n+       }\n+   );\n    \n    staker_amount\n```\n\n\n\n",
+    "summary": "",
+    "report_date": "2025-09-03T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/pashov/audits/blob/master/team/md/Starknet-security-review_2025-07-31.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "l-03-uncleared-staker_pool_info-left-upon-unstake-action-pashov-audit-group-none-starknet_2025-07-31-markdown",
+    "firm_name": "Pashov Audit Group",
+    "firm_logo_square": "Pashov_square.png",
+    "protocol_name": "Starknet_2025-07-31",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Pashov Audit Group"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Pashov Audit Group",
+        "logo_square": "Pashov_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Starknet_2025-07-31",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

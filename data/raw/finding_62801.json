@@ -1,0 +1,55 @@
+{
+    "id": 62801,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 37,
+    "impact": "LOW",
+    "finders_count": 3,
+    "protocol_id": 3446,
+    "title": "Very Small Prices Can Be Rounded to 0",
+    "content": "**Update**\nMarked as \"Acknowledged\" by the client. The client provided the following explanation:\n\n> already added a min price with camp 4 so acknowledging for now\n\n**File(s) affected:**`Marketplace.sol`\n\n**Description:** During the `buyAccess()` operation, royalty calculations are applied to the price. For very low prices, and very low bps the result could be rounded to 0, resulting in empty transfers.\n\n```\nuint16 constant DENOMINATOR = 10_000;\nfunction applyBps(uint256 amount, uint16 bps) internal pure returns (uint256) {\n    return (amount * bps) / DENOMINATOR; // <-- If amount * bps < DENOMINATOR, this will round to 0\n}\n```\n\n**Recommendation:** Set a `minPrice` at least equal to the `DENOMINATOR`.",
+    "summary": "",
+    "report_date": "2025-09-15T14:18:47.035Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://certificate.quantstamp.com/full/camp-nft/94cdb738-1a01-4f6c-8632-3bdec427161e/index.html",
+    "sponsor_name": "",
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://certificate.quantstamp.com/full/camp-nft/94cdb738-1a01-4f6c-8632-3bdec427161e/index.html",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "very-small-prices-can-be-rounded-to-0-quantstamp-camp-nft-markdown",
+    "firm_name": "Quantstamp",
+    "firm_logo_square": "quantstamp_square.png",
+    "protocol_name": "Camp - NFT",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Paul Clemson"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Gereon Mendler"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Tim Sigl"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Quantstamp",
+        "logo_square": "quantstamp_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Camp - NFT",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

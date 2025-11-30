@@ -1,0 +1,65 @@
+{
+    "id": 62816,
+    "kind": "GIT",
+    "auditfirm_id": 3,
+    "impact": "MEDIUM",
+    "finders_count": 5,
+    "protocol_id": 3398,
+    "title": "M-1: Protocol fee conversion uses pre‑swap price snapshot",
+    "content": "\nSource: https://github.com/sherlock-audit/2025-09-bmx-deli-swap-judging/issues/4 \n\n## Found by \nblockace, cergyk, globalace, silver\\_eth, x15\n\n## Description\n\nIn the concentrated‑liquidity hook (`DeliHook`), the fee is denominated in the user’s specified token using the pre‑swap price snapshot, then converted to the fee currency (wBLT) before the swap executes. \n\nThe swap then moves the price, but the fee amount in wBLT is not re‑valued after the move. This lets an attacker bias the conversion rate (“prime”) right before the large swap and unwind after, so the protocol under‑collects fees in wBLT. The documented floor/ceil asymmetry on token0↔token1 conversions can be chosen by the attacker to further cheapify the fee.\n\nThe codepath reads the price before the swap and computes a base fee in the specified token. [_beforeSwap](https://github.com/sherlock-audit/2025-09-bmx-deli-swap/blob/main/deli-swap-contracts/src/DeliHook.sol#L226-L231) pulls `sqrtPriceX96` from `StateLibrary.getSlot0` (pre‑swap), and computes\n\n```solidity\n(uint160 sqrtPriceX96,,, uint24 poolFee) = StateLibrary.getSlot0(poolManager, key.toId());\n// fee in specified-token units\nuint256 baseFeeSpecified = FullMath.mulDiv(absAmountSpecified, uint256(poolFee), 1_000_000);\n\n```\n\nThis is explicitly done before the swap in the concentrated hook.\n\nNext it converts that base fee to wBLT using the pre-swap price and asymmetric rounding. If the specified token isn't wBLT, the hook converts via $p = \\text{token1 per token0} = \\frac{\\text{sqrt}^2}{2^{192}}$ with:\n\n- token0 → token1: `floor(base * p)` (two `mulDiv` floors)\n- token1 → token0: `ceil(base / p)` (two `mulDivRoundingUp`)\n\nThese exact paths are implemented in `_beforeSwap` and stored into `_pendingFee`.\n\nIt then charges the fee amount computed pre‑swap after the swap without re‑pricing. `_afterSwap` simply takes `feeOwed = _pendingFee` (the amount computed off the pre‑swap snapshot) and transfers that many wBLT to the `FeeProcessor`. There is no recomputation against the post‑swap price.\n\nAs a result If the swap moves price materially (common on steep concentrated curves), the conversion done at the pre‑swap price can be far from the fair post‑swap valuation. An attacker can\n \n1. Prime the price with a small swap so that the pre-swap $p$ used for conversion is favorable (for example, make $p$ high to minimize `ceil(base/p)` when paying fee in token0; or make $p$ low to minimize `floor(base*p)` when paying fee in token1).\n\n2. Execute a large swap; the fee (in wBLT) is charged at the pre-swap conversion.\n\n3. Unwind the prime (or do an opposite-leg cycle across two pools).\n\nBecause the hook allows either rounding floor (token0→token1) or ceil (token1→token0), an attacker can choose orientation and exactInput/Output so the rounding direction plus the stale price both reduce the wBLT amount actually paid.\n\n> **Note:** This issue is specific to the concentrated hook shown above. The constant‑product hook computes/forwards fees differently and does not use `sqrtPriceX96` for fee conversion; this finding targets the concentrated path.\n\n\n\n## Recommendation\nStore `baseFeeSpecified` and whether it’s token0/token1 in `_beforeSwap`, but delay the conversion to wBLT until `_afterSwap` and convert using `sqrtPriceX96` read after the swap. This aligns the fee’s valuation point with the deduction point. (All the plumbing you need is already there:` _pendingFee` and `_pendingCurrency` handoffs, and `_afterSwap` is already where the fee is transferred.)\n\n## Discussion\n\n**sherlock-admin2**\n\nThe protocol team fixed this issue in the following PRs/commits:\nhttps://github.com/morphex-labs/deli-swap-contracts/pull/23\n\n\n\n\n",
+    "summary": "\nThis bug report discusses an issue found by a group of users in the DeliSwap protocol. The issue is related to the way fees are calculated and collected in the concentrated‑liquidity hook. The fee is denominated in the user's specified token using a pre‑swap price snapshot, but is then converted to the fee currency (wBLT) before the swap executes. This allows an attacker to manipulate the conversion rate and under‑collect fees in wBLT. The recommended solution is to delay the conversion to wBLT until after the swap is executed, which would align the fee's valuation point with the deduction point. The protocol team has already fixed this issue in their code.",
+    "report_date": "2025-09-16T15:00:00.000Z",
+    "contest_prize_txt": "47000 USDC",
+    "contest_link": "https://app.sherlock.xyz/audits/contests/1154",
+    "sponsor_name": "",
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "",
+    "github_link": "https://github.com/sherlock-audit/2025-09-bmx-deli-swap-judging/issues/4",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "1154",
+    "slug": "m-1-protocol-fee-conversion-uses-preswap-price-snapshot-sherlock-bmx-deli-swap-git",
+    "firm_name": "Sherlock",
+    "firm_logo_square": "sherlock_square.png",
+    "protocol_name": "BMX Deli Swap",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "cergyk"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "x15"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "blockace"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "silver\\_eth"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "globalace"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Sherlock",
+        "logo_square": "sherlock_square.png"
+    },
+    "protocols_protocol": {
+        "name": "BMX Deli Swap",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

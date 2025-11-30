@@ -1,0 +1,45 @@
+{
+    "id": 62554,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 16,
+    "impact": "MEDIUM",
+    "finders_count": 1,
+    "protocol_id": 3420,
+    "title": "[M-10] Spin cost fees are stuck in the SpinLottery",
+    "content": "\n_Resolved_\n\n## Severity\n\n**Impact:** Medium\n\n**Likelihood:** Medium\n\n## Description\nIn SpinLottery, users can trigger `spin` to win one prize NFT. In order to join the activity, users need to transfer some spin cost to SpinLottery contract.\n\nThe problem here is that we miss one interface to withdraw the spin costs fees. These spin cost fees will be locked in the contract.\n\n```solidity\n    function spin(uint256 _totalSlots, uint256 _prizeCount) external whenNotPaused returns (uint256) {\n        uint256 spinCost = calculateSpinCost(_totalSlots, _prizeCount);\n        \n        // Process payment\n        if (!usdcToken.transferFrom(msg.sender, address(this), spinCost)) {\n            revert USDCTransferFailed();\n        }\n    }\n```\n\n## Recommendations\n\nAdd one interface to withdraw spin cost fees.\n\n\n\n",
+    "summary": "\nThe bug report is about a missing feature in SpinLottery, which allows users to spin and win one prize NFT. The problem is that there is no way for users to withdraw the spin cost fees that they have paid. These fees are currently locked in the contract and cannot be accessed by the users. The report recommends adding an interface for users to withdraw their spin cost fees.",
+    "report_date": "2025-09-11T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/pashov/audits/blob/master/team/md/RipIt-security-review_2025-04-25.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "m-10-spin-cost-fees-are-stuck-in-the-spinlottery-pashov-audit-group-none-ripit_2025-04-25-markdown",
+    "firm_name": "Pashov Audit Group",
+    "firm_logo_square": "Pashov_square.png",
+    "protocol_name": "RipIt_2025-04-25",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Pashov Audit Group"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Pashov Audit Group",
+        "logo_square": "Pashov_square.png"
+    },
+    "protocols_protocol": {
+        "name": "RipIt_2025-04-25",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

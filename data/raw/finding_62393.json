@@ -1,0 +1,45 @@
+{
+    "id": 62393,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 34,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3404,
+    "title": "[STAKE-5] Permit function can be frontrunned",
+    "content": "**Severity:** Low\n\n**Path:** src/leverage/LeverageStrategy.sol::permit()#L114-L122\n\n**Description:** The `permit()` function within the `LeverageStrategy.sol` contract is designed to allow token approvals through signatures, leveraging the ERC-2612 standard. However, the function is vulnerable to front-running attacks. A malicious actor could observe e.g. Alice's signature in the mempool and use it to execute a transaction on her behalf before Alice’s original transaction is mined. Since signatures are single-use and tied to nonces, once the signature is exploited, Alice’s original transaction would fail, resulting in wasted gas and the function DOS.\n```\n    function permit(address vault, uint256 osTokenShares, uint256 deadline, uint8 v, bytes32 r, bytes32 s) external {\n        (address proxy,) = _getOrCreateStrategyProxy(vault, msg.sender);\n        IStrategyProxy(proxy).execute(\n            address(_osToken),\n            abi.encodeWithSelector(\n                IERC20Permit(address(_osToken)).permit.selector, msg.sender, proxy, osTokenShares, deadline, v, r, s\n            )\n        );\n    }\n```\n\n**Remediation:**  Consider adding `try/cath`, or `if` block, so if the `permit()` is already called, just check the allowance of `msg.sender` and skip the call to pemit().\n\n**Status:**  Fixed\n\n\n- - -",
+    "summary": "",
+    "report_date": "2024-09-19T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/solodit/solodit_content/blob/main/reports/Hexens/2024-09-19-StakeWise.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "stake-5-permit-function-can-be-frontrunned-hexens-none-stakewise-markdown",
+    "firm_name": "Hexens",
+    "firm_logo_square": "Hexens_square.png",
+    "protocol_name": "Stakewise",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Hexens"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Hexens",
+        "logo_square": "Hexens_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Stakewise",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

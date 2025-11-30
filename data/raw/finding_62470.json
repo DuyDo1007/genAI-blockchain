@@ -1,0 +1,70 @@
+{
+    "id": 62470,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 16,
+    "impact": "HIGH",
+    "finders_count": 1,
+    "protocol_id": 3413,
+    "title": "[H-01] `claimReward()` can DOS by iterating predictions blocking funds",
+    "content": "\n_Resolved_\n\n## Severity\n\n**Impact:** High\n\n**Likelihood:** Medium\n\n## Description\nUsers can create an unlimited number of predictions for a specific market and round using `predict()`.\n```solidity\nfunction predict(uint256 marketId, bool isBullish) external roundActive(marketId) {\n        uint256 roundId = currentRoundId[marketId];\n        Round memory round = marketRounds[marketId][roundId];\n\n        // Predictions close 1 hour before round ends to prevent last-minute manipulation\n        require(block.timestamp < round.startTime + 23 hours, \"Prediction closed (last hour)\");\n\n        // Transfer 5 USDC fee from user to contract\n        require(IERC20(markets[marketId].token).transferFrom(\n            msg.sender,\n            address(this),\n            PREDICTION_FEE\n        ), \"Payment failed\");\n\n        // Store the prediction\n        predictions[marketId][roundId].push(Prediction({\n            user: msg.sender,\n            isBullish: isBullish,\n            amount: PREDICTION_FEE \n        }));\n        emit PredictionMade(marketId, roundId, msg.sender, isBullish, PREDICTION_FEE);\n    }\n```\nThe `predictions` array can grow indefinitely because it is unbounded. When `claimReward()` is called, the entire `predictions` array is checked.\n```solidity\nfunction claimReward(uint256 marketId, uint256 roundId) external {\n        \n        Round memory round = marketRounds[marketId][roundId];\n        require(round.ended, \"Round not ended\");\n        require(!hasClaimed[marketId][roundId][msg.sender], \"Already claimed\");\n\n        Prediction[] memory preds = predictions[marketId][roundId];\n        \n        // Determine winning direction (bullish if end price > start price)\n        bool isBullWinning = round.endPrice > round.startPrice;\n\n        // Calculate reward pool (total - 5% fee)\n        uint256 totalPool = preds.length * PREDICTION_FEE; \n        uint256 fee = (totalPool * 5) / 100;\n        uint256 rewardPool = totalPool - fee;\n\n        // Calculate user's share of winning predictions\n        uint256 totalWinningAmount = 0;\n        uint256 userWinningAmount = 0;\n\n        for (uint256 i = 0; i < preds.length; i++) {\n            if (preds[i].isBullish == isBullWinning) {\n                totalWinningAmount += preds[i].amount;\n                if (preds[i].user == msg.sender) {\n                    userWinningAmount += preds[i].amount;\n                }\n            }\n        }\n\n       ///code...\n    }\n```\nThis could cause the transaction to exceed the block’s maximum gas limit and revert, resulting in a denial-of-service (DoS) that permanently locks funds in the contract.\n\nThis scenario is likely because the amount is fixed at 5 USDC in `PREDICTION_FEE`. For example, if a user wants to predict 10,000 USDC, 2,000 entries would be added to the `predictions` array.\n\n## Recommendations\nTo solve the issue, set a maximum limit on the number of predictions allowed per round.\n\n\n\n",
+    "summary": "\nThis report discusses a bug in a code that allows users to create an unlimited number of predictions for a specific market and round. This can cause the transaction to exceed the block’s maximum gas limit and result in a denial-of-service (DoS) attack, permanently locking funds in the contract. The report recommends setting a maximum limit on the number of predictions allowed per round to prevent this issue.",
+    "report_date": "2025-09-04T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/pashov/audits/blob/master/team/md/MCP-security-review_2025-08-07.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "h-01-claimreward-can-dos-by-iterating-predictions-blocking-funds-pashov-audit-group-none-mcp_2025-08-07-markdown",
+    "firm_name": "Pashov Audit Group",
+    "firm_logo_square": "Pashov_square.png",
+    "protocol_name": "MCP_2025-08-07",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Pashov Audit Group"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Pashov Audit Group",
+        "logo_square": "Pashov_square.png"
+    },
+    "protocols_protocol": {
+        "name": "MCP_2025-08-07",
+        "protocols_protocolcategoryscore": [
+            {
+                "protocols_protocolcategory": {
+                    "title": "NFT Lending"
+                },
+                "score": 0.5
+            },
+            {
+                "protocols_protocolcategory": {
+                    "title": "RWA"
+                },
+                "score": 0.5
+            },
+            {
+                "protocols_protocolcategory": {
+                    "title": "RWA Lending"
+                },
+                "score": 0.5
+            },
+            {
+                "protocols_protocolcategory": {
+                    "title": "Staking Pool"
+                },
+                "score": 0.5
+            }
+        ]
+    },
+    "issues_issuetagscore": []
+}

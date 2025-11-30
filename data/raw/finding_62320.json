@@ -1,0 +1,55 @@
+{
+    "id": 62320,
+    "kind": "PDF",
+    "auditfirm_id": 6,
+    "impact": "LOW",
+    "finders_count": 3,
+    "protocol_id": 2863,
+    "title": "Inconsistent gmIdentifier definition",
+    "content": "## Security Report\n\n## Severity\n**Low Risk**\n\n## Context\n- **Files:**  \n  - OndoComplianceGMView.sol#L33-L34  \n  - GMTokenManager.sol#L60-L62  \n\n## Description\nThe `gmIdentifier` is defined as `address(0x5ec);` in `OndoComplianceGMView`, but it is represented as `address(uint160(uint256(keccak256(abi.encodePacked(\"global_markets\")))));` which equals `0x428ECB70E90d1527A5f5e177789f51747b883F34` in `GMTokenManager`. This inconsistency could cause confusion.\n\n## Recommendation\nUse the latter definition:\n```solidity\n- address public gmIdentifier = address(0x5ec);\n+ address public gmIdentifier = address(uint160(uint256(keccak256(abi.encodePacked(\"global_markets\")))));\n```\n\n## Additional Notes\n- **Ondo Finance:** Fixed in commit 33aecfb8.  \n- **Spearbit:** Fix verified.",
+    "summary": "",
+    "report_date": "2025-06-17T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Ondo-Spearbit-Security-Review-May-2025.pdf",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Ondo-Spearbit-Security-Review-May-2025.pdf",
+    "github_link": "",
+    "pdf_link": "https://solodit-bucket.s3.amazonaws.com/storage/reports/spearbit/Ondo-Spearbit-Security-Review-May-2025.pdf",
+    "pdf_page_from": 9,
+    "contest_id": "",
+    "slug": "inconsistent-gmidentifier-definition-spearbit-none-ondo-rwa-internal-pdf",
+    "firm_name": "Spearbit",
+    "firm_logo_square": "spearbit_square.png",
+    "protocol_name": "Ondo RWA Internal",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "CarrotSmuggler"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Anurag Jain"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Desmond Ho"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Spearbit",
+        "logo_square": "spearbit_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Ondo RWA Internal",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

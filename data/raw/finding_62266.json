@@ -1,0 +1,55 @@
+{
+    "id": 62266,
+    "kind": "PDF",
+    "auditfirm_id": 6,
+    "impact": "LOW",
+    "finders_count": 3,
+    "protocol_id": 3395,
+    "title": "Failed early execute attempt in vote() can impact proposal outcome",
+    "content": "## Vulnerability Report\n\n## Severity\nLow Risk\n\n## Context\n`LockToVotePlugin.sol#L302-L310`\n\n## Summary\nThe `vote()` function attempts automatic execution if the vote that was made allows for early execution of the proposal. If the execution of the proposal fails due to external factors, the entire transaction, and therefore also the vote that made the proposal pass, will be reverted. Therefore, it's possible that a proposal expires unsuccessfully, despite there having been voting attempts that would have made it pass.\n\n## Finding Description\nLet's assume the following scenario:\n- There is a proposal that is both close to passing and close to ending.\n- The proposal's `VotingMode` is `EarlyExecution`.\n- Someone attempts making a large vote that would make the proposal pass for both Standard and EarlyExecution thresholds.\n- Executing the proposal right now will fail given the current state of the blockchain; this issue is temporary.\n\nThe user attempting to vote will inadvertently trigger the immediate execution of the proposal because of the `_attemptEarlyExecution()` call within the `vote()` function in the plugin contract. An error that happens during execution will bubble up and cause the entire vote to be reverted.\n\nBecause the proposal was close to ending, it will now expire unsuccessfully because the attempted vote that would have gotten the proposal above required thresholds was reverted.\n\n## Recommendations\nOne possible solution could be to avoid the \"early execution\" and simply store the \"early-passed\" flag of the proposal storage entry. From now on, that proposal can be executed by anyone who owns the `EXECUTE_PROPOSAL_PERMISSION_ID` permission. This new flag needs to be considered in functions like (but not limited to) `_canExecute`, `_hasSucceeded`, `_isProposalOpen`, `_canVote`, and so on.\n\n## Aragon\nFixed in PR 26.\n\n## Spearbit\nAragon has decided to fully remove the EarlyExecution voting mode with PR 26.",
+    "summary": "",
+    "report_date": "2025-08-28T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Aragon-Spearbit-Security-Review-July-2025.pdf",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Aragon-Spearbit-Security-Review-July-2025.pdf",
+    "github_link": "",
+    "pdf_link": "https://solodit-bucket.s3.amazonaws.com/storage/reports/spearbit/Aragon-Spearbit-Security-Review-July-2025.pdf",
+    "pdf_page_from": 18,
+    "contest_id": "",
+    "slug": "failed-early-execute-attempt-in-vote-can-impact-proposal-outcome-spearbit-none-aragon-dao-gov-plugin-pdf",
+    "firm_name": "Spearbit",
+    "firm_logo_square": "spearbit_square.png",
+    "protocol_name": "Aragon DAO Gov Plugin",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Om Parikh"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Emanuelle Ricci"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Patrick Drotleff"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Spearbit",
+        "logo_square": "spearbit_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Aragon DAO Gov Plugin",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

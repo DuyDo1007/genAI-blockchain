@@ -1,0 +1,45 @@
+{
+    "id": 62582,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 16,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3420,
+    "title": "[L-24] There is no slippage protection when purchasing packets",
+    "content": "\n_Resolved_\n\nIn `PacketStore.sol` the contract allows users to buy packets at a certain price.\n\n```solidity\n    function _processPurchase(uint256 packetTypeId, address recipient) internal returns (uint256) {\n        uint256 price = packetTypePrices[packetTypeId];\n        if (price == 0) revert InvalidPacketType(packetTypeId);\n```\nThis price is set by the price manager, however the problem occurs when a user is buying a packet while the manager is changing the price for the packet, this can happen by accident or due to a malicious manager who is frontrunning the users tx. Since the user cannot specify a price, he will be forced to pay the price even if it changes when his tx was in the mempool. This happens because purchasing packets does not use any slippage protections.\n\n```solidity\n    function purchasePacket(uint256 packetTypeId) external nonReentrant returns (uint256) {\n        if (salesFrozen) revert SalesCurrentlyFrozen();\n        \n        // Validate packet type ID\n        if (!_validatePacketTypeId(packetTypeId)) {\n            revert InvalidPacketType(packetTypeId);\n        }\n        \n        return _processPurchase(packetTypeId, msg.sender);\n    }\n```\n\nRecommendations:\n\nAllow users to specify the price they are paying and revert if the price is higher than what the user has specified.\n\n\n\n",
+    "summary": "",
+    "report_date": "2025-09-11T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/pashov/audits/blob/master/team/md/RipIt-security-review_2025-04-25.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "l-24-there-is-no-slippage-protection-when-purchasing-packets-pashov-audit-group-none-ripit_2025-04-25-markdown",
+    "firm_name": "Pashov Audit Group",
+    "firm_logo_square": "Pashov_square.png",
+    "protocol_name": "RipIt_2025-04-25",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Pashov Audit Group"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Pashov Audit Group",
+        "logo_square": "Pashov_square.png"
+    },
+    "protocols_protocol": {
+        "name": "RipIt_2025-04-25",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

@@ -1,0 +1,45 @@
+{
+    "id": 62541,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 16,
+    "impact": "HIGH",
+    "finders_count": 1,
+    "protocol_id": 3420,
+    "title": "[H-04] DoS risk from pending prize locking mechanism",
+    "content": "\n_Resolved_\n\n## Severity\n\n**Impact:** High\n\n**Likelihood:** Medium\n\n## Description\n\nThe `calculatePendingPrizesForRarity` function in the `SpinLottery` contract implements a minimum guarantee mechanism where, if `_prizeCount` is greater than `1` and the `weight` is greater than `0`, the `pendingCount` is conservatively set to 1.\n\n```solidity\n        // Ensure at least some prizes are allocated if weights allow it\n        if (_prizeCount > 1 && pendingCount == 0 && weight > 0) {\n            pendingCount = 1;\n        }\n```\nIn the `spin` function, the `pendingCounts` are locked, and if the total available prizes are insufficient, it can lead to an `InsufficientPrizes` error, resulting in a Denial of Service (DoS).\n\n```solidity\n        for (uint8 i = 1; i <= maxRarityId; i++) {\n            if (rarityConfigs[i].active) {\n                pendingCounts[i] = calculatePendingPrizesForRarity(_prizeCount, i);\n                totalPending += pendingCounts[i];\n            }\n        }\n        ...\n        // Check if enough prizes are available considering pending ones\n        for (uint8 i = 1; i <= maxRarityId; i++) {\n            if (pendingCounts[i] > 0) {\n                uint256 available = getAvailablePrizes(i);\n                uint256 pending = prizePools[i].pendingCount;\n                \n                if (available - pending < pendingCounts[i]) {\n                    revert InsufficientPrizes();\n                }\n            }\n        }\n```\n\nThis situation is exacerbated when **a high-value prize (`rarity`) has a low number of `available` prizes**. \n\nAn attacker or normal user could initiate multiple `spin` transactions with `_prizeCount = 2`, effectively locking the limited prizes and temporarily preventing other users from participating in the lottery, leading to frequent DoS scenarios for a certain period of time, which leads to bad user experience.\n\n## Recommendations\n\nThe relevant locking logic should be refined to fix this issue.\n\n\n\n",
+    "summary": "\nA bug was found in the `SpinLottery` contract where users can temporarily prevent others from participating in the lottery. This is caused by a minimum guarantee mechanism that sets a conservative value for `pendingCount` if certain conditions are met. This can lead to a Denial of Service (DoS) situation when the total available prizes are insufficient. To fix this, the locking logic needs to be refined.",
+    "report_date": "2025-09-11T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/pashov/audits/blob/master/team/md/RipIt-security-review_2025-04-25.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "h-04-dos-risk-from-pending-prize-locking-mechanism-pashov-audit-group-none-ripit_2025-04-25-markdown",
+    "firm_name": "Pashov Audit Group",
+    "firm_logo_square": "Pashov_square.png",
+    "protocol_name": "RipIt_2025-04-25",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Pashov Audit Group"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Pashov Audit Group",
+        "logo_square": "Pashov_square.png"
+    },
+    "protocols_protocol": {
+        "name": "RipIt_2025-04-25",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

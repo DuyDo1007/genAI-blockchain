@@ -1,0 +1,45 @@
+{
+    "id": 62594,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 16,
+    "impact": "HIGH",
+    "finders_count": 1,
+    "protocol_id": 3421,
+    "title": "[H-01] Missing index updates in `burnPacketFromInventory()` cause failures",
+    "content": "\n_Resolved_\n\n## Severity\n\n**Impact:** Medium\n\n**Likelihood:** High\n\n## Description\n\nIn `PacketStore`, the `_packetInventoryIdx` mapping tracks the position of each packet in its type's inventory array, `_packetInventory`. When burning a packet, the function moves the last packet to replace the burned one **but fails to update the `_packetInventoryIdx` mapping of packets**. \n\n```solidity\nfunction addPacketsToInventory(uint256[] calldata packetIds) external onlyRole(INVENTORY_MANAGER_ROLE) {\n    uint256 length = packetIds.length;\n    for (uint256 i = 0; i < length; i++) {\n        --- SNIPPED ---\n\n@>      _packetInventoryIdx[packetId] = _packetInventory[packetTypeId].length;\n@>      _packetInventory[packetTypeId].push(packetId);\n\n        emit PacketAddedToInventory(packetId, packetTypeId);\n    }\n}\n\nfunction burnPacketFromInventory(uint256 packetId) external onlyRole(INVENTORY_MANAGER_ROLE) {\n    --- SNIPPED ---\n\n    uint256 idx = _packetInventoryIdx[packetId];\n\n    _packetInventory[packetTypeId][idx] = _packetInventory[packetTypeId][_packetInventory[packetTypeId].length - 1];\n    _packetInventory[packetTypeId].pop();\n}\n```\n\nThis creates two issues:\n\n1. The moved packet's index mapping still points to its old position (last index).\n\n2. The burned packet's index mapping remains.\n\nConsequently, this leads to a corrupted state where:\n\n- Future operations on the moved packet will access the wrong array position:\n    1) If no new packet is added to the inventory, it will point to an out-of-bounds index, causing subsequent burns of the moved packet to revert.\n    2) Otherwise, there will be 2 packets pointing to the same index.\n\n- The burned packet's index mapping becomes a dangling pointer.\n\nConsider this illustrated sequence:\n\nInitial state:\n```bash\n_packetInventory[typeId] = [P_1, P_2, P_3]\n_packetInventoryIdx = {\n  P_1 => 0,\n  P_2 => 1,\n  P_3 => 2\n}\n```\n\nBurn packet `P_1`:\n```solidity\nfunction burnPacketFromInventory(uint256 packetId) external {\n    uint256 idx = _packetInventoryIdx[packetId]; // idx = 0\n    // Move P_3 to index 0\n    _packetInventory[packetTypeId][idx] = _packetInventory[packetTypeId][2];\n    _packetInventory[packetTypeId].pop();\n}\n```\n\nResulting corrupted state:\n```bash\n_packetInventory[typeId] = [P_3, P_2] // length =2 \n_packetInventoryIdx = {\n  P_1 => 0,  // Dangling\n  P_2 => 1,\n  P_3 => 2   // OOB, array length is 2 and actual position is at index 0\n}\n```\n\nAttempting to burn `P_3` will revert due to index out of bounds or Adding a new packet creates an index collision.\n```bash\n_packetInventory[typeId] = [P_3, P_2, P_4] // length = 2 \n_packetInventoryIdx = {\n  P_1 => 0,  \n  P_2 => 1,\n  P_3 => 2  // Collision\n  P_4 => 2  // Collision\n}\n```\n\n## Recommendation\n\nUpdate the index mapping for the moved packet and delete the burned packet's mapping.\n\n```diff\nfunction burnPacketFromInventory(uint256 packetId) external {\n    uint256 idx = _packetInventoryIdx[packetId];\n\n    uint256 lastPacketId = _packetInventory[packetTypeId][_packetInventory[packetTypeId].length - 1];\n    _packetInventory[packetTypeId][idx] = lastPacketId;\n\n+   _packetInventoryIdx[lastPacketId] = idx;\n+   delete _packetInventoryIdx[packetId];\n    _packetInventory[packetTypeId].pop();\n}\n```\n\n\n\n",
+    "summary": "\nThe bug report discusses a problem in the `PacketStore` function, where the `_packetInventoryIdx` mapping is not being updated correctly when a packet is burned. This leads to two issues: the moved packet's mapping still points to its old position and the burned packet's mapping remains. This creates a corrupted state where future operations on the moved packet will access the wrong array position and the burned packet's mapping becomes a dangling pointer. The report recommends updating the index mapping for the moved packet and deleting the burned packet's mapping to resolve the issue.",
+    "report_date": "2025-09-11T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/pashov/audits/blob/master/team/md/RipIt-security-review_2025-05-10.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "h-01-missing-index-updates-in-burnpacketfrominventory-cause-failures-pashov-audit-group-none-ripit_2025-05-10-markdown",
+    "firm_name": "Pashov Audit Group",
+    "firm_logo_square": "Pashov_square.png",
+    "protocol_name": "RipIt_2025-05-10",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Pashov Audit Group"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Pashov Audit Group",
+        "logo_square": "Pashov_square.png"
+    },
+    "protocols_protocol": {
+        "name": "RipIt_2025-05-10",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

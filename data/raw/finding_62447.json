@@ -1,0 +1,45 @@
+{
+    "id": 62447,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 7,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3409,
+    "title": "Incomplete Docstrings",
+    "content": "Throughout the codebase, the following instance of incomplete docstrings was identified:\n\n* In `IL2LineaToken.sol`, within the [`L1LineaTokenTotalSupplySynced`](https://github.com/Consensys/linea-tokens/blob/44640f0965a5c7465b99769a5d241a9a1cb3a2ef/./src/L2/interfaces/IL2LineaToken.sol#L12) event, the `l1BlockTimestamp` and `l1TotalSupply` parameters are not documented.\n\nConsider thoroughly documenting the event (and its parameters) that are part of a contract's public API. When writing docstrings, consider following the [Ethereum Natural Specification Format](https://solidity.readthedocs.io/en/latest/natspec-format.html) (NatSpec).\n\n***Update:** Resolved in [pull request #16](https://github.com/Consensys/linea-tokens/pull/16).*",
+    "summary": "",
+    "report_date": "2025-09-03T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://blog.openzeppelin.com/linea-tge-audit",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "incomplete-docstrings-openzeppelin-none-linea-tge-audit-markdown",
+    "firm_name": "OpenZeppelin",
+    "firm_logo_square": "openzeppelin_square.png",
+    "protocol_name": "Linea TGE Audit",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "OpenZeppelin"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "OpenZeppelin",
+        "logo_square": "openzeppelin_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Linea TGE Audit",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

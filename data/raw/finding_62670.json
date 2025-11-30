@@ -1,0 +1,45 @@
+{
+    "id": 62670,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 23,
+    "impact": "MEDIUM",
+    "finders_count": 1,
+    "protocol_id": 3435,
+    "title": "`Zap.zapOut` Uses LP shares Instead of Tokens",
+    "content": "##### Description\nThis issue has been identified within the `zapOut` function of the `Zap` contract. \n\n```solidity\nuint256 lpTokenShares = ILPToken(lpToken).getSharesByPeggedToken(lpAmount);\nIERC20(lpToken).forceApprove(spa, lpTokenShares);\n```\n\nThe receiving `SelfPeggingAsset` contract expects `lpAmount` in token units, not in share units. When the share‑to‑token ratio drifts from 1 : 1, the SPA either reverts (too few tokens approved) or over‑burns the user’s balance. This blocks withdrawals and breaks Zap’s single‑transaction UX.\n\nThe issue is classified as *medium* severity because it disrupts normal withdrawals once the ratio changes, but does not break pool solvency. \n##### Recommendation\nWe recommend approving and passing the raw `lpAmount` (token units) to the `SelfPegingAsset` contract.",
+    "summary": "\nThe `zapOut` function in the `Zap` contract has a bug that affects the `SelfPeggingAsset` contract. When the share-to-token ratio is not 1:1, the function either reverts or over-burns the user's balance, causing issues with withdrawals. To fix this, the raw `lpAmount` (token units) should be approved and passed to the `SelfPegingAsset` contract. This bug is classified as medium severity as it disrupts withdrawals but does not affect pool solvency.",
+    "report_date": "2025-09-19T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/mixbytes/audits_public/blob/master/NUTS%20Finance/Tapio/README.md#7-zapzapout-uses-lp-shares-instead-of-tokens",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "zapzapout-uses-lp-shares-instead-of-tokens-mixbytes-none-nuts-finance-markdown",
+    "firm_name": "MixBytes",
+    "firm_logo_square": "mixbytes_square.png",
+    "protocol_name": "NUTS Finance",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "MixBytes"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "MixBytes",
+        "logo_square": "mixbytes_square.png"
+    },
+    "protocols_protocol": {
+        "name": "NUTS Finance",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

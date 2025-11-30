@@ -1,0 +1,45 @@
+{
+    "id": 62167,
+    "kind": "GIT",
+    "auditfirm_id": 3,
+    "impact": "MEDIUM",
+    "finders_count": 1,
+    "protocol_id": 3130,
+    "title": "M-5: Agents can evade the full extent of a slash",
+    "content": "\nSource: https://github.com/sherlock-audit/2025-07-cap-judging/issues/316 \n\n## Found by \nUddercover\n\n### Summary\n\nThe Cap [Delegation.sol::slashTimestamp](https://github.com/sherlock-audit/2025-07-cap/blob/main/cap-contracts/contracts/delegation/Delegation.sol#L150) function returns a timestamp for historically determination of an agent's slashable stake, but this returned timestamp can make it possible for an operator to evade the full extent of a slash. \n\nThe `slashTimestamp` is chosen as either the agent's last borrow timestamp or the last delegation epoch start timestamp, whichever is later. But this then creates only a small window for the agent to be slashable. An agent's slashable collateral can fall in the same block as when they borrow, for example if their operator shares is reduced in the symbiotic delegator and they frontrun the reduction transaction with a borrow. Since the `slashTimestamp` will always be the last borrow time or later, the agent's slashable stake would always return less than it should be. \nThe readme states that the cap delegation epoch duration will always be shorter than the symbiotic vault epoch duration, so even if the agent can have a greater penalty by the symbiotic vault standards, they will be able to get off with less.\n\n<img width=\"927\" height=\"50\" alt=\"Image\" src=\"https://sherlock-files.ams3.digitaloceanspaces.com/gh-images/fc550912-0677-4546-84aa-44589f7a21fd\" />\n\n\n### Root Cause\n\nCap protocol's [slashTimestamp()](https://github.com/sherlock-audit/2025-07-cap/blob/main/cap-contracts/contracts/delegation/Delegation.sol#L150) function returns a timestamp that allows an agent to avoid the full penalty of a slash\n\n### Internal Pre-conditions\n\nNIL\n\n### External Pre-conditions\n\nThe agent's slashable collateral falls in the same block as they borrow from cap\n\n### Attack Path\n\n1. Agent borrows amount from `Lender.sol`\n2. Agent frontruns symbiotic `OPERATOR_NETWORK_SHARES_SET_ROLE` holder transaction to reduce agent vault shares to 0, with a borrow in the same block\n3. Any subsequent attempts to slash the agent becomes impossible as `slashTimestamp` always returns slashable collateral as 0\n\nFor example, take a symbiotic vault epoch duration of 60 seconds, a current block.timestamp of 0 and a cap epoch duration of 10 seconds. \n- At block.timestamp = 0 seconds: Agent borrows from cap vaults\n- At block.timestamp = 30 seconds: Agent frontruns shares reduction transaction with minimum amount borrow.\n- At block.timestamp = 31 seconds: `cap epoch = 3`, `slash timestamp = 30` i.e the last borrow timestamp, and agent slashable stake = 0\n- At block.timestamp = 50 seconds: `cap epoch = 5` and `slash timestamp = (5 - 1) * 10 = 40\n- Agent's slashable stake and coverage at 40 = 0, \n- Agent evades slashing even as the symbiotic epoch still considers that agent as slashable\n\n### Impact\n\nAgents are not fully penalized, even potentially evading penalty completely\n\n### PoC\n\nAdd the following test function to Lender.borrow.t.sol:\n```solidity\nfunction testAgentEvadeSlash() public {\n        //agent borrows\n        vm.startPrank(user_agent);\n        assertEq(usdc.balanceOf(user_agent), 0);\n        lender.borrow(address(usdc), 500e6, user_agent);\n        assertGt(usdc.balanceOf(user_agent), 0);\n        vm.stopPrank();\n\n        //some time later, agent front runs share update with another borrow\n        vm.warp(block.timestamp + 5 days);\n        vm.startPrank(user_agent);\n        lender.borrow(address(usdc), type(uint256).max, user_agent);\n        vm.stopPrank();\n\n        vm.startPrank(env.symbiotic.users.vault_admin);\n        _symbioticVaultDelegateToAgent(symbioticWethVault, env.symbiotic.networkAdapter, user_agent, 0);\n        vm.stopPrank();\n\n        vm.warp(block.timestamp + 1);\n\n        uint256 slashableCollateral = delegation.slashableCollateral(user_agent);\n        uint256 coverage = delegation.coverage(user_agent);\n        assertEq(slashableCollateral, 0);\n        assertEq(coverage, 0);\n\n        (,,,,, uint256 health) = lender.agent(user_agent);\n        assertEq(health, 0);\n    }\n```\n\n### Mitigation\n\n_No response_\n\n",
+    "summary": "\nSummary:\n\nA bug was found in the Cap protocol's `slashTimestamp()` function, which allows agents to evade the full penalty of a slash. This happens when an agent's slashable collateral falls in the same block as they borrow from Cap. The `slashTimestamp` always returns the last borrow timestamp or later, creating a small window for the agent to be slashable. This allows them to potentially evade the penalty completely. A test function was added to the Lender contract to demonstrate this bug. There is currently no response or mitigation for this bug.",
+    "report_date": "2025-07-24T15:00:00.000Z",
+    "contest_prize_txt": "126000 USDC",
+    "contest_link": "https://app.sherlock.xyz/audits/contests/990",
+    "sponsor_name": "",
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "",
+    "github_link": "https://github.com/sherlock-audit/2025-07-cap-judging/issues/316",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "990",
+    "slug": "m-5-agents-can-evade-the-full-extent-of-a-slash-sherlock-cap-git",
+    "firm_name": "Sherlock",
+    "firm_logo_square": "sherlock_square.png",
+    "protocol_name": "Cap",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Uddercover"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Sherlock",
+        "logo_square": "sherlock_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Cap",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

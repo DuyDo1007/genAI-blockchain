@@ -1,0 +1,45 @@
+{
+    "id": 62564,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 16,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3420,
+    "title": "[L-06] Risks in modifying critical parameters in marketplace",
+    "content": "\n_Acknowledged_\n\nThe `Marketplace` contract allows for the modification of several critical parameters, including `acceptedCurrency`, `tradeFee`, `fees`, and `whitelistRegistry`.\n\n```solidity\n    function setFees(uint256 newFees) external {\n        require(msg.sender == marketplaceAdmin, \"Only marketplaceAdmin can call\");\n        if (newFees > 1000) revert InvalidFees();\n        fees = newFees;\n    }\n\n    /**\n     * @notice Updates the trade fee (called by MarketplaceAdmin)\n     * @dev Only callable by the MarketplaceAdmin contract\n     * @param newTradeFee New trade fee amount\n     */\n    function setTradeFee(uint256 newTradeFee) external {\n        require(msg.sender == marketplaceAdmin, \"Only marketplaceAdmin can call\");\n        tradeFee = newTradeFee;\n    }\n\n    /**\n     * @notice Updates the fee receiver address (called by MarketplaceAdmin)\n     * @dev Only callable by the MarketplaceAdmin contract\n     * @param newFeeReceiver Address of the new fee receiver\n     */\n    function setFeeReceiver(address newFeeReceiver) external {\n        require(msg.sender == marketplaceAdmin, \"Only marketplaceAdmin can call\");\n        if (newFeeReceiver == address(0)) revert InvalidFeeReceiver();\n        feeReceiver = newFeeReceiver;\n    }\n\n    /**\n     * @notice Updates the accepted currency (called by MarketplaceAdmin)\n     * @dev Only callable by the MarketplaceAdmin contract\n     * @param newERC20TokenAddress Address of the new ERC20 token to be accepted\n     */\n    function setAcceptedCurrency(address newERC20TokenAddress) external {\n        require(msg.sender == marketplaceAdmin, \"Only marketplaceAdmin can call\");\n        if (newERC20TokenAddress == address(0)) revert InvalidCurrencyAddress();\n        acceptedCurrency = newERC20TokenAddress;\n    }\n\n    /**\n     * @notice Updates the whitelist registry (called by MarketplaceAdmin)\n     * @dev Only callable by the MarketplaceAdmin contract\n     * @param newWhitelistRegistryAddress Address of the new whitelist registry contract\n     */\n    function setWhitelistRegistry(address newWhitelistRegistryAddress) external {\n        require(msg.sender == marketplaceAdmin, \"Only marketplaceAdmin can call\");\n        if (newWhitelistRegistryAddress == address(0)) revert InvalidRegistryAddress();\n        whitelistRegistry = newWhitelistRegistryAddress;\n    }\n```\n\nChanging these parameters mid-operation can lead to unintended consequences. Modifying the tradeFee or fees could affect ongoing trades, leading to disputes or financial losses for users.\n\n\n\n",
+    "summary": "",
+    "report_date": "2025-09-11T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/pashov/audits/blob/master/team/md/RipIt-security-review_2025-04-25.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "l-06-risks-in-modifying-critical-parameters-in-marketplace-pashov-audit-group-none-ripit_2025-04-25-markdown",
+    "firm_name": "Pashov Audit Group",
+    "firm_logo_square": "Pashov_square.png",
+    "protocol_name": "RipIt_2025-04-25",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Pashov Audit Group"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Pashov Audit Group",
+        "logo_square": "Pashov_square.png"
+    },
+    "protocols_protocol": {
+        "name": "RipIt_2025-04-25",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

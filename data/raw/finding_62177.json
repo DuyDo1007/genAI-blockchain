@@ -1,0 +1,45 @@
+{
+    "id": 62177,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 16,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3389,
+    "title": "[L-04] Missing slippage and deadline protection exposes users to pricing risks",
+    "content": "\n_Acknowledged_\n\nThe `EulerEarn` contract does not provide users with slippage protection or deadline enforcement in the `deposit()`, `mint()`, `withdraw()`, and `redeem()` functions. These functions interact with multiple ERC4626-compliant strategy vaults, and users’ assets may be distributed across or pulled from different strategy vaults based on available capacity.\n\nKey concerns:\n\n- **Slippage risk**: During deposits or mints, assets may be split across multiple strategy vaults with varying share prices. During withdrawals or redemptions, the strategy vaults are accessed in a fixed order, and varying liquidity or share price can cause users to receive fewer shares or assets than expected.\n\n- **No deadline enforcement**: If transactions get stuck in the mempool (e.g., during high network congestion), users may be exposed to more significant price movements before execution, further increasing slippage risks.\n\nThis lack of user-defined controls exposes depositors and withdrawers to unfavorable outcomes due to timing and price variations in the underlying vaults.\n\nRecommendation:  \nIntroduce parameters such as `minShares`(`maxShares`) and `minAssets` (`maxAssets`), along with an optional `deadline` field, to allow users to enforce minimum acceptable output and time bounds for their transactions.\n\n### Euler comments\n\nWe acknowledge the finding, will keep as is.\n\n\n\n",
+    "summary": "",
+    "report_date": "2025-08-27T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/pashov/audits/blob/master/team/md/EulerEarn-security-review_2025-07-25.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "l-04-missing-slippage-and-deadline-protection-exposes-users-to-pricing-risks-pashov-audit-group-none-eulerearn_2025-07-25-markdown",
+    "firm_name": "Pashov Audit Group",
+    "firm_logo_square": "Pashov_square.png",
+    "protocol_name": "EulerEarn_2025-07-25",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Pashov Audit Group"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Pashov Audit Group",
+        "logo_square": "Pashov_square.png"
+    },
+    "protocols_protocol": {
+        "name": "EulerEarn_2025-07-25",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

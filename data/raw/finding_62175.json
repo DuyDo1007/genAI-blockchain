@@ -1,0 +1,45 @@
+{
+    "id": 62175,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 16,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3389,
+    "title": "[L-02] `maxWithdraw()` underestimates assets for the `feeRecipient`",
+    "content": "\n_Acknowledged_\n\nThe `EulerEarn.maxWithdraw()` function is designed to return the maximum amount of the underlying asset that can be withdrawn from the owner's balance in the vault, through a withdraw call. this function first accrues fees via `_accruedFeeAndAssets()`, then calculates the withdrawable assets by calling `balanceOf(owner)` and converting the resulting shares to assets.\nHowever, if the `owner` is the `feeRecipient`, their unclaimed `feeShares` are not reflected in their balance, leading to an underestimation of the actual amount they can withdraw.\n\nThis discrepancy arises because `feeShares` are tracked separately and not included in `balanceOf(feeRecipient)`, even though they represent valid claimable shares.\n\n```solidity\n   function _maxWithdraw(\n        address owner\n    )\n        internal\n        view\n        returns (uint256 assets, uint256 newTotalSupply, uint256 newTotalAssets)\n    {\n        uint256 feeShares;\n        (feeShares, newTotalAssets, ) = _accruedFeeAndAssets();\n        newTotalSupply = totalSupply() + feeShares;\n\n        assets = _convertToAssetsWithTotals(\n            balanceOf(owner),\n            newTotalSupply,\n            newTotalAssets,\n            Math.Rounding.Floor\n        );\n        assets -= _simulateWithdrawStrategy(assets);\n    }\n```\n\n**Recommendation:**  \n\nConsider updating the logic to account for `feeShares` when `owner == feeRecipient` by including them in the total shares used for the conversion to assets.\n\n### Euler comments\n\nWe acknownledge the finding, will keep as is.\n\nNote balanceOf(feeRecipient) will also under-report because it doesn't calculate fees.\n\n\n\n",
+    "summary": "",
+    "report_date": "2025-08-27T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/pashov/audits/blob/master/team/md/EulerEarn-security-review_2025-07-25.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "l-02-maxwithdraw-underestimates-assets-for-the-feerecipient-pashov-audit-group-none-eulerearn_2025-07-25-markdown",
+    "firm_name": "Pashov Audit Group",
+    "firm_logo_square": "Pashov_square.png",
+    "protocol_name": "EulerEarn_2025-07-25",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Pashov Audit Group"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Pashov Audit Group",
+        "logo_square": "Pashov_square.png"
+    },
+    "protocols_protocol": {
+        "name": "EulerEarn_2025-07-25",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

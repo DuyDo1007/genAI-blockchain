@@ -1,0 +1,65 @@
+{
+    "id": 62503,
+    "kind": "GIT",
+    "auditfirm_id": 3,
+    "impact": "MEDIUM",
+    "finders_count": 5,
+    "protocol_id": 3104,
+    "title": "M-11: Users unable to claim rewards when Curve LP tokens are staked to Curve Gauge.",
+    "content": "\nSource: https://github.com/sherlock-audit/2025-06-notional-exponent-judging/issues/595 \n\nThis issue has been acknowledged by the team but won't be fixed at this time.\n\n## Found by \nBluedragon, Riceee, bretzel, touristS, xiaoming90\n\n### Summary\nAccording to the contest sponsors the `AbstractRewardManager` acts as the core logic contract for both Booster and Gauge Reward Managers. But claiming rewards for gauge branch is not implemented.\n\n### Vulnerability details \nThe issue here lies when the `CONVEX_BOOSTER` is not initialised. When a user enters a position via Notional, their assets are deposited to a curve pool and the vault receives LP tokens which are further staked for rewards in the Curve Gauge. \n\nWhen we take a look at the [`_stakeLpTokens`](https://github.com/sherlock-audit/2025-06-notional-exponent/blob/main/notional-v4/src/single-sided-lp/CurveConvex2Token.sol#L291-L298) used to stake the LP tokens, we see they are directly staked to Curve Gauge if Booster is not initialised. But the issue is claiming rewards is only implemented for the Convex Strategy and not for this scenario when LP tokens are staked to Gauge Strategy. \n\nLets look at the flow of reward claim -->\n\n1. User calls `claimRewards` on the router\n2. `RewardManagerMixin::claimAccountRewards` is called\n3. `RewardManagerMixing::_updateAccountRewards` is invoked\n4. Delegate call to `updateAccountRewards` on `AbstractRewardManager`\n5. This internally calls the `_claimVaultRewards` \n\nGiven that the `AbstractRewardManager` is the underlying core contract logic for reward claim. Here we notice that the `_claimVaultRewards` function has a check  `if (rewardPool.rewardPool == address(0)) return;` \nThis causes the control flow to return the claim execution process when the rewardPool is not set, which is the case when tokens are staked to Gauge. Resulting in users not able to claim their reward shares from the Curve Gauge. \n\n### Impact\nThe protocol users cannot claim any rewards if the strategy uses Gauge instead of Booster. \n\n### Code Snippets\nhttps://github.com/sherlock-audit/2025-06-notional-exponent/blob/main/notional-v4/src/rewards/AbstractRewardManager.sol#L190\n\n### Mitigation\nWhen rewardPool == address(0), i.e., the strategy uses Gauge, instead of shortcircuiting, implement logic to claim rewards from the Gauge contract.\n\n",
+    "summary": "\nThis bug report addresses an issue with the `AbstractRewardManager` contract in the Notional protocol. The contract is supposed to handle rewards for both the Booster and Gauge Reward Managers, but it is not currently able to claim rewards for the Gauge branch. This is due to a check in the code that causes the process to stop when the rewardPool is not set, which is the case when tokens are staked to the Gauge. As a result, users are unable to claim their rewards from the Curve Gauge. The impact of this bug is that protocol users cannot claim any rewards if the strategy uses Gauge instead of Booster. The suggested mitigation is to implement logic to claim rewards from the Gauge contract when the rewardPool is not set.",
+    "report_date": "2025-07-18T15:00:00.000Z",
+    "contest_prize_txt": "75500 USDC",
+    "contest_link": "https://app.sherlock.xyz/audits/contests/1001",
+    "sponsor_name": "",
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "",
+    "github_link": "https://github.com/sherlock-audit/2025-06-notional-exponent-judging/issues/595",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "1001",
+    "slug": "m-11-users-unable-to-claim-rewards-when-curve-lp-tokens-are-staked-to-curve-gauge-sherlock-notional-exponent-git",
+    "firm_name": "Sherlock",
+    "firm_logo_square": "sherlock_square.png",
+    "protocol_name": "Notional Exponent",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "bretzel"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "touristS"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "xiaoming90"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Riceee"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Bluedragon"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Sherlock",
+        "logo_square": "sherlock_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Notional Exponent",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

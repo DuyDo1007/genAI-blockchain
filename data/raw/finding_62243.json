@@ -1,0 +1,50 @@
+{
+    "id": 62243,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 11,
+    "impact": "GAS",
+    "finders_count": 2,
+    "protocol_id": 3393,
+    "title": "Use `msg.sender` when calling `safeTransfer` in `RequestsManager::cancelMint, cancelBurn`",
+    "content": "**Description:** `RequestsManager::cancelMint` first enforces that `request.provider == msg.sender`:\n```solidity\n    _assertAddress(request.provider, msg.sender);\n```\n\nHence it can directly use `msg.sender` instead of `request.provider` to save 1 storage read when calling `safeTransfer`:\n```diff\n-   depositedToken.safeTransfer(request.provider, request.amount);\n+   depositedToken.safeTransfer(msg.sender, request.amount);\n```\n\nThe same applies to `RequestsManager::cancelBurn`.\n\n**Avant:**\nFixed in commit [7a3587c](https://github.com/Avant-Protocol/Avant-Contracts-Max/commit/7a3587ca6d673d143565703d094b6f9526fd8020).\n\n**Cyfrin:** Verified.",
+    "summary": "",
+    "report_date": "2025-08-28T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/solodit/solodit_content/blob/main/reports/Cyfrin/2025-08-28-cyfrin-avant-max-v2.0.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "use-msgsender-when-calling-safetransfer-in-requestsmanagercancelmint-cancelburn-cyfrin-none-avant-max-markdown",
+    "firm_name": "Cyfrin",
+    "firm_logo_square": "Cyfrin_square.jpg",
+    "protocol_name": "Avant Max",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Dacian"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Jorge"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Cyfrin",
+        "logo_square": "Cyfrin_square.jpg"
+    },
+    "protocols_protocol": {
+        "name": "Avant Max",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

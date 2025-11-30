@@ -1,0 +1,45 @@
+{
+    "id": 62356,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 34,
+    "impact": "MEDIUM",
+    "finders_count": 1,
+    "protocol_id": 967,
+    "title": "[BAB-6] Users can relist their tokens",
+    "content": "**Severity:** Medium\n\n**Path:** BabylonCore.sol:startListing (L54-87)\n\n**Description:** When a user creates a listing for their token, the listing ID is stored in `_ids[token][identifier]`. However, this listing ID is never used or checked again, e.g. to check whether the user has already listed the token.\n\nFurthermore, the token is never transferred in to the Babylon Core contract, only an approval is required.\n\nAs a result, a user can relist their token any number of times. This will overwrite `_ids` and create a new and active listing every time in `_listingInfos`. Other users can buy tickets from any of those listings, while only one of them can be finalized. The others would get stuck.\n```\nfunction startListing(\n    ListingItem calldata item,\n    IEditionsExtension.EditionInfo calldata edition,\n    uint256 timeStart,\n    uint256 price,\n    uint256 totalTickets,\n    uint256 donationBps\n) external {\n    [..]\n    uint256 newListingId = _lastListingId + 1;\n    _ids[item.token][item.identifier] = newListingId;\n    ListingInfo storage listing = _listingInfos[newListingId];\n    [..]\n}\n```\n\n**Remediation:**  We would recommend to add a check for `require(_ids[user][token][identifier] == 0)` such that a user can only list their token once. \n\n**Status:**  Fixed\n\n\n- - -",
+    "summary": "\nThis bug report is about a medium severity issue in the Babylon Core contract. The problem occurs when a user creates a listing for their token. The listing ID is stored, but it is never checked or used again. This means that the user can list their token multiple times, leading to confusion and potential issues for buyers. The recommended solution is to add a check to prevent users from listing their token more than once. This issue has been fixed.",
+    "report_date": "2023-01-17T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/solodit/solodit_content/blob/main/reports/Hexens/2023-01-17-Babylon.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "bab-6-users-can-relist-their-tokens-hexens-none-babylon-markdown",
+    "firm_name": "Hexens",
+    "firm_logo_square": "Hexens_square.png",
+    "protocol_name": "Babylon",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Hexens"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Hexens",
+        "logo_square": "Hexens_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Babylon",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

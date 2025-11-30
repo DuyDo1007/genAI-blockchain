@@ -1,0 +1,45 @@
+{
+    "id": 62614,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 16,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3421,
+    "title": "[L-17] Missing refund in `SpinLottery.sol` when prize distribution fails",
+    "content": "\n_Resolved_\n\nIn the `SpinLottery.sol` contract, the `fulfillRandomness()` function contains an issue related to prize distribution failures. When a user pays for a spin, their payment is processed immediately, but the actual prize is distributed asynchronously after Chainlink VRF provides randomness.\nThe relevant code in `fulfillRandomness()` is:\n```solidity\n// Step 3: Prize Selection\ntry this._distributePrize(req.player, requestId, rarity, prizeRandom) {\n    // Prize distributed successfully\n} catch {\n    // If prize distribution fails, emit a no-win event\n    emit NoWin(req.player, requestId);\n}\n```\n\nWhen the prize distribution fails. The contract simply emits a NoWin event without refunding the user's payment. This scenario is particularly problematic in cases such as:\nWhen a lottery manager calls `configureRarity()` to add a new rarity but hasn't yet added any NFT prizes using `addPrize()`.\n\nRecommendations:\nWhen prize distribution fails in the catch block, the contract should refund the user's payment, so you need to keep track of the exact amount paid by each user for each spin to ensure accurate refunds.\n\n\n\n",
+    "summary": "",
+    "report_date": "2025-09-11T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/pashov/audits/blob/master/team/md/RipIt-security-review_2025-05-10.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "l-17-missing-refund-in-spinlotterysol-when-prize-distribution-fails-pashov-audit-group-none-ripit_2025-05-10-markdown",
+    "firm_name": "Pashov Audit Group",
+    "firm_logo_square": "Pashov_square.png",
+    "protocol_name": "RipIt_2025-05-10",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Pashov Audit Group"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Pashov Audit Group",
+        "logo_square": "Pashov_square.png"
+    },
+    "protocols_protocol": {
+        "name": "RipIt_2025-05-10",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

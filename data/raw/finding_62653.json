@@ -1,0 +1,55 @@
+{
+    "id": 62653,
+    "kind": "PDF",
+    "auditfirm_id": 6,
+    "impact": "LOW",
+    "finders_count": 3,
+    "protocol_id": 3430,
+    "title": "Incorrect approval in SVFHook contract",
+    "content": "## Severity: Low Risk\n\n**Context:** SVFHook.sol#L279, SVFHook.sol#L280\n\n**Description:**  \nThe `beforeInitialize` function of the `SVFHook` contract intends to approve the `token0` and `token1` assets to the `poolManager` contract. However, it fails to do so because the second approval is instead done to the `PERMIT2` address. It's also worth noting that these approvals to the `poolManager` appear to be unnecessary, as the contract is approving the `positionManager` contract to handle tokens. This might be the reason why the incorrect approval described was left unnoticed.\n\n**Recommendation:**  \nReview the approvals in the `beforeInitialize` function, leaving only those strictly necessary for the system to work as intended. Do note that there's a finding titled \"Use of infinite approvals in the SVFHook contract\" related to the infinite approvals used in the `beforeInitialize` function, which should also be considered when tackling this issue.\n\n**Semantic Layer:** Fixed in PR 2.\n\n**Spearbit:** Fix verified.",
+    "summary": "",
+    "report_date": "2025-07-27T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Semantic-Layer-Spearbit-Security-Review-May-2025.pdf",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Semantic-Layer-Spearbit-Security-Review-May-2025.pdf",
+    "github_link": "",
+    "pdf_link": "https://solodit-bucket.s3.amazonaws.com/storage/reports/spearbit/Semantic-Layer-Spearbit-Security-Review-May-2025.pdf",
+    "pdf_page_from": 16,
+    "contest_id": "",
+    "slug": "incorrect-approval-in-svfhook-contract-spearbit-none-semantic-layer-pdf",
+    "firm_name": "Spearbit",
+    "firm_logo_square": "spearbit_square.png",
+    "protocol_name": "Semantic Layer",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Tnch"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Mario Poneder"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Noah Marconi"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Spearbit",
+        "logo_square": "spearbit_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Semantic Layer",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

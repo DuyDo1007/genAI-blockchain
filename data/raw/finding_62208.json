@@ -1,0 +1,50 @@
+{
+    "id": 62208,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 11,
+    "impact": "LOW",
+    "finders_count": 2,
+    "protocol_id": 3392,
+    "title": "Don't initialize to default values in Solidity",
+    "content": "**Description:** Don't initialize to default values in Solidity:\n* `Deposit-Registry`:\n```solidity\nComplianceChecker.sol\n44:        for (uint i = 0; i < complianceOptions.length; i++) {\n58:            uint optionIndex = 0;\n65:                uint sbtIndex = 0;\n\nCompliantDepositRegistry.sol\n133:            uint i = 0;\n157:        for (uint i = 0; i < newDepositAddresses.length; i++) {\n200:        for (uint i = 0; i < batchLength; i++) {\n```\n\n**Syntetika:**\nFixed in commit [7c69e94](https://github.com/SyntetikaLabs/monorepo/commit/7c69e94d165cfe4b78ace518d622e25654e482d3).\n\n**Cyfrin:** Verified.",
+    "summary": "",
+    "report_date": "2025-08-01T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/solodit/solodit_content/blob/main/reports/Cyfrin/2025-08-01-cyfrin-syntetika-v2.0.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "dont-initialize-to-default-values-in-solidity-cyfrin-none-syntetika-markdown",
+    "firm_name": "Cyfrin",
+    "firm_logo_square": "Cyfrin_square.jpg",
+    "protocol_name": "Syntetika",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Dacian"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Jorge"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Cyfrin",
+        "logo_square": "Cyfrin_square.jpg"
+    },
+    "protocols_protocol": {
+        "name": "Syntetika",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

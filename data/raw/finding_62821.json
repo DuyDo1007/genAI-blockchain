@@ -1,0 +1,50 @@
+{
+    "id": 62821,
+    "kind": "GIT",
+    "auditfirm_id": 3,
+    "impact": "MEDIUM",
+    "finders_count": 2,
+    "protocol_id": 3398,
+    "title": "M-6: Attacker can swap wBTC in the DeliHook multiples times to not pay / pay less swap fees",
+    "content": "\nSource: https://github.com/sherlock-audit/2025-09-bmx-deli-swap-judging/issues/203 \n\n## Found by \n0x73696d616f, 0xDyDx\n\n### Summary\n\n`DeliHook::_beforeSwap()` rounds down the `baseFeeSpecified` instead of rounding up, allowing an attacker to abuse the low gas fees on Base and the high btc price to not pay any fees (or half).\n\nThe attacker swaps in a pool with the DeliHook and wBTC, with a fee of for example 300 (0.03%). For a wBTC amount of 3000 wei or 3 USD, `baseFeeSpecified = 3000 * 300 / 1e6 = 0.9 = 0`, and the user pays 0. If a 0 fee is problematic for any reason, the attacker can specify 6000 wei, and still save 1 wBTC due to rounding down each time.\n\nThe attack is economic viable because 1 wei of wBTC = 1 * 100_000 / 1e8 = 0.001 USD, and the gas cost of a single swap, when bundled together to optimize hot storage, is many times smaller. As an example, a [sample swap](https://basescan.org/tx/0x46371f3cfdcc401d7f01e2fed089110d10af9a37093b9f1c5e3fb73442df804f) takes a fee of 0.001566 USD, without using the hot storage properties nor fixed costs, and is already close to profitability. If swaps are made in a loop, the gas price of each swap will go down a lot due to not having fixed tx costs and hot storage loading, making the attack viable. In times of lower gas usage, it is even more profitable.\n\nThis causes a 100% fee loss for users of the protocol, hence high severity.\n\nNote: it should also round up when converting the baseFeeSpecified to the fee currency, when needed.\n\n### Root Cause\n\n[DeliHook.sol:231](https://github.com/sherlock-audit/2025-09-bmx-deli-swap/blob/main/deli-swap-contracts/src/DeliHook.sol#L231) rounds down instead of up.\n\n### Internal Pre-conditions\n\nNone\n\n### External Pre-conditions\n\nNone\n\n### Attack Path\n\n1. Attacker swaps in a loop wBTC, paying 1 less wBTC each time due to rounding down, so the lps (FeeProcessor, DailyEpochGauge) receive much less fees.\n\n### Impact\n\nA single attacker can cause a significant loss, if all users do this, they would eliminate all lp fees, or very significantly reduce them, and it is profitable.\n\n### PoC\n\nSee above.\n\n### Mitigation\n\nRound up the fee.\n\n## Discussion\n\n**sherlock-admin2**\n\nThe protocol team fixed this issue in the following PRs/commits:\nhttps://github.com/morphex-labs/deli-swap-contracts/pull/24\n\n\n\n\n\n",
+    "summary": "\nSummary:\n\nThis bug report discusses a vulnerability found by two users in the DeliSwap protocol. The issue is related to the rounding down of fees in the DeliHook function, which allows an attacker to take advantage of low gas fees and high BTC prices to avoid paying fees or only paying half. This can result in a 100% loss of fees for users of the protocol. The root cause is identified as a line of code that rounds down instead of up. The impact of this bug can be significant and profitable for an attacker. The protocol team has fixed the issue in their code.",
+    "report_date": "2025-09-16T15:00:00.000Z",
+    "contest_prize_txt": "47000 USDC",
+    "contest_link": "https://app.sherlock.xyz/audits/contests/1154",
+    "sponsor_name": "",
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "",
+    "github_link": "https://github.com/sherlock-audit/2025-09-bmx-deli-swap-judging/issues/203",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "1154",
+    "slug": "m-6-attacker-can-swap-wbtc-in-the-delihook-multiples-times-to-not-pay-pay-less-swap-fees-sherlock-bmx-deli-swap-git",
+    "firm_name": "Sherlock",
+    "firm_logo_square": "sherlock_square.png",
+    "protocol_name": "BMX Deli Swap",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "0x73696d616f"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "0xDyDx"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Sherlock",
+        "logo_square": "sherlock_square.png"
+    },
+    "protocols_protocol": {
+        "name": "BMX Deli Swap",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

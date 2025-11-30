@@ -1,0 +1,45 @@
+{
+    "id": 62617,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 16,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3421,
+    "title": "[L-20] Token collection failure during update leads to mixed accounting",
+    "content": "\n_Resolved_\n\nIn the `MarketplaceAdmin.sol` contract, the `updateAcceptedCurrency()` function attempts to collect pending fees before updating the payment token.\n\nThe issue occurs when the fee collection silently fails (e.g., if the `feeReceiver` is blacklisted or the token contract is paused), but the currency update succeeds. In this case:\n\n- The `totalPendingFees` in `Marketplace.sol` is not reset to zero.\n- New fees collected in the new token will be added to this same counter.\n- This results in mixing accounting for two different tokens in a single variable.\n\nThis becomes particularly problematic when the two tokens have different decimals (e.g., USDC with 6 decimals and WETH with 18 decimals), the admin doesn't notice the issue early, and users continue paying fees in the new token. When `collectFees()` is called again, it will attempt to transfer the combined amount in only the new token, eventually leading to incorrect fee withdrawals or failed transactions.\n\nRecommendations:\nModify the `updateAcceptedCurrency()` function to use a more robust pattern for fee collection.\n\n\n\n",
+    "summary": "",
+    "report_date": "2025-09-11T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/pashov/audits/blob/master/team/md/RipIt-security-review_2025-05-10.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "l-20-token-collection-failure-during-update-leads-to-mixed-accounting-pashov-audit-group-none-ripit_2025-05-10-markdown",
+    "firm_name": "Pashov Audit Group",
+    "firm_logo_square": "Pashov_square.png",
+    "protocol_name": "RipIt_2025-05-10",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Pashov Audit Group"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Pashov Audit Group",
+        "logo_square": "Pashov_square.png"
+    },
+    "protocols_protocol": {
+        "name": "RipIt_2025-05-10",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

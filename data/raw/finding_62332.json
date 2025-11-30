@@ -1,0 +1,45 @@
+{
+    "id": 62332,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 16,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3400,
+    "title": "[L-08] Soft restriction bypass via token transfers",
+    "content": "\n_Acknowledged_\n\nIn the `sdeusd.move` function `add_to_blacklist()` function soft-restricted users are only blocked from direct staking but can receive sdeUSD tokens via transfers, bypassing the restriction entirely.\n\nlets check the **vulnerable code:**\n```move\nif (is_full_blacklisting) {\n    coin::deny_list_v2_add(deny_list, &mut management.deny_cap, target, ctx);\n} else {\n    management.soft_restricted_stakers.add(target);  // Only internal tracking\n    // Missing: deny_list addition for soft restrictions @audit-poc\n}\n```\n\nThis is **how it occurs:**\n1. Alice gets soft-blacklisted (cannot call `deposit()`).\n2. Bob stakes deUSD normally and gets sdeUSD shares.\n3. Bob transfers sdeUSD tokens to Alice via `transfer::public_transfer()`.\n4. Alice successfully increased her stake without triggering restriction checks.\n\nThis means soft restrictions only prevent direct protocol interaction, not token receipt.\n\n**Impact**\n\n**Soft-restricted users can bypass staking restrictions through collusion or token gifts.**\n\n**Recommendation**\n\nAdd soft-restricted users to the coin separate deny list so that direct transfers are also disabled, this way, another user sending sdeUSD to a blacklisted user will not be allowed.\n\n\n\n",
+    "summary": "",
+    "report_date": "2025-09-02T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/pashov/audits/blob/master/team/md/Elixir-security-review_2025-08-17.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "l-08-soft-restriction-bypass-via-token-transfers-pashov-audit-group-none-elixir_2025-08-17-markdown",
+    "firm_name": "Pashov Audit Group",
+    "firm_logo_square": "Pashov_square.png",
+    "protocol_name": "Elixir_2025-08-17",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Pashov Audit Group"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Pashov Audit Group",
+        "logo_square": "Pashov_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Elixir_2025-08-17",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

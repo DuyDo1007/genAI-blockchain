@@ -1,0 +1,45 @@
+{
+    "id": 62601,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 16,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3421,
+    "title": "[L-04] Missing packet type validation in `addCardBundlesToPacketPool()`",
+    "content": "\n_Resolved_\n\nIn the `CardAllocationPool.addCardBundlesToPacketPool()` function, the function is designed to be called by the redeem manager to add cards to a specific packet type's pool as a bundle. However, it does not validate if the `packetType` is a registered type before assigning `cardBundles` to it. This could lead to incorrect data being added to the pool for unregistered or invalid packet types, resulting in inconsistent behavior or potential vulnerabilities.\n\n```solidity\n function addCardBundlesToPacketPool(\n        uint256 packetType,\n        uint256[] memory cardBundles,\n        uint256[] memory packetIds,\n        bytes32 bundleProvenance\n    ) external noPendingRandomness onlyRole(redeemManagerRoleId) {\n        if (cardBundles.length > maxBundleSize) revert CannotExceedMaxBundleSize();\n        if (cardBundles.length != packetIds.length) revert IncorrectLength();\n\n        packetTypeToCardBundles[packetType].push(CardBundle({cardIds: cardBundles, bundleProvenance: bundleProvenance}));\n        //....\n    }\n```\n\nRecommendation:  \nImplement validation to ensure that the `packetType` is registered before adding the `cardBundles` to the pool:\n\n```diff\n function addCardBundlesToPacketPool(\n        uint256 packetType,\n        uint256[] memory cardBundles,\n        uint256[] memory packetIds,\n        bytes32 bundleProvenance\n    ) external noPendingRandomness onlyRole(redeemManagerRoleId) {\n        if (cardBundles.length > maxBundleSize) revert CannotExceedMaxBundleSize();\n        if (cardBundles.length != packetIds.length) revert IncorrectLength();\n+       packetNFTAddress.getPacketTypeInfo(packetType); // @note: it will revert if the packetType is not registerd\n        packetTypeToCardBundles[packetType].push(CardBundle({cardIds: cardBundles, bundleProvenance: bundleProvenance}));\n        //....\n    }\n```\n\n\n\n",
+    "summary": "",
+    "report_date": "2025-09-11T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/pashov/audits/blob/master/team/md/RipIt-security-review_2025-05-10.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "l-04-missing-packet-type-validation-in-addcardbundlestopacketpool-pashov-audit-group-none-ripit_2025-05-10-markdown",
+    "firm_name": "Pashov Audit Group",
+    "firm_logo_square": "Pashov_square.png",
+    "protocol_name": "RipIt_2025-05-10",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Pashov Audit Group"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Pashov Audit Group",
+        "logo_square": "Pashov_square.png"
+    },
+    "protocols_protocol": {
+        "name": "RipIt_2025-05-10",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

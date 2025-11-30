@@ -1,0 +1,45 @@
+{
+    "id": 62522,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 16,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3417,
+    "title": "[L-02] Insufficient validation allows pre-filling data for invalid execution nonces",
+    "content": "\nAs per the documentation, function addInformationForServiceExecution() is mostly intended to be used by the creator to upload the information data about the X post created for a specific proposal (i.e. executionNonce). The issue is here is that the function does not validate the executionNonce to be less than the global `executionNonces` value. This allows the creator or dispute resolver to pre-populate information data for future nonces that are not existent yet. This does not seem to pose an on-chain threat currently, but the function does emit the `ServiceExecutionInformation`, which could be consumed differently by off-chain processes. Such behaviour should be disallowed, as it is not part of the intended flow.\n```solidity\n    function addInformationForServiceExecution(\n        uint256 serviceNonce,\n        uint256 executionNonce,\n        string calldata informationData\n    ) external {\n        VisibilityServicesStorage storage $ = _getVisibilityServicesStorage();\n\n        Service storage service = $.services[serviceNonce];\n        Execution storage execution = service.executions[executionNonce];\n```\n\n\n\n",
+    "summary": "",
+    "report_date": "2025-09-09T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/pashov/audits/blob/master/team/md/Noodles-security-review_2025-03-11.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "l-02-insufficient-validation-allows-pre-filling-data-for-invalid-execution-nonces-pashov-audit-group-none-noodles_2025-03-11-markdown",
+    "firm_name": "Pashov Audit Group",
+    "firm_logo_square": "Pashov_square.png",
+    "protocol_name": "Noodles_2025-03-11",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Pashov Audit Group"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Pashov Audit Group",
+        "logo_square": "Pashov_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Noodles_2025-03-11",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

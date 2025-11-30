@@ -1,0 +1,125 @@
+{
+    "id": 62727,
+    "kind": "GIT",
+    "auditfirm_id": 3,
+    "impact": "MEDIUM",
+    "finders_count": 17,
+    "protocol_id": 3324,
+    "title": "M-4: Blacklist can be completely bypassed on outHere endpoint in mTokenGateway",
+    "content": "\nSource: https://github.com/sherlock-audit/2025-07-malda-judging/issues/96 \n\n## Found by \n0xEkko, 0xKann, 5am, 8olidity, JeRRy0422, Kvar, PeterSR, TopStar, ZanyBonzy, Ziusz, blockace, bulgari, cergyk, dimulski, gh0xt, joicygiore, kelvinclassic11\n\n### Description\n\nThe mTokenGateway exposes the `outHere` endpoint to allow withdrawal on an extension chain. This endpoint is protected by two `ifNotBlacklisted` modifiers:\n\n[mTokenGateway.sol#L254-L262](https://github.com/sherlock-audit/2025-07-malda/blob/main/malda-lending/src/mToken/extension/mTokenGateway.sol#L254-L262):\n```solidity\n    /**\n     * @inheritdoc ImTokenGateway\n     */\n    function outHere(bytes calldata journalData, bytes calldata seal, uint256[] calldata amounts, address receiver)\n        external\n        notPaused(OperationType.AmountOutHere)\n        ifNotBlacklisted(msg.sender)\n        ifNotBlacklisted(receiver)\n    {\n```\n\nUnfortunately both can be bypassed, because:\n1. `msg.sender` can be any address in `allowedCallers` for the `_sender` in the journal data \n2. receiver value passed to the endpoint is overwritten by `_sender` in `_outHere`:\n\n    [mTokenGateway.sol#L281-L286](https://github.com/sherlock-audit/2025-07-malda/blob/main/malda-lending/src/mToken/extension/mTokenGateway.sol#L281-L286):\n    ```solidity\n        function _outHere(bytes memory journalData, uint256 amount, address receiver) internal {\n            (address _sender, address _market,, uint256 _accAmountOut, uint32 _chainId, uint32 _dstChainId,) =\n                mTokenProofDecoderLib.decodeJournal(journalData);\n\n\n            // temporary overwrite; will be removed in future implementations\n            receiver = _sender;\n    ```\n\nSo a blacklisted user can still use `outHere` to withdraw their funds.\n\n### Recommendation\n\nAdd an additional check for _sender to not be in blacklist:\n\n[mTokenGateway.sol#L281-L286](https://github.com/sherlock-audit/2025-07-malda/blob/main/malda-lending/src/mToken/extension/mTokenGateway.sol#L281-L286):\n```diff\n    function _outHere(bytes memory journalData, uint256 amount, address receiver) internal {\n        (address _sender, address _market,, uint256 _accAmountOut, uint32 _chainId, uint32 _dstChainId,) =\n            mTokenProofDecoderLib.decodeJournal(journalData);\n\n\n        // temporary overwrite; will be removed in future implementations\n        receiver = _sender;\n+       require (!blacklistOperator.isBlacklisted(_sender), mTokenGateway_UserBlacklisted());\n```\n\n\n## Discussion\n\n**sherlock-admin2**\n\nThe protocol team fixed this issue in the following PRs/commits:\nhttps://github.com/malda-protocol/malda-lending/pull/112\n\n\n**CergyK**\n\nFix looks good\n\n\n\n",
+    "summary": "\nThe bug report discusses a vulnerability in the mTokenGateway code, which is used for withdrawing funds on an extension chain. The endpoint that allows for this withdrawal is supposed to be protected by two modifiers, but they can be bypassed due to a flaw in the code. This means that a blacklisted user can still use the endpoint to withdraw their funds. The report recommends adding an additional check to prevent this from happening. The issue has already been fixed by the protocol team in a recent update.",
+    "report_date": "2025-08-14T17:00:00.000Z",
+    "contest_prize_txt": "80000 USDC",
+    "contest_link": "https://app.sherlock.xyz/audits/contests/1029",
+    "sponsor_name": "",
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "",
+    "github_link": "https://github.com/sherlock-audit/2025-07-malda-judging/issues/96",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "1029",
+    "slug": "m-4-blacklist-can-be-completely-bypassed-on-outhere-endpoint-in-mtokengateway-sherlock-malda-git",
+    "firm_name": "Sherlock",
+    "firm_logo_square": "sherlock_square.png",
+    "protocol_name": "Malda",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "cergyk"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "TopStar"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "8olidity"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "ZanyBonzy"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "kelvinclassic11"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "dimulski"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "bulgari"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "joicygiore"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Kvar"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "0xEkko"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "5am"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "blockace"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "PeterSR"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "JeRRy0422"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Ziusz"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "0xKann"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "gh0xt"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Sherlock",
+        "logo_square": "sherlock_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Malda",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

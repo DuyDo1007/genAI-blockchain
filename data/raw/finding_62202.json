@@ -1,0 +1,50 @@
+{
+    "id": 62202,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 11,
+    "impact": "LOW",
+    "finders_count": 2,
+    "protocol_id": 3392,
+    "title": "Missing check if `receiver` is whitelisted in `StakingVault::mint, deposit`",
+    "content": "**Description:** `StakingVault::mint, deposit` only validates that `msg.sender` is whitelisted but fails to check if the receiver parameter is whitelisted. Since non-whitelisted addresses cannot withdraw, redeem, or transfer shares, any shares minted to non-whitelisted receivers become permanently locked and unusable.\n```solidity\n function mint(\n        uint256 shares,\n        address receiver //@audit receiver could be not whitelisted?\n    ) public override onlyWhitelisted(msg.sender) returns (uint256 assets) {\n        ...\n    }\n```\n\n**Impact:** Permanent loss of user funds or temporary if owner give whitelisted permissions.\n\n**Proof of Concept:** Run the next proof of concept in `StakingVault.sol`:\n```solidity\nfunction test_mint_non_whitelist_receiver() public {\n        uint256 amount = 100 ether;\n\n        vm.startPrank(user1);\n        asset.approve(address(vault), amount);\n\n        //create a non whitelisted receiver\n        address bob = makeAddr(\"receiver\");\n\n        // 1. Alice (whitelisted) mints shares to Bob (non-whitelisted)\n        vault.mint(1000 * 1e8, bob); // Success - only checks Alice is whitelisted\n\n        vm.stopPrank();\n\n        // 2. Bob tries to withdraw - REVERTS\n        vm.prank(bob);\n        vault.withdraw(1000 * 1e8, bob, bob); // Reverts: not whitelisted\n        // Result: 1000 shares worth of HilBTC permanently locked\n    }\n\n```\n\n**Recommended Mitigation:** Add a whitelist check for the receiver in the mint() function:\n\n```diff\nfunction mint(\n    uint256 shares,\n    address receiver\n+ ) public override onlyWhitelisted(msg.sender) onlyWhitelisted(receiver) returns (uint256 assets) {\n-   ) public override onlyWhitelisted(msg.sender) returns (uint256 assets) {\n ...\n}\n// Similar fix to `deposit`\n```\n\n**Syntetika:**\nFixed in commit [86384fe](https://github.com/SyntetikaLabs/monorepo/commit/86384fe1504780338649d25f720fb78b25132875) by removing the whitelist functionality entirely from `StakingVault` to resolve finding L-4.\n\n**Cyfrin:** Verified.",
+    "summary": "",
+    "report_date": "2025-08-01T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/solodit/solodit_content/blob/main/reports/Cyfrin/2025-08-01-cyfrin-syntetika-v2.0.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "missing-check-if-receiver-is-whitelisted-in-stakingvaultmint-deposit-cyfrin-none-syntetika-markdown",
+    "firm_name": "Cyfrin",
+    "firm_logo_square": "Cyfrin_square.jpg",
+    "protocol_name": "Syntetika",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Dacian"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Jorge"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Cyfrin",
+        "logo_square": "Cyfrin_square.jpg"
+    },
+    "protocols_protocol": {
+        "name": "Syntetika",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

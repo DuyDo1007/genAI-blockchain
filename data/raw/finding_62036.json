@@ -1,0 +1,60 @@
+{
+    "id": 62036,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 37,
+    "impact": "HIGH",
+    "finders_count": 4,
+    "protocol_id": 3368,
+    "title": "Signature Replay Attack Possible Between Stake, Unstake and Reward Functions Enabling Unauthorized Token Claims",
+    "content": "**Update**\nMarked as \"Fixed\" by the client. Addressed in: `fa79159`.\n\n![Image 30: Alert icon](https://certificate.quantstamp.com/full/sapien/ffb7e698-6178-46f0-8df8-52e537af70c0/static/media/success-icon-alert.4e26c8d3b65fdf9f4f0789a4086052ba.svg)\n\n**Update**\nMarked as \"Fixed\" by the client. Addressed in: `4ba050c5db3fe00d6c39cad790a6d95834e2a624`. The client provided the following explanation:\n\n> The vulnerability was fixed by implementing EIP-712 typed structured data signing in both contracts.\n\n![Image 31: Alert icon](https://certificate.quantstamp.com/full/sapien/ffb7e698-6178-46f0-8df8-52e537af70c0/static/media/success-icon-alert.4e26c8d3b65fdf9f4f0789a4086052ba.svg)\n\n**Update**\nMarked as \"Fixed\" by the client. Addressed in: `4ba050c5db3fe00d6c39cad790a6d95834e2a624`. The client provided the following explanation:\n\n> The vulnerability was fixed by implementing EIP-712 typed structured data signing in both contracts.\n\n**File(s) affected:**`SapienStaking.sol`, `Rewards.sol`\n\n**Description:** A critical signature replay vulnerability exists in the `SapienRewards` and `SapienStaking` contracts. The `verifyOrder()` function in both contracts uses the same signature format and validation logic:\n\n```\nbytes32 messageHash = keccak256(abi.encodePacked(userWallet, rewardAmount, orderId));\n```\n\nThis allows signatures to be reused across different contract functions. Specifically:\n\n1.   A signature generated for staking tokens can be replayed to claim rewards in the `SapienRewards` contract\n2.   The same signature can also be replayed multiple times for staking and unstaking within `SapienStaking`\n\nThis means an attacker who obtains a valid signature meant for staking could:\n\n*   Use it to claim unauthorized rewards from `SapienRewards`\n*   Drain tokens through repeated unstaking operations (see [SAP-1](https://certificate.quantstamp.com/full/sapien/ffb7e698-6178-46f0-8df8-52e537af70c0/index.html#findings-qs1))\n*   Accidentally overwrite existing staking positions, causing themselves to lose their staked tokens\n\nThe vulnerability allows:\n\n*   Unauthorized claiming of rewards using stake signatures\n*   Multiple drains of the same stake amount\n*   Overwriting of legitimate user stakes\n\n**Exploit Scenario:**\n\n Attacker claims to want to stake 1000 tokens and requests a signed order:\n\n*   userWallet: attacker address\n*   amount: 1000 tokens \n*   orderId: \"ORDER_1000_1\"\n*   signature: signed by sapienAddress for staking\n\n1.   Other than claimed the attacker use the signature in SapienRewards: claimReward(1000, \"ORDER_1000_1\", signature)\n\n2.   The transaction succeeds because:\n\n    *   msg.sender matches the userWallet in the signature\n    *   The amount matches\n    *   The orderId hasn't been used in SapienRewards\n    *   The signature verification passes since it contains the same parameters\n\n3.   Result: Attacker claims 1000 tokens in rewards using a signature that was only intended for staking\n\n**Recommendation:** 1. Implement EIP-712 typed structured data signing-\n\n1.   Track used orders to prevent replay.\n\nThis fix should be implemented in both contracts to prevent cross-contract and cross-function replay attacks.",
+    "summary": "\nThis bug report is about a vulnerability found in the SapienRewards and SapienStaking contracts. These contracts have a function called \"verifyOrder()\" which uses the same signature format and validation logic. This allows an attacker to reuse signatures across different contract functions, allowing them to claim unauthorized rewards and drain tokens. The report also includes an exploit scenario where an attacker could use a signature meant for staking to claim rewards. The recommendation is to implement a fix called EIP-712 typed structured data signing and to track used orders to prevent replay attacks.",
+    "report_date": "2025-03-30T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://certificate.quantstamp.com/full/sapien/ffb7e698-6178-46f0-8df8-52e537af70c0/index.html",
+    "sponsor_name": "",
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://certificate.quantstamp.com/full/sapien/ffb7e698-6178-46f0-8df8-52e537af70c0/index.html",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "signature-replay-attack-possible-between-stake-unstake-and-reward-functions-enabling-unauthorized-token-claims-quantstamp-sapien-markdown",
+    "firm_name": "Quantstamp",
+    "firm_logo_square": "quantstamp_square.png",
+    "protocol_name": "Sapien",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Paul Clemson"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Julio Aguilar"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Mostafa Yassin"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Tim Sigl"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Quantstamp",
+        "logo_square": "quantstamp_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Sapien",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

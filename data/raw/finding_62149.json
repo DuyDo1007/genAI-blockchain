@@ -1,0 +1,60 @@
+{
+    "id": 62149,
+    "kind": "PDF",
+    "auditfirm_id": 6,
+    "impact": "LOW",
+    "finders_count": 4,
+    "protocol_id": 3384,
+    "title": "A malicious amm can rewrite another AMM's market account",
+    "content": "## Security Analysis Report\n\n## Severity: Low Risk\n\n### Context\n`MiscModule.sol#L98-L103`\n\n### Description\nIn `setAMMIdToAcc`, there is no check to make sure the AMM address provided by the master admin comes from a group of verified AMM addresses. If a rogue AMM address is accidentally provided to this endpoint, it can return any values when its `AMM_ID()` and `SELF_ACC()` are called, potentially overriding values belonging to other AMM addresses.\n\n### Recommendation\nIt would be best to add a check to ensure the AMM address provided belongs to a set of verified addresses. For example, one can check that this address was created using the AMMFactory's create endpoint:\n\n- Computing addresses using nonces of AMMFactory or...\n- AMMFactory can keep a registry of its created AMM which can be queried by other contracts.\n\n### Footnote\nIt would also be best in this function to check whether the market connected to the AMM is one of the markets registered in the market hub (or deployed by the market factory). This check is also missing when creating an AMM through the `AMMFactory.create`.\n\n### Acknowledgments\n- **Pendle Finance:** Acknowledged.\n- **Spearbit:** Acknowledged.",
+    "summary": "",
+    "report_date": "2025-08-22T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Pendle-Spearbit-Security-Review-August-2025.pdf",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Pendle-Spearbit-Security-Review-August-2025.pdf",
+    "github_link": "",
+    "pdf_link": "https://solodit-bucket.s3.amazonaws.com/storage/reports/spearbit/Pendle-Spearbit-Security-Review-August-2025.pdf",
+    "pdf_page_from": 15,
+    "contest_id": "",
+    "slug": "a-malicious-amm-can-rewrite-another-amms-market-account-spearbit-none-pendle-core-v3-pdf",
+    "firm_name": "Spearbit",
+    "firm_logo_square": "spearbit_square.png",
+    "protocol_name": "Pendle Core v3",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Saw-mon and Natalie"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Ethan"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Desmond Ho"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "RustyRabbit"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Spearbit",
+        "logo_square": "spearbit_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Pendle Core v3",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

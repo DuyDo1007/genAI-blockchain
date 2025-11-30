@@ -1,0 +1,60 @@
+{
+    "id": 62899,
+    "kind": "PDF",
+    "auditfirm_id": 6,
+    "impact": "MEDIUM",
+    "finders_count": 4,
+    "protocol_id": 3419,
+    "title": "Block stufﬁng via transactions with large calldata",
+    "content": "## Medium Risk Report\n\n## Context \n`mod.rs#L370-L376`\n\n## Description\n```rust\nlet tx_size = tx.size();\nif total_size\n    .checked_add(tx_size)\n    .is_none_or(|new_total_size| new_total_size > proposal_byte_limit)\n{\n    return TrackedTxHeapDrainAction::Skip;\n}\n```\n\nMonadBFT enforces a maximum size for block proposals when constructing a proposal from the mempool. As per the latest `CHAIN_PARAMS_V_0_8_0` revision, the relevant parameters are:\n\n```rust\nconst CHAIN_PARAMS_V_0_8_0: ChainParams = ChainParams {\n    tx_limit: 5_000,\n    proposal_gas_limit: 150_000_000,\n    proposal_byte_limit: 2_000_000,\n    vote_pace: Duration::from_millis(500),\n};\n```\n\nCurrently it is possible to occupy the full block space while paying only ~5% of the maximum 150_000_000 gas limit by including a transaction with only zero bytes. The minimum gas consumed by the transaction would be 21,000 + 2,000,000 * 4 = 8,021,000 (21,000 + 2,000,000 * 10 = 20,021,000 (= ~13%) if Prague data floor gas is enabled), enabling cheaper block stuffing attacks.\n\nAdditionally, when dynamic EIP-1559 block base fee is implemented, the gas consumed will be significantly lower than the target gas limit (assuming target gas limit = 50% of maximum gas limit = 75,000,000), resulting in decreasing base fee over time.\n\n## Recommendation\nThis requires either rethinking the `proposal_gas_limit` versus the `proposal_byte_limit` to constrain the amount of calldata that can fit within the `proposal_byte_limit` or changing the calldata gas cost to ensure that the maximum calldata sent is less than `proposal_byte_limit`.\n\n## Category Labs\nThis is expected behaviour currently. We're aware the current proposal construction algorithm is suboptimal (ignores the fact that it is now a multi-dimensional knapsack problem). Improving it is on our roadmap. We have a relatively simple modified sorting algorithm that could help mitigate worst cases, but we'll likely explore better options.\n\n## Spearbit\nAcknowledged.",
+    "summary": "\nThis bug report discusses a vulnerability in the MonadBFT blockchain system that allows for cheaper block stuffing attacks. The issue arises when a transaction with zero bytes is included in a block proposal, resulting in a significantly lower gas cost than the maximum limit. This can be exploited when dynamic EIP-1559 block base fee is implemented, causing the base fee to decrease over time. The report recommends rethinking the proposal gas limit or changing the calldata gas cost to prevent this vulnerability. The issue is currently being addressed by the developers and improvements to the proposal construction algorithm are planned for the future.",
+    "report_date": "2025-09-19T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Monad-Spearbit-Security-Review-September-2025.pdf",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Monad-Spearbit-Security-Review-September-2025.pdf",
+    "github_link": "",
+    "pdf_link": "https://solodit-bucket.s3.amazonaws.com/storage/reports/spearbit/Monad-Spearbit-Security-Review-September-2025.pdf",
+    "pdf_page_from": 26,
+    "contest_id": "",
+    "slug": "block-stuffing-via-transactions-with-large-calldata-spearbit-none-monad-pdf",
+    "firm_name": "Spearbit",
+    "firm_logo_square": "spearbit_square.png",
+    "protocol_name": "Monad",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Haxatron"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Dtheo"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Guido Vranken"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Rikard Hjort"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Spearbit",
+        "logo_square": "spearbit_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Monad",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

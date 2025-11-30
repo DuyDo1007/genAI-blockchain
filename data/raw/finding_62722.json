@@ -1,0 +1,45 @@
+{
+    "id": 62722,
+    "kind": "PDF",
+    "auditfirm_id": 9,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3439,
+    "title": "Missing chain ID veriﬁcation in L2 leader chain to L1 message ﬂow",
+    "content": "## Description\n\nThe _checkOwner function in the ImmutableCrossChainOwnable contract lacks chain ID validation when processing cross-chain messages from an L2 leader chain to the L1 chain, creating a potential vulnerability in the ownership verification system.\n\nThe function implements different validation logic based on the sender. Case 4 specifically handles L2-to-L1 cross-chain messages when the leader chain is an L2, verifying that the sender is the `L1CrossChainMessengerForLeaderChain`. This messenger address is set during initialization, and the implementation assumes the current execution is occurring on the L1 chain.\n\n```solidity\n// Case 4: L2 to L1 cross-chain message from owner when the leader chain is L2\nif (sender == $._l1CrossDomainMessengerForLeaderChain) {\n    address l2Sender = ICrossDomainMessenger(sender).xDomainMessageSender();\n    bool fromOwner = l2Sender == $._owner;\n    bool fromLeaderChain = true; // True given that the sender is the L1 cross domain messenger for the leader chain\n    if (fromOwner && fromLeaderChain) {\n        return;\n    }\n    // Unauthorized L2-L1 cross-chain message\n    revert ImmutableCrossChainOwnableUnauthorizedAccount(l2Sender, $._leaderChainId);\n}\n```\n\n_Figure 2.1: Excerpt of the _checkOwner function in ImmutableCrossChainOwnable.sol_\n\nHowever, the function does not verify that the value of `block.chainId` is equal to the value of `_l1ChainId`, which creates a security gap. While the `L1CrossChainMessengerForLeaderChain` is a trusted contract with specific behavior on the L1 chain, there is no guarantee that the same address on another L2 chain contains identical code. An attacker could deploy malicious code at the messenger's address on a different L2 chain and exploit this oversight to bypass ownership verification.\n\n## Recommendations\n\n- **Short term:** Add an explicit check in case 4 of the _checkOwner function to verify that `block.chainId` is equal to `_l1ChainId` when validating L2-to-L1 messages.\n- **Long term:** Implement comprehensive test coverage for chain ID validation across all cross-chain communication paths.",
+    "summary": "",
+    "report_date": "2025-05-02T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://github.com/trailofbits/publications/blob/master/reviews/2025-05-shapenetwork-token-securityreview.pdf",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/trailofbits/publications/blob/master/reviews/2025-05-shapenetwork-token-securityreview.pdf",
+    "github_link": "",
+    "pdf_link": "https://solodit-bucket.s3.amazonaws.com/storage/reports/trailofbits/2025-05-shapenetwork-token-securityreview.pdf",
+    "pdf_page_from": 13,
+    "contest_id": "",
+    "slug": "missing-chain-id-verification-in-l2-leader-chain-to-l1-message-flow-trailofbits-none-shape-token-contract-pdf",
+    "firm_name": "TrailOfBits",
+    "firm_logo_square": "trailofbits_square.png",
+    "protocol_name": "Shape Token Contract",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Quan Nguyen Trail of Bits PUBLIC"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "TrailOfBits",
+        "logo_square": "trailofbits_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Shape Token Contract",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

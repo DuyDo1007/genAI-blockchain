@@ -1,0 +1,55 @@
+{
+    "id": 62029,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 37,
+    "impact": "MEDIUM",
+    "finders_count": 3,
+    "protocol_id": 3367,
+    "title": "Missing Expiration Check when Adding to Existing Stake Allows Timelock Bypass",
+    "content": "**Update**\nMarked as \"Fixed\" by the client. Addressed in: `ffda07756c53963c20a254c11c97f6809d08cfaf`.\n\n**File(s) affected:**`SapienVault.sol`\n\n**Description:** The `stake()` and `increaseAmount()` functions allow users to add tokens to stakes without validation that the initial stake's lockup period has not ended. This can allow for some stakes where the new `weightedStartTime + effectiveLockUpPeriod < block.timestamp` meaning the stake is immediately unlocked. This allows users to benefit from an increased multiplier while being able to unlock their tokens at any time.\n\n**Recommendation:** Consider checking if a user's existing stake has expired before allowing them to add additional tokens via `stake()` or `increaseAmount()` functions. Alternatively, reset the weighted start time to the current timestamp when adding to expired stakes.",
+    "summary": "\nThe client has marked a bug as \"Fixed\" in the `SapienVault.sol` file. The issue was that the `stake()` and `increaseAmount()` functions did not properly validate the lockup period for adding tokens to a stake. This could result in some stakes being immediately unlocked, allowing users to benefit from a higher multiplier while still being able to withdraw their tokens at any time. The recommendation is to check if a user's existing stake has expired before allowing them to add more tokens, or to reset the start time if the stake has expired.",
+    "report_date": "2025-07-02T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://certificate.quantstamp.com/full/sapien-2/9f938662-5bf7-4dc3-8774-3e7a12204cc3/index.html",
+    "sponsor_name": "",
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://certificate.quantstamp.com/full/sapien-2/9f938662-5bf7-4dc3-8774-3e7a12204cc3/index.html",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "missing-expiration-check-when-adding-to-existing-stake-allows-timelock-bypass-quantstamp-sapien-2-markdown",
+    "firm_name": "Quantstamp",
+    "firm_logo_square": "quantstamp_square.png",
+    "protocol_name": "Sapien - 2",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Paul Clemson"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Julio Aguilar"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Tim Sigl"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Quantstamp",
+        "logo_square": "quantstamp_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Sapien - 2",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

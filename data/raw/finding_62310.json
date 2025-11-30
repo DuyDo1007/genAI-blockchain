@@ -1,0 +1,55 @@
+{
+    "id": 62310,
+    "kind": "PDF",
+    "auditfirm_id": 6,
+    "impact": "LOW",
+    "finders_count": 3,
+    "protocol_id": 3396,
+    "title": "Inconstant health factor inequality boundary checks",
+    "content": "## Severity: Low Risk\n\n## Context\n- `ValidationLogic.sol#L201`\n- `MiniPoolValidationLogic.sol#L202-L205`\n\n## Description\nIn other checks regarding healthy positions the inequality is not strict, but in this context a strict inequality is checked.\n\n```solidity\nrequire(\n    vars.healthFactor > /*...*/ PoolGenericLogic.HEALTH_FACTOR_LIQUIDATION_THRESHOLD,\n    Errors.VL_HEALTH_FACTOR_LOWER_THAN_LIQUIDATION_THRESHOLD\n);\n```\n\n## Recommendation\nMake sure all the inequality checks are consistent or provide a comment/reason as to why it is different in this case.\n\n## Astera\nFixed in commit `1eb7b435`.\n\n## Spearbit\nFix verified.",
+    "summary": "",
+    "report_date": "2025-08-29T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Astera-Spearbit-Security-Review-December-2024.pdf",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Astera-Spearbit-Security-Review-December-2024.pdf",
+    "github_link": "",
+    "pdf_link": "https://solodit-bucket.s3.amazonaws.com/storage/reports/spearbit/Astera-Spearbit-Security-Review-December-2024.pdf",
+    "pdf_page_from": 37,
+    "contest_id": "",
+    "slug": "inconstant-health-factor-inequality-boundary-checks-spearbit-none-astera-pdf",
+    "firm_name": "Spearbit",
+    "firm_logo_square": "spearbit_square.png",
+    "protocol_name": "Astera",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Saw-mon and Natalie"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Cergyk"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Jonatas Martins"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Spearbit",
+        "logo_square": "spearbit_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Astera",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

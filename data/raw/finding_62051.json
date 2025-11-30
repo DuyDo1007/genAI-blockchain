@@ -1,0 +1,60 @@
+{
+    "id": 62051,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 37,
+    "impact": "LOW",
+    "finders_count": 4,
+    "protocol_id": 3368,
+    "title": "Boolean State of `VestingSchedule.revoked` Never Modified",
+    "content": "**Update**\nMarked as \"Fixed\" by the client. Addressed in: `cb094f8`.\n\n![Image 90: Alert icon](https://certificate.quantstamp.com/full/sapien/ffb7e698-6178-46f0-8df8-52e537af70c0/static/media/success-icon-alert.4e26c8d3b65fdf9f4f0789a4086052ba.svg)\n\n**Update**\nMarked as \"Fixed\" by the client. Addressed in: `8a0a205de922c611702750e4c9a57e9503f409cc`. The client provided the following explanation:\n\n> VestingSchedule.revoked removed from the token contract.\n\n![Image 91: Alert icon](https://certificate.quantstamp.com/full/sapien/ffb7e698-6178-46f0-8df8-52e537af70c0/static/media/success-icon-alert.4e26c8d3b65fdf9f4f0789a4086052ba.svg)\n\n**Update**\nMarked as \"Fixed\" by the client. Addressed in: `8a0a205de922c611702750e4c9a57e9503f409cc`. The client provided the following explanation:\n\n> VestingSchedule.revoked removed from the token contract.\n\n**File(s) affected:**`SapTestToken.sol`\n\n**Description:** The `revoked` field in the `VestingSchedule` struct is present but can never be set to true as there are no functions that modify this state variable. This creates dead code and may indicate missing functionality for revoking vesting schedules.\n\n**Recommendation:** Consider removing this unused code if there are no plans to use its functionality in the codebase.",
+    "summary": "",
+    "report_date": "2025-03-30T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://certificate.quantstamp.com/full/sapien/ffb7e698-6178-46f0-8df8-52e537af70c0/index.html",
+    "sponsor_name": "",
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://certificate.quantstamp.com/full/sapien/ffb7e698-6178-46f0-8df8-52e537af70c0/index.html",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "boolean-state-of-vestingschedulerevoked-never-modified-quantstamp-sapien-markdown",
+    "firm_name": "Quantstamp",
+    "firm_logo_square": "quantstamp_square.png",
+    "protocol_name": "Sapien",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Paul Clemson"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Julio Aguilar"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Mostafa Yassin"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Tim Sigl"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Quantstamp",
+        "logo_square": "quantstamp_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Sapien",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

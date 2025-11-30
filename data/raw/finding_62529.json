@@ -1,0 +1,155 @@
+{
+    "id": 62529,
+    "kind": "GIT",
+    "auditfirm_id": 2,
+    "impact": "MEDIUM",
+    "finders_count": 23,
+    "protocol_id": 3373,
+    "title": "[M-01] Same heartbeat for multiple price feeds is vulnerable",
+    "content": "\n\n<https://github.com/code-423n4/2025-08-morpheus/blob/d275e9035b7e703efe26cdee6543e78f452774bb/contracts/capital-protocol/ChainLinkDataConsumer.sol# L91>\n\n### Finding description and impact\n\n`ChainLinkDataConsumer` uses the same heartbeat `allowedPriceUpdateDelay` for multiple feeds when checking if the data feed is fresh. The issue with this is that the [USDC/USD](https://data.chain.link/ethereum/mainnet/stablecoins/usdc-usd) oracle has a 24 hour heartbeat, whereas the [average](https://data.chain.link/ethereum/mainnet/crypto-usd/eth-usd) has a heartbeat of 1 hour. Since they use the same heartbeat, the heartbeat needs to be slower of the two or else the contract would be nonfunctional most of the time. The issue is that it would allow the consumption of potentially very stale data from the non-USDC feed.\n\nImpact is that either near constant downtime or insufficient staleness checks will happen.\n\n### Recommended Mitigation Steps\n\nUse individual heartbeat periods\n\nref:\ncode423n4 mentioned this on Aug 5, 2023\n\nUsing the same heartbeat for all Chainlink feeds will either result in frequent reverts or stale prices: code-423n4/2023-07-tapioca-findings# 1505\n\n---\n\n",
+    "summary": "\nThe `ChainLinkDataConsumer` contract has a bug where it uses the same time interval for checking the freshness of data from multiple data feeds. This means that the contract may sometimes use very old data for calculations, leading to incorrect results. To fix this, the recommended solution is to use different time intervals for each data feed. This bug was reported by code423n4 on August 5, 2023.",
+    "report_date": "2025-09-11T00:00:00.000Z",
+    "contest_prize_txt": "20000",
+    "contest_link": "https://code4rena.com/reports/2025-08-morpheus",
+    "sponsor_name": "Morpheus",
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://code4rena.com/reports/2025-08-morpheus",
+    "github_link": "https://code4rena.com/audits/2025-08-morpheus/submissions/F-22",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "520",
+    "slug": "m-01-same-heartbeat-for-multiple-price-feeds-is-vulnerable-code4rena-morpheus-morpheus-git",
+    "firm_name": "Code4rena",
+    "firm_logo_square": "code4rena_square.png",
+    "protocol_name": "Morpheus",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "newspacexyz"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "honey-k12"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "natachi"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "0xDemon"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Olugbenga"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "ZanyBonzy"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "oxchsyston"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "KlosMitSoss"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "slowbugmayor"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "boredpukar"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "hrmneffdii"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "queen"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "dd0x7e8"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "0xgh0st"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "rashmor"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Yaneca\\_b"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "dimulski"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "ironsidesec"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "vesko210"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "ZeroEx"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "0xVI"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "itsravin0x"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "dimah7"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Code4rena",
+        "logo_square": "code4rena_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Morpheus",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

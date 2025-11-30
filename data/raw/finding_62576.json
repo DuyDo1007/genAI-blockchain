@@ -1,0 +1,45 @@
+{
+    "id": 62576,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 16,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3420,
+    "title": "[L-18] No storage gap in `RoleBasedAccessControl` contract",
+    "content": "\n_Resolved_\n\nThe `RoleBasedAccessControl` contract, which inherits from `Initializable`, `ERC1155Upgradeable`, and `UUPSUpgradeable`, defines state variables such as `pendingSuperAdmin` and `roleTransferExpiry`.\n\n```solidity\ncontract RoleBasedAccessControl is Initializable, ERC1155Upgradeable, UUPSUpgradeable {\n    /// @dev ID for the super admin role that has full system access\n    uint256 public constant SUPER_ADMIN_ROLE = 1;\n    /// @dev ID for the role manager role that can assign/revoke other roles\n    uint256 public constant ROLE_MANAGER_ROLE = 2;\n    /// @dev Time window during which a super admin role transfer must be accepted\n    uint256 public constant ROLE_TRANSFER_EXPIRY_DEADLINE = 2 days;\n\n    /// @dev Address that is proposed to become the new super admin\n    address public pendingSuperAdmin;\n    /// @dev Timestamp when the current super admin role transfer expires\n    uint256 public roleTransferExpiry;\n```\n\n**However, it does not implement a storage gap or namespace layout as recommended by best practices for upgradeable contracts.** \n\nWhile this omission does not cause immediate issues, since no contracts currently inherit from `RoleBasedAccessControl`, it is still strongly recommended to include a storage gap. Adding a storage gap proactively helps prevent potential storage collisions in future development, especially if the contract is later inherited.\n\n\n\n",
+    "summary": "",
+    "report_date": "2025-09-11T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/pashov/audits/blob/master/team/md/RipIt-security-review_2025-04-25.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "l-18-no-storage-gap-in-rolebasedaccesscontrol-contract-pashov-audit-group-none-ripit_2025-04-25-markdown",
+    "firm_name": "Pashov Audit Group",
+    "firm_logo_square": "Pashov_square.png",
+    "protocol_name": "RipIt_2025-04-25",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Pashov Audit Group"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Pashov Audit Group",
+        "logo_square": "Pashov_square.png"
+    },
+    "protocols_protocol": {
+        "name": "RipIt_2025-04-25",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

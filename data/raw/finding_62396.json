@@ -1,0 +1,45 @@
+{
+    "id": 62396,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 34,
+    "impact": "HIGH",
+    "finders_count": 1,
+    "protocol_id": 3405,
+    "title": "[LOGLAB-13] The strategy does not pause when the deviation of sizeDeltaInTokens exceeds the threshold",
+    "content": "**Severity:** High\n\n**Description:** The function `BasisStrategy._afterDecreasePosition()` is called after the hedge position is decreased. This function returns a boolean value, `shouldPause`, to indicate whether the strategy should pause.  \n\nTo determine the value of `shouldPause`, the function checks whether the deviations of `sizeDeltaInTokens` and `collateralDeltaAmount` between the response and request exceed a specific threshold. If either deviation exceeds the threshold, `shouldPause` should be set to `true`.  \n\nFor the parameter `sizeDeltaInTokens`, `shouldPause` is correctly set to `true` in line 950 if `exceedsThreshold == true` and `sizeDeviation < 0`. However, for the parameter `collateralDeltaAmount`, `shouldPause` is incorrectly set to exceedsThreshold in line 979. This behavior is incorrect because the value of `shouldPause` gets overwritten, even if it was already set to `true` due to the sizeDeltaInTokens deviation check. \n\nAs a result, the strategy will not pause even when the `sizeDeltaInTokens` deviation exceeds the threshold. \n```\n    if (requestParams.collateralDeltaAmount > 0) {\n        (bool exceedsThreshold,) = _checkDeviation(\n            responseParams.collateralDeltaAmount, requestParams.collateralDeltaAmount, _responseDeviationThreshold\n        );\n        shouldPause = exceedsThreshold;\n    }\n```\n\n\n**Remediation:**  Consider modifying the update as follows: \n```\nshouldPause = shouldPause | exceedsThreshold;\n```\n\n**Status:**  Fixed\n\n\n- - -",
+    "summary": "\nThe reported bug is in the function `BasisStrategy._afterDecreasePosition()`, which is used to determine if the strategy should pause after decreasing the hedge position. The function checks for deviations in two parameters, `sizeDeltaInTokens` and `collateralDeltaAmount`, and sets a boolean value, `shouldPause`, accordingly. However, there is a mistake in the code for `collateralDeltaAmount` where `shouldPause` is incorrectly set, overwriting the correct value set for `sizeDeltaInTokens`. This means that the strategy will not pause even when the `sizeDeltaInTokens` deviation exceeds the threshold. The suggested fix is to modify the code to `shouldPause = shouldPause | exceedsThreshold`. The bug has been fixed.",
+    "report_date": "2024-11-25T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/solodit/solodit_content/blob/main/reports/Hexens/2024-11-25-BasisOS.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "loglab-13-the-strategy-does-not-pause-when-the-deviation-of-sizedeltaintokens-exceeds-the-threshold-hexens-none-basisos-markdown",
+    "firm_name": "Hexens",
+    "firm_logo_square": "Hexens_square.png",
+    "protocol_name": "Basisos",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Hexens"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Hexens",
+        "logo_square": "Hexens_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Basisos",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

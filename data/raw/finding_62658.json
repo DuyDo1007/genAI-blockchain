@@ -1,0 +1,45 @@
+{
+    "id": 62658,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 23,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 875,
+    "title": "Unused Imports: EVMScriptCreator.sol and IValidatorsExitBusOracle.sol",
+    "content": "##### Description\nIn `SubmitExitRequestHashesUtils.sol`, the following imports are declared but never used within the library:\n\n```solidity=\nimport \"../libraries/EVMScriptCreator.sol\";\nimport \"../interfaces/IValidatorsExitBusOracle.sol\";\n```\n\nThese files are not referenced in any function or type within the current implementation of the library.\n\n##### Recommendation\nWe recommend removing the mentioned unused imports.\n\n\n\n\n---\n    ",
+    "summary": "",
+    "report_date": "2025-09-16T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/mixbytes/audits_public/blob/master/Lido/Easy%20Track%20(3)/README.md#3-unused-imports-evmscriptcreatorsol-and-ivalidatorsexitbusoraclesol",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "unused-imports-evmscriptcreatorsol-and-ivalidatorsexitbusoraclesol-mixbytes-none-lido-markdown",
+    "firm_name": "MixBytes",
+    "firm_logo_square": "mixbytes_square.png",
+    "protocol_name": "Lido",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "MixBytes"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "MixBytes",
+        "logo_square": "mixbytes_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Lido",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

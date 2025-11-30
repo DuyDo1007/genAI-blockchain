@@ -1,0 +1,55 @@
+{
+    "id": 62250,
+    "kind": "PDF",
+    "auditfirm_id": 9,
+    "impact": "LOW",
+    "finders_count": 3,
+    "protocol_id": 3394,
+    "title": "Origination fee application after collateralization check can cause undercollateralization",
+    "content": "## Diﬃculty: Medium\n\n## Type: Timing\n\n## Description\nThe origination fee for new borrowings is applied after the collateralization check, which can result in undercollateralized positions immediately after borrowing.\n\nIn the `supply_withdraw_user_process` function, when a user withdraws an asset and the withdrawal creates a borrow position, the code first calls the `is_borrow_collateralized` function to verify that the user has sufficient collateral.\n\n```c\n(int borrow_is_collateralized, int enough_price_data) =\nis_borrow_collateralized(asset_config_collection, asset_dynamics_collection,\nuser_principals, prices_packed);\nif (borrow_is_collateralized) {\n    [...]\n    if (borrow_amount_principal > 0) {\n        ;; borrow\n        ;; so, we need to apply origination_fee to borrow amount\n        int amount_to_borrow_in_present = - present_value(s_rate, b_rate, -borrow_amount_principal);\n        int origination_fee_taken =\n        amount_to_borrow_in_present.muldiv(origination_fee,\n        constants::origination_fee_scale);\n        present -= origination_fee_taken;\n        withdraw_new_principal = principal_value(s_rate, b_rate, present);\n        (borrow_amount_principal, reclaim_amount_principal) =\n        around_zero_split(withdraw_new_principal, old_principal);\n        user_principals~set_borrow_position(withdraw_asset_id,\n        withdraw_new_principal, origination_fee_taken, amount_to_borrow_in_present,\n        get_last_mc_block_seqno());\n}\n```\n\nFigure 5.1: The collateralized check and origination fee logic in `contracts_internal/contracts/core/user-supply-withdrawal.fc#L124–L138`\n\nHowever, the origination fee is deducted from the user’s principal only after this check passes. This means that if a user borrows exactly up to their collateral limit, the subsequent deduction of the origination fee will push their position below the required collateralization threshold, creating an unsafe state that violates the protocol’s safety guarantees. Depending on the value of `origination_fee`, it could even push the user’s position to the liquidatable threshold, making them immediately vulnerable to liquidation.\n\n## Recommendations\n- **Short term:** Move the origination fee calculation and deduction before the `is_borrow_collateralized` check, or modify the collateralization check to account for the origination fee that will be applied.\n- **Long term:** Expand unit tests to verify that no borrow transaction can result in an undercollateralized position after all fees are applied.",
+    "summary": "",
+    "report_date": "2025-08-22T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://github.com/trailofbits/publications/blob/master/reviews/2025-08-evaafinance-securityreview.pdf",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/trailofbits/publications/blob/master/reviews/2025-08-evaafinance-securityreview.pdf",
+    "github_link": "",
+    "pdf_link": "https://solodit-bucket.s3.amazonaws.com/storage/reports/trailofbits/2025-08-evaafinance-securityreview.pdf",
+    "pdf_page_from": 22,
+    "contest_id": "",
+    "slug": "origination-fee-application-after-collateralization-check-can-cause-undercollateralization-trailofbits-none-evaa-finance-pdf",
+    "firm_name": "TrailOfBits",
+    "firm_logo_square": "trailofbits_square.png",
+    "protocol_name": "EVAA Finance",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Kevin Valerio Trail of Bits PUBLIC"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Guillermo Larregay"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Quan Nguyen"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "TrailOfBits",
+        "logo_square": "trailofbits_square.png"
+    },
+    "protocols_protocol": {
+        "name": "EVAA Finance",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

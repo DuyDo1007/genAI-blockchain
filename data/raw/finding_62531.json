@@ -1,0 +1,50 @@
+{
+    "id": 62531,
+    "kind": "GIT",
+    "auditfirm_id": 2,
+    "impact": "MEDIUM",
+    "finders_count": 2,
+    "protocol_id": 3373,
+    "title": "[M-03] Protocol doesn’t properly handle Aave Pool changes",
+    "content": "\n\n<https://github.com/code-423n4/2025-08-morpheus/blob/d275e9035b7e703efe26cdee6543e78f452774bb/contracts/capital-protocol/Distributor.sol# L135-L141>\n\n<https://github.com/code-423n4/2025-08-morpheus/blob/d275e9035b7e703efe26cdee6543e78f452774bb/contracts/capital-protocol/Distributor.sol# L226-L237>\n\n<https://github.com/code-423n4/2025-08-morpheus/blob/d275e9035b7e703efe26cdee6543e78f452774bb/contracts/capital-protocol/Distributor.sol# L285-L328>\n\n### Finding description and impact\n\n`setAavePool` is used to set new aave pool address, presumably to handle pool changes, upgrades, or migration situations.\n```\n\n    function setAavePool(address value_) public onlyOwner {\n        require(value_ != address(0), \"DR: invalid Aave pool address\");\n\n        aavePool = value_;//<<===\n\n        emit AavePoolSet(value_);\n    }\n```\n\nThere are two issues with this however.\n\n1. Aave recommends executing calls to pools [dynamically](https://aave.com/docs/developers/smart-contracts/pool-addresses-provider), i.e querying `PoolAddressProvider` for the current pool address. The protocol doesn’t do this, opting to allow the owner to set the pool address whenever it is required, leaving a window between which the pool in use will be deprecated, leading to DOS issues until a new pool is set.\n2. The more serious issue, is the missing approval revocation for old pool and granting for the new one. This is because max token approvals are only set once when deposit pools are added in `addDepositPool()`. After updating aavePool, `supply`, `withdraw`, and `withdrawYield` calls for existing Aave-strategy deposit pools fail due to missing approvals for the new pool. The `isDepositTokenAdded` mapping prevents re-adding the same token to re-approve, locking funds or halting deposits.\n\nAs a result, the protocol is stuck in a state where, the current aave pool is deprecated and unusable, and the new pool that is set cannot be used due to missing approvals for the new pool, locking down operations.\n```\n\n        address aToken_ = address(0);\n        if (strategy_ == Strategy.AAVE) {\n            (aToken_, , ) = AaveIPoolDataProvider(aavePoolDataProvider).getReserveTokensAddresses(token_);\n\n            IERC20(token_).safeApprove(aavePool, type(uint256).max);//<<===\n            IERC20(aToken_).approve(aavePool, type(uint256).max);//<<===\n        }\n\n        DepositPool memory depositPool_ = DepositPool(token_, chainLinkPath_, 0, 0, 0, strategy_, aToken_, true);\n```\n\nAave pools have been designed to be updated or migrated since V1, and major pool addresses have been updated in the past (e.g., during major version upgrades like V2 to V3 or pool migrations), so this is a realistic scenario, especially over the long term.\n\n### Recommended Mitigation Steps\n\nSet immutable `poolAddressProvider` instead and query it everytime `aavePool` functions need to be accessed. Approve the queried address to spend the needed amount of tokens for each transaction.\n\n### Proof of Concept\n\nWe add the test below to Distributor.test.ts\n```\n\n  describe('Bug - setAavePool approval issue', () => {\n    const maxUint256 = 2n**256n - 1n;\n    beforeEach(async () => {\n      await chainLinkDataConsumerMock.setAnswer(dp1Info.chainLinkPath, wei(1));\n      await distributor.addDepositPool(\n        dp1Info.rewardPoolId,\n        dp1Info.depositPool,\n        dp1Info.depositToken,\n        dp1Info.chainLinkPath,\n        dp1Info.strategy,\n      );\n      await dp1Info.depositToken.mint(BOB, wei(1000));\n      await dp1Info.depositToken.connect(BOB).approve(dp1Info.depositPool, wei(1000));\n      await distributor.setRewardPoolLastCalculatedTimestamp(publicRewardPoolId, 1);\n    });\n\n    it('should fail supply after changing aavePool due to missing approvals', async () => {\n      // Initial supply works with original aavePool\n      await dp1Info.depositPool.connect(BOB).supply(publicRewardPoolId, wei(100));\n      let dp1 = await distributor.depositPools(publicRewardPoolId, dp1Info.depositPool);\n      expect(dp1.deposited).to.eq(wei(100));\n      expect(await dp1Info.aToken.balanceOf(distributor)).to.eq(wei(100));\n\n      // Change aavePool\n      const newAavePool = await deployAavePoolMock(aavePoolDataProviderMock);\n      await distributor.setAavePool(newAavePool);\n\n      // Attempt to supply again, should fail due to missing approval\n      await expect(\n        dp1Info.depositPool.connect(BOB).supply(publicRewardPoolId, wei(50))\n      ).to.be.revertedWith('ERC20: insufficient allowance');\n\n      // Verify no new deposits\n      dp1 = await distributor.depositPools(publicRewardPoolId, dp1Info.depositPool);\n      expect(dp1.deposited).to.eq(wei(100));\n      expect(await dp1Info.aToken.balanceOf(distributor)).to.eq(wei(100));\n\n      // Attempt to withdraw, should also fail\n      await expect(\n        dp1Info.depositPool.connect(BOB).withdraw(publicRewardPoolId, wei(50))\n      ).to.be.revertedWith('ERC20: insufficient allowance');\n    });\n\n    it('should show old pool still has approvals while new pool has none', async () => {\n      // Check that original Aave pool has approvals\n      const originalAllowance = await dp1Info.depositToken.allowance(distributor, aavePoolMock);\n      expect(originalAllowance).to.eq(maxUint256);\n\n      // Update to new Aave pool\n      const newAavePool = await deployAavePoolMock(aavePoolDataProviderMock);\n      await distributor.setAavePool(newAavePool);\n\n      // New pool has no approvals\n      const newAllowance = await dp1Info.depositToken.allowance(distributor, newAavePool);\n      expect(newAllowance).to.eq(0);\n\n      // Old pool still has approvals (potential security concern)\n      const oldAllowance = await dp1Info.depositToken.allowance(distributor, aavePoolMock);\n      expect(oldAllowance).to.eq(maxUint256);\n    });\n  });\n```\n\n---\n\n",
+    "summary": "\nThis bug report is about a function called `setAavePool` in a code repository on GitHub. This function is used to set a new Aave pool address, which is used to handle changes, upgrades, or migrations in the pool. However, there are two issues with this function. \n\nFirstly, it does not follow the recommended method of dynamically querying the `PoolAddressProvider` for the current pool address. This means that there is a window of time where the current pool will be deprecated, leading to potential denial of service issues until a new pool is set.\n\nSecondly, there is a more serious issue where the old pool is not revoked and the new one is not granted approval. This means that the protocol is stuck in a state where the current pool is unusable and the new one cannot be used, causing disruptions to operations.\n\nTo fix this, the report recommends setting an immutable `poolAddressProvider` and querying it every time the `aavePool` function is accessed. A proof of concept test has also been included in the report to demonstrate the issue.",
+    "report_date": "2025-09-11T00:00:00.000Z",
+    "contest_prize_txt": "20000",
+    "contest_link": "https://code4rena.com/reports/2025-08-morpheus",
+    "sponsor_name": "Morpheus",
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://code4rena.com/reports/2025-08-morpheus",
+    "github_link": "https://code4rena.com/audits/2025-08-morpheus/submissions/F-331",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "520",
+    "slug": "m-03-protocol-doesnt-properly-handle-aave-pool-changes-code4rena-morpheus-morpheus-git",
+    "firm_name": "Code4rena",
+    "firm_logo_square": "code4rena_square.png",
+    "protocol_name": "Morpheus",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "ZanyBonzy"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "anchabadze"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Code4rena",
+        "logo_square": "code4rena_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Morpheus",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

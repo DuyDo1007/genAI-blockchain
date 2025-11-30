@@ -1,0 +1,50 @@
+{
+    "id": 62220,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 11,
+    "impact": "LOW",
+    "finders_count": 2,
+    "protocol_id": 3392,
+    "title": "Not check for timestamp in `distributeYield` could DoS the distribute rewards",
+    "content": "**Description:** The `distributeYield()` function in `StakingVault.sol` accepts a timestamp parameter without any validation checks. If an incorrect timestamp is provided (especially one set far in the future), it gets stored as `lastDistributionTimestamp` in the `_updateVestingAmount()` function. This can permanently break the vesting mechanism, as future calls to `distributeYield()` will fail at the `require(getUnvestedAmount() == 0, StillVesting())` check.\n\n```solidity\nfunction _updateVestingAmount(uint256 newVestingAmount, uint256 timestamp) internal {\n        require(getUnvestedAmount() == 0, StillVesting()); <-----\n\n        vestingAmount = newVestingAmount;\n        lastDistributionTimestamp = timestamp;\n    }\n\n```\n\n**Impact:** Permanent denial of service for yield distribution mechanism if the owner set a incorrect timestamp value\n\n**Proof of Concept:** **Recommended Mitigation:**\nCheck for if the timestamp is less than some threshold in the future.\n\n**Syntetika:**\nAcknowledged; users are already trusting the admin to provide yield so it is an even smaller thing to trust the admin to correctly set the `distributeYield` input.",
+    "summary": "",
+    "report_date": "2025-08-01T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/solodit/solodit_content/blob/main/reports/Cyfrin/2025-08-01-cyfrin-syntetika-v2.0.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "not-check-for-timestamp-in-distributeyield-could-dos-the-distribute-rewards-cyfrin-none-syntetika-markdown",
+    "firm_name": "Cyfrin",
+    "firm_logo_square": "Cyfrin_square.jpg",
+    "protocol_name": "Syntetika",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Dacian"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Jorge"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Cyfrin",
+        "logo_square": "Cyfrin_square.jpg"
+    },
+    "protocols_protocol": {
+        "name": "Syntetika",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

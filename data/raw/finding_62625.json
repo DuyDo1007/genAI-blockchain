@@ -1,0 +1,45 @@
+{
+    "id": 62625,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 16,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3422,
+    "title": "[L-04] Undistributed dust of fees due to rounding errors",
+    "content": "\n_Resolved_\n\n`splitFeesCollected()` splits the fees into protocol and utility fees according to the configured fee percentages. The resulting fees can leave undistributed dust amounts due to rounding errors in the fee calculations.\n\nDepending on the valuation of the tokens and their decimal precision, the accumulation of these dust amounts could be significant over time.\n\nGiven that the percentage of the two fees is guaranteed to always add up to 100%, it is recommended to apply the following change to guarantee the distribution of all the fees:\n\n```diff\n    function splitFeesCollected(uint256 amount, FeeSplit memory feeSplit) internal view returns (uint256 protocolFee, uint256 utilityFee) {\n        protocolFee = (feeSplit.protocolFeePercentage * amount) / FEE_PERCENTAGE_PRECISION;\n-       utilityFee = (feeSplit.utilityFeePercentage * amount) / FEE_PERCENTAGE_PRECISION;\n+       utilityFee = amount - protocolFee;\n    }\n```\n\n\n\n",
+    "summary": "",
+    "report_date": "2025-09-12T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/pashov/audits/blob/master/team/md/Funnel-security-review_2025-08-27.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "l-04-undistributed-dust-of-fees-due-to-rounding-errors-pashov-audit-group-none-funnel_2025-08-27-markdown",
+    "firm_name": "Pashov Audit Group",
+    "firm_logo_square": "Pashov_square.png",
+    "protocol_name": "Funnel_2025-08-27",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Pashov Audit Group"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Pashov Audit Group",
+        "logo_square": "Pashov_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Funnel_2025-08-27",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

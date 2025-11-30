@@ -1,0 +1,55 @@
+{
+    "id": 62351,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 11,
+    "impact": "MEDIUM",
+    "finders_count": 3,
+    "protocol_id": 3402,
+    "title": "Missing Chainlink oracle staleness check",
+    "content": "**Description:** The `getPrice` function in `ChainlinkFeedLibrary` fetches the latest price from a Chainlink feed using `latestRoundData`, but does not check if the returned data is stale. Chainlink feeds can become stale if no new price updates have occurred for a significant period, which may result in outdated or inaccurate price information being used by the protocol. The Chainlink interface provides `updatedAt` and `answeredInRound` fields specifically to help consumers detect stale or incomplete data, but these are ignored in the current implementation.\n\n**Impact:** The protocol may use outdated or stale price data, leading to incorrect valuations, margin calculations, or other critical logic. This can be exploited by attackers if they can manipulate or anticipate periods of feed staleness. Users and integrators may be exposed to increased risk due to reliance on old price information.\n\n**Proof of Concept:** Add a `ChainlinkFeedLibraryTest.t.sol` file in the `./oracle/test/` folder:\n\n```solidity\n// SPDX-License-Identifier: MIT\npragma solidity ^0.8.0;\n\nimport \"forge-std/Test.sol\";\nimport {ChainlinkFeedLibrary} from \"./../src/libraries/ChainlinkFeedLibrary.sol\";\nimport {AggregatorV3Interface} from \"./../src/interfaces/external/AggregatorV3Interface.sol\";\n\ncontract ChainlinkFeedLibraryTest is Test {\n    address internal constant MOCK_FEED = address(0xFEED);\n\n    function test_getPrice_acceptsStaleData() public {\n        vm.warp(block.timestamp + 10 days); // Set the block timestamp to 10 day in the future\n\n        // Mock the Chainlink feed to return a price but with stale timestamp (e.g., updated 1 day ago)\n        // In a secure implementation, this should revert due to staleness, but here it does not\n        vm.mockCall(\n            MOCK_FEED,\n            abi.encodeWithSelector(AggregatorV3Interface.latestRoundData.selector),\n            abi.encode(\n                uint80(1),                  // roundId\n                int256(100e8),              // answer\n                uint256(0),                 // startedAt (unused)\n                block.timestamp - 1 days,   // updatedAt (stale)\n                uint80(1)                   // answeredInRound\n            )\n        );\n\n        // Call getPrice; it should return the stale price without reverting\n        uint256 price = ChainlinkFeedLibrary.getPrice(AggregatorV3Interface(MOCK_FEED));\n\n        // Assert that the stale price is returned\n        assertEq(price, 100e8);\n    }\n}\n```\n\n**Recommended Mitigation:** Implement a staleness check in the `getPrice` function. For example, require that `updatedAt` is within an acceptable time window (e.g., not older than a configurable threshold) and that `answeredInRound >= roundId`. If the data is stale, revert or return an error. Example check:\n\n```solidity\n(uint80 roundId, int256 answer,, uint256 updatedAt, uint80 answeredInRound) = feed.latestRoundData();\nrequire(updatedAt >= block.timestamp - MAX_STALENESS, \"Chainlink: stale price\");\nrequire(answeredInRound >= roundId, \"Chainlink: incomplete round\");\n```\n\nWhere `MAX_STALENESS` is a reasonable time threshold set by the protocol.\n\n**Licredity:** Fixed in [PR#18](https://github.com/Licredity/licredity-v1-oracle/pull/18/files), commit [`5a615c0`](https://github.com/Licredity/licredity-v1-oracle/commit/5a615c0eabd71597931680c4321eb6209d29eb8c)\n\n**Cyfrin:** Verified. A field `maxStaleness` added to `ChainlinkOracleConfig` which `governor` can update.\n\n\\clearpage",
+    "summary": "\nThis bug report discusses an issue with the `getPrice` function in the `ChainlinkFeedLibrary`. This function fetches the latest price from a Chainlink feed, but does not check if the data is stale. This means that the protocol may use outdated or inaccurate price information, which could be exploited by attackers. The report recommends implementing a staleness check in the function to prevent this issue. The bug has been fixed in the code and verified by Cyfrin.",
+    "report_date": "2025-09-01T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/solodit/solodit_content/blob/main/reports/Cyfrin/2025-09-01-cyfrin-licredity-v2.0.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "missing-chainlink-oracle-staleness-check-cyfrin-none-licredity-markdown",
+    "firm_name": "Cyfrin",
+    "firm_logo_square": "Cyfrin_square.jpg",
+    "protocol_name": "Licredity",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Immeas"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Alexzoid"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "ChainDefenders](https://x.com/ChDefendersEth) ([0x539](https://x.com/1337web3) & [PeterSR"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Cyfrin",
+        "logo_square": "Cyfrin_square.jpg"
+    },
+    "protocols_protocol": {
+        "name": "Licredity",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

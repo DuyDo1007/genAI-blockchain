@@ -1,0 +1,60 @@
+{
+    "id": 62046,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 37,
+    "impact": "LOW",
+    "finders_count": 4,
+    "protocol_id": 3368,
+    "title": "The Received Allocations Might Not Be the Expected Ones.",
+    "content": "**Update**\nMarked as \"Fixed\" by the client. Addressed in: `3161944`.\n\n![Image 70: Alert icon](https://certificate.quantstamp.com/full/sapien/ffb7e698-6178-46f0-8df8-52e537af70c0/static/media/success-icon-alert.4e26c8d3b65fdf9f4f0789a4086052ba.svg)\n\n**Update**\nMarked as \"Fixed\" by the client. Addressed in: `d12a86a0dc8ff02043d00b6f60b0a1823c08d4f3`. The client provided the following explanation:\n\n> The contract is now checking to make sure that the total supply is not less than the sum of the expected allocations.\n\n![Image 71: Alert icon](https://certificate.quantstamp.com/full/sapien/ffb7e698-6178-46f0-8df8-52e537af70c0/static/media/success-icon-alert.4e26c8d3b65fdf9f4f0789a4086052ba.svg)\n\n**Update**\nMarked as \"Fixed\" by the client. Addressed in: `d12a86a0dc8ff02043d00b6f60b0a1823c08d4f3`. The client provided the following explanation:\n\n> The contract is now checking to make sure that the total supply is not less than the sum of the expected allocations.\n\n**File(s) affected:**`SapTestToken.sol`\n\n**Description:** The`initialize()`function mints the amount of`_totalSupply`. However, there is no guarantee that it is the sum of all the expected allocations(1B tokens). If`_totalSupply`is less than the sum of all allocations, the vesting schedules will be created with amounts that can never be fully claimed. If`_totalSupply`is greater than 1B, the excess tokens will be minted to the Gnosis Safe but won't be part of any vesting schedule.\n\n**Recommendation:** Make sure that `_totalSupply` is equal to the sum of all the expected allocations. In case, it should be greater, modify the contract to reflect that and update the documentation.",
+    "summary": "",
+    "report_date": "2025-03-30T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://certificate.quantstamp.com/full/sapien/ffb7e698-6178-46f0-8df8-52e537af70c0/index.html",
+    "sponsor_name": "",
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://certificate.quantstamp.com/full/sapien/ffb7e698-6178-46f0-8df8-52e537af70c0/index.html",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "the-received-allocations-might-not-be-the-expected-ones-quantstamp-sapien-markdown",
+    "firm_name": "Quantstamp",
+    "firm_logo_square": "quantstamp_square.png",
+    "protocol_name": "Sapien",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Paul Clemson"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Julio Aguilar"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Mostafa Yassin"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Tim Sigl"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Quantstamp",
+        "logo_square": "quantstamp_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Sapien",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

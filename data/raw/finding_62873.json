@@ -1,0 +1,45 @@
+{
+    "id": 62873,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 30,
+    "impact": "HIGH",
+    "finders_count": 1,
+    "protocol_id": 3454,
+    "title": "[H-01] Incorrect Burn Reward Multiplier Reset on `claim()` Reduces Accrual",
+    "content": "\n## Severity\n\nHigh Risk\n\n## Description\n\nBurn-mode rewards compute the multiplier from time since the last burn claim and then reset that reference timestamp on each claim, erasing duration and keeping the multiplier near 1. Normal staking keeps the multiplier based on total elapsed since staking, so burn-mode accrual is materially underpaid relative to the intended \"longer duration → higher rewards\" behavior.\n\n## Location of Affected Code\n\nFile: [src/NFTStaking.sol#L161](https://github.com/Honeypot-Finance/new_nft_staking/blob/02d5afe0b5327642f48fffe29ec2cb4607a078e7/src/NFTStaking.sol#L161)\n\n```solidity\nfunction _claim(uint256 tokenId) internal returns (uint256 amount) {\n  // code\n  if (s.burned) {\n      // Handle burn bonus claim\n      require(s.burnedAt != 0, \"INVALID_BURN_STATE\");\n\n      uint256 sinceBurn = block.timestamp - uint256(s.burnedAt);\n      if (sinceBurn == 0) return 0;\n\n      uint256 mBurn = _multiplier(sinceBurn);\n      amount =\n          (rewardRatePerSecond * sinceBurn * mBurn * burnBonusBps) /\n          (ONE * MAX_BPS);\n\n      if (amount == 0) return 0;\n\n      // Update last burn claim time (resets multiplier reference)\n      s.burnedAt = uint64(block.timestamp);\n\n      // Mint burn bonus rewards\n      rewards.mint(msg.sender, amount);\n      emit BurnRewardClaimed(msg.sender, tokenId, amount);\n\n      return amount;\n  }\n\n  // Normal claim path: multiplier uses total elapsed since stakedAt and does not reset\n  uint256 nowTs = block.timestamp;\n  if (nowTs <= s.lastClaimAt) return 0;\n\n  uint256 delta = nowTs - uint256(s.lastClaimAt);\n  uint256 elapsed = nowTs - uint256(s.stakedAt);\n  uint256 m = _multiplier(elapsed);\n\n  amount = (rewardRatePerSecond * delta * m) / ONE;\n\n  if (amount == 0) return 0;\n\n  // Update last claim time\n  s.lastClaimAt = uint64(nowTs);\n\n  // Mint rewards\n  rewards.mint(s.owner, amount);\n  emit RewardClaimed(s.owner, tokenId, amount);\n  return amount;\n}\n```\n\n## Impact\n\nUsers receive significantly fewer rewards in burn mode than intended. Each claim truncates the multiplier accumulation window, preventing duration-based scaling comparable to normal staking. Burn-mode users are prevented from claiming rewards to avoid a multiplier reset, which puts them at a disadvantage compared to normal staking users.\n\n## Recommendation\n\nTrack two timestamps for burn mode: a fixed `burnStartAt` used only for multiplier calculation and a separate `lastBurnClaimAt` used for the delta window. Compute `mBurn` from `now - burnStartAt`, compute `delta` from `now - lastBurnClaimAt`. Alternatively, consider reusing the existing `lastClaimAt` timestamp instead of introducing a new field `lastBurnClaimAt`.\n\n## Team Response\n\nFixed.\n\n",
+    "summary": "\nThis bug report is about an issue with the burn-mode rewards in the NFTStaking contract. The bug causes the multiplier, which determines the amount of rewards, to be reset on each claim instead of being based on the total time since staking. This means that users in burn mode are receiving significantly fewer rewards than intended. The team has recommended tracking two timestamps for burn mode to fix this issue. The bug has been fixed by the team.",
+    "report_date": "2025-10-08T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/shieldify-security/audits-portfolio-md/blob/main/HoneypotFinance-NFTStaking-Security-Review.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "h-01-incorrect-burn-reward-multiplier-reset-on-claim-reduces-accrual-shieldify-none-honeypotfinance-nftstaking-markdown",
+    "firm_name": "Shieldify",
+    "firm_logo_square": "Shieldify_square.png",
+    "protocol_name": "Honeypotfinance Nftstaking",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Shieldify Security"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Shieldify",
+        "logo_square": "Shieldify_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Honeypotfinance Nftstaking",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

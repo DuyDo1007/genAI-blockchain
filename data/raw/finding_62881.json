@@ -1,0 +1,45 @@
+{
+    "id": 62881,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 30,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3455,
+    "title": "[L-04] Centralization Risks",
+    "content": "\n## Severity\n\nLow Risk\n\n## Description\n\nThe current design has centralization issues that put too much power behind a single key and make any key compromise more damaging.\n\n1. The `MANAGER_ROLE` mixes powerful admin actions with simple automation (`lockToken()`, `unlockToken()`) as stated in the documentation:\n\n> Backend calls contract to lock NFT (non-transferable).\n\n> Backend unlocks NFT via contract call.\n\nhttps://www.notion.so/monstudios/Monsters-283b08fdf0db80c28036c92bfa34abef\n\nThis means the backend key used for automation must also hold strong permissions (`pause()`/`unpause()`, `withdraw()` ETH, `setBaseURI()`, `setDefaultRoyalty()` and `setTokenRoyalty()`).\n\n2. In addition, the constructor grants all roles to the deployer, so compromising the deployer gives full control.\n\n## Location of Affected Code\n\nFile: [src/MonsterNFT.sol#L61-L78](https://github.com/SlothFi/nft-contract/blob/94226da94ef06ceeec906844e5b261b7934ee34a/src/MonsterNFT.sol#L61-L78)\n\n```solidity\n// Constructor grants all roles to the deployer (single EOA)\nconstructor(\n    string memory name_,\n    string memory symbol_,\n    string memory baseURI_,\n    address royaltyRecipient_,\n    uint96 feeNumerator_\n)\n    ERC721OpenZeppelin(name_, symbol_)\n    BasicRoyalties(royaltyRecipient_, feeNumerator_)\n{\n    require(feeNumerator_ <= 10000, \"Royalty fee exceeds 100%\");\n    _baseTokenURI = baseURI_;\n\n    // Grant roles to deployer\n    _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);\n    _grantRole(MINTER_ROLE, msg.sender);\n    _grantRole(MANAGER_ROLE, msg.sender);\n}\n```\n\nFile: [src/MonsterNFT.sol#L126-L140](https://github.com/SlothFi/nft-contract/blob/94226da94ef06ceeec906844e5b261b7934ee34a/src/MonsterNFT.sol#L126-L140)\n\n```solidity\n// Automation functions controlled by MANAGER_ROLE\nfunction lockToken(uint256 tokenId) external onlyRole(MANAGER_ROLE) {\n    require(_ownerOf(tokenId) != address(0), \"Token does not exist\");\n    tokenLocked[tokenId] = true;\n    emit TokenLockStatusChanged(tokenId, true);\n}\n\nfunction unlockToken(uint256 tokenId) external onlyRole(MANAGER_ROLE) {\n    require(_ownerOf(tokenId) != address(0), \"Token does not exist\");\n    tokenLocked[tokenId] = false;\n    emit TokenLockStatusChanged(tokenId, false);\n}\n```\n\n## Impact\n\n- If the backend key is compromised, an attacker can unpause, withdraw ETH, change royalties, change contract and token metadata, and lock/unlock tokens.\n- If the deployer key is compromised, the attacker can control everything, including granting or revoking roles.\n\n## Recommendation\n\n- Create an `OPERATOR_ROLE` only for `lockToken()` and `unlockToken()`. Keep admin actions under `MANAGER_ROLE`, ensure `DEFAULT_ADMIN_ROLE` and `MANAGER_ROLE` are moved to multisigs.\n- Revoke the deployer's roles after deployment.\n\n```solidity\nbytes32 public constant OPERATOR_ROLE = keccak256(\"OPERATOR_ROLE\");\n\n// Move automation functions to OPERATOR_ROLE\nfunction lockToken(uint256 tokenId) external onlyRole(OPERATOR_ROLE) { /* ... */ }\nfunction unlockToken(uint256 tokenId) external onlyRole(OPERATOR_ROLE) { /* ... */ }\n```\n\n## Team Response\n\nFixed.\n\n",
+    "summary": "",
+    "report_date": "2025-10-09T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 5,
+    "general_score": 5,
+    "source_link": "https://github.com/shieldify-security/audits-portfolio-md/blob/main/Spellborne-Security-Review.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "l-04-centralization-risks-shieldify-none-spellborne-markdown",
+    "firm_name": "Shieldify",
+    "firm_logo_square": "Shieldify_square.png",
+    "protocol_name": "Spellborne",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Shieldify Security"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Shieldify",
+        "logo_square": "Shieldify_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Spellborne",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

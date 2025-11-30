@@ -1,0 +1,45 @@
+{
+    "id": 62947,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 16,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3464,
+    "title": "[L-01] Arithmetic overflow or underflow in `PositionValue` library",
+    "content": "\n_Resolved_\n\nSome libraries from the Uniswap V3 Core and Periphery codebases have been adapted so that they can be used with Solidity 0.8.0 and above. \n\nIn the case of the `PositionValue` library, the adaptation has not been done correctly, as [the fee calculations rely on overflows and underflows](https://github.com/Uniswap/v3-periphery/issues/198), so in Solidity 0.8.0 and above, the execution can panic with an arithmetic overflow or underflow error.\n\nThe following code snippet shows the issue:\n\n```solidity\n// SPDX-License-Identifier: UNLICENSED\npragma solidity ^0.8.0;\n\nimport \"forge-std/Test.sol\";\nimport {PositionValue} from \"../../contracts/vendor/@uniswap/v3-periphery/contracts/libraries/PositionValue.sol\";\nimport {INonfungiblePositionManager} from \"../../contracts/vendor/@uniswap/v3-periphery/contracts/interfaces/INonfungiblePositionManager.sol\";\n\ncontract PoC is Test {\n    INonfungiblePositionManager positionManager = INonfungiblePositionManager(0xC36442b4a4522E871399CD717aBDD847Ab11FE88);\n\n    // forge test --fork-url https://eth.llamarpc.com --fork-block-number 23054470 --mt test_PositionValue\n    function test_PositionValue() public {\n        PositionValue.fees(positionManager, 19);\n    }\n}\n```\n\n```shell\nRan 1 test for test/foundry/PoC.sol:PoC\n[FAIL: panic: arithmetic underflow or overflow (0x11)] test_PositionValue() (gas: 52155)\n```\n\nIt is recommended to wrap the arithmetic operations in the `PositionValue` library with `unchecked` blocks.\n\n\n\n",
+    "summary": "",
+    "report_date": "2025-10-13T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/pashov/audits/blob/master/team/md/Saffron-security-review_2025-07-31.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "l-01-arithmetic-overflow-or-underflow-in-positionvalue-library-pashov-audit-group-none-saffron_2025-07-31-markdown",
+    "firm_name": "Pashov Audit Group",
+    "firm_logo_square": "Pashov_square.png",
+    "protocol_name": "Saffron_2025-07-31",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Pashov Audit Group"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Pashov Audit Group",
+        "logo_square": "Pashov_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Saffron_2025-07-31",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

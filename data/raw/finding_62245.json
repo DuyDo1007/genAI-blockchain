@@ -1,0 +1,50 @@
+{
+    "id": 62245,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 11,
+    "impact": "GAS",
+    "finders_count": 2,
+    "protocol_id": 3393,
+    "title": "Cache identical storage reads",
+    "content": "**Description:** Reading from storage is expensive; cache identical storage reads:\n* `RequestsManager.sol`:\n```solidity\n// cache `request.amount` in `RequestsManager::completeBurn`\n239:    issueToken.burn(_idempotencyKey, address(this), request.amount);\n244:    emit BurnRequestCompleted(_id, request.amount, _withdrawalAmount);\n```\n\n**Avant:**\nFixed in commit [9bf3b60](https://github.com/Avant-Protocol/Avant-Contracts-Max/commit/9bf3b6041bee7bfeb79f19a90a79e13cf6674afa).\n\n**Cyfrin:** Verified.\n\n\\clearpage",
+    "summary": "",
+    "report_date": "2025-08-28T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/solodit/solodit_content/blob/main/reports/Cyfrin/2025-08-28-cyfrin-avant-max-v2.0.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "cache-identical-storage-reads-cyfrin-none-avant-max-markdown",
+    "firm_name": "Cyfrin",
+    "firm_logo_square": "Cyfrin_square.jpg",
+    "protocol_name": "Avant Max",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Dacian"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Jorge"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Cyfrin",
+        "logo_square": "Cyfrin_square.jpg"
+    },
+    "protocols_protocol": {
+        "name": "Avant Max",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

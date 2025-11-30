@@ -1,0 +1,45 @@
+{
+    "id": 62525,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 7,
+    "impact": "MEDIUM",
+    "finders_count": 1,
+    "protocol_id": 3418,
+    "title": "Incorrect Fee Application When unspecifiedAmount Represents Input Instead of Output",
+    "content": "The [`BaseDynamicAfterFee`](https://github.com/OpenZeppelin/uniswap-hooks/blob/release-v1.1-rc.2/src/fee/BaseDynamicAfterFee.sol) contract enables dynamic fee enforcement by comparing the swap’s `unspecifiedAmount` with a target value and [charging](https://github.com/OpenZeppelin/uniswap-hooks/blob/release-v1.1-rc.2/src/fee/BaseDynamicAfterFee.sol#L111) the difference as a fee. This logic assumes that `unspecifiedAmount` always represents the output of the swap. However, if the user performs an exact output swap, `unspecifiedAmount` will actually represent the input amount the user must pay (`unspecifiedAmount < 0`).\n\nIn cases where `unspecifiedAmount` corresponds to the input, the current implementation incorrectly [applies](https://github.com/OpenZeppelin/uniswap-hooks/blob/release-v1.1-rc.2/src/fee/BaseDynamicAfterFee.sol#L111) a fee if the input exceeds the target output, leading to users being overcharged. This occurs because the fee is always calculated as `feeAmount = uint128(unspecifiedAmount) - targetOutput`, even when `unspecifiedAmount` is an input. As a result, users may pay unnecessary additional fees unrelated to any received output.\n\nNo clear way to exploit this issue has been identified within the current `AntiSandwichHook` implementation. However, since `BaseDynamicAfterFee` is an abstract contract designed to be extended by future hooks, consider modifying the logic in `BaseDynamicAfterFee` to only apply the fee when `unspecifiedAmount` represents the output side of the swap. This ensures that users are not charged fees based on their input amounts and preserves the intended semantics of post-swap fee enforcement.\n\n***Update:** Resolved in [pull request #86](https://github.com/OpenZeppelin/uniswap-hooks/pull/86) at commit [2678eb9](https://github.com/OpenZeppelin/uniswap-hooks/commit/2678eb92ab15270837e6be5972bedf314636c529). The team stated:*\n\n> *We updated the `BaseDynamicAfterFee` logic to differentiate between `exactInput` or `exactOutput` swaps, being more explicit about handling `unspecifiedAmount` instead of only outputs. In order to be more explicit, we renamed `_getTargetOutput` to `_getTargetUnspecified`. In the `AntiSandwichHook` level, we removed the `_handleCollectedFees` functions, leaving the handling of tokens to be written directly on `_afterSwapHandler`.*",
+    "summary": "\nThis bug report discusses an issue with the `BaseDynamicAfterFee` contract in the Uniswap Hooks project. This contract is responsible for calculating and applying fees for swaps on the Uniswap platform. The issue arises when a user performs an exact output swap, as the contract incorrectly applies a fee based on the input amount instead of the output amount. This results in users being overcharged and paying unnecessary fees. The team has fixed this issue in a recent update by differentiating between exact input and output swaps and handling the `unspecifiedAmount` more explicitly. ",
+    "report_date": "2025-07-16T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://blog.openzeppelin.com/openzeppelin-uniswap-hooks-v1.1.0-rc-2-audit",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "incorrect-fee-application-when-unspecifiedamount-represents-input-instead-of-output-openzeppelin-none-openzeppelin-uniswap-hooks-v110-rc-2-audit-markdown",
+    "firm_name": "OpenZeppelin",
+    "firm_logo_square": "openzeppelin_square.png",
+    "protocol_name": "OpenZeppelin Uniswap Hooks v1.1.0 RC 2 Audit",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "OpenZeppelin"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "OpenZeppelin",
+        "logo_square": "openzeppelin_square.png"
+    },
+    "protocols_protocol": {
+        "name": "OpenZeppelin Uniswap Hooks v1.1.0 RC 2 Audit",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

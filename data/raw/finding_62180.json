@@ -1,0 +1,45 @@
+{
+    "id": 62180,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 16,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3389,
+    "title": "[L-07] Privileged roles accept invalid EVC sub-accounts",
+    "content": "\n_Acknowledged_\n\nEulerEarn vaults use the Ethereum Vault Connector (EVC) for authentication, which supports sub-accounts. The EularEarn vault therefore, makes sure to handle cases in which these sub-accounts interact with the vault. These sub-accounts can receive and transfer vault shares, but they are not compatible with underlying asset transfers, as their private keys are unknown. \n\nAdditionally, sub-accounts are explicitly blocked from invoking privileged functions gated by most role-based modifiers, such as `onlyAdminOrVaultOwner`, `onlyCuratorRole`, `onlyAllocatorRole`, etc. These modifiers rely on:\n\n```solidity\n_authenticateCallerWithStandardContextState(true);\n```\n\nThis call reverts if the authenticated caller is not the account owner (i.e., if it’s a sub-account).\n\nHowever, when assigning privileged roles (e.g., `setAdmin`, `setCurator`, or even setting the `owner`), no validation is performed. As a result, an EVC sub-account can be assigned a privileged role, but it will later be unable to call the associated functions:\n\n```solidity\nfunction setAdmin(address vault, address newAdmin) external onlyAdminOrVaultOwner(vault) {\n    if (admin[vault] == newAdmin) revert ErrorsLib.AlreadySet();\n    admin[vault] = newAdmin;\n}\n```\n\nInterestingly, sub-account vault `owners` can still call functions guarded by the `onlyOwner` modifier, since that modifier uses `_msgSender()`, which directly retrieves the `onBehalfOfAccount` from the EVC without extra validation. \n\nTherefore, the logic for validating privileged roles is inconsistent: a sub-account vault `owner` can call `EulerEarn::setFee` (gated by `onlyOwner`), but can not call `PublicAllocator::setFee` (gated by `onlyAdminOrVaultOwner`). \n\nTo avoid assigning unusable privileged accounts, consider adding a check when setting any privileged role to ensure the address is not an EVC sub-account, similar to what’s done in `_withdraw`:\n\n```solidity\n    address evcOwner = evc.getAccountOwner(candidate);\n    if (evcOwner != address(0) && evcOwner != candidate) {\n        revert ErrorsLib.InvalidPrivilegedAccount();\n    }\n```\n\nAdditionally, if the current inconsistency regarding the vault `owner`'s abilities is not intended, consider overriding the `onlyOwner` modifier logic to also use the `_authenticateCallerWithStandardContextState(true)` function to explicitly block sub-accounts from calling these functions.\n\n### Euler comments\n\nWe acknowledge the finding, will keep as is. A mistake in granting a role could happen with any address, not just sub-accounts.\n\n\n\n",
+    "summary": "",
+    "report_date": "2025-08-27T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/pashov/audits/blob/master/team/md/EulerEarn-security-review_2025-07-25.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "l-07-privileged-roles-accept-invalid-evc-sub-accounts-pashov-audit-group-none-eulerearn_2025-07-25-markdown",
+    "firm_name": "Pashov Audit Group",
+    "firm_logo_square": "Pashov_square.png",
+    "protocol_name": "EulerEarn_2025-07-25",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Pashov Audit Group"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Pashov Audit Group",
+        "logo_square": "Pashov_square.png"
+    },
+    "protocols_protocol": {
+        "name": "EulerEarn_2025-07-25",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

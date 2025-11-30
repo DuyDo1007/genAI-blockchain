@@ -1,0 +1,45 @@
+{
+    "id": 62315,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 30,
+    "impact": "MEDIUM",
+    "finders_count": 1,
+    "protocol_id": 3397,
+    "title": "[M-01] Admin Can Arbitrarily Seize User Assets",
+    "content": "\n## Severity\n\nMedium Risk\n\n## Description\n\nThe `BeetleBattleGame.emergencyUnstake()` function allows an admin to transfer NFTs staked by any user to an arbitrary `_to` address without user consent. While this may be intended for recovery, it effectively grants administrators unilateral control over all user assets.\n\n## Location of Affected Code\n\nFile: [contracts/BeetleBattleGame.sol](https://github.com/rshtirmer/BeetleGame-Contracts/blob/4ab13a82a1f9b7228d5c0ad3a085518a60459036/contracts/BeetleBattleGame.sol)\n\n## Impact\n\nUsers’ staked NFTs are not fully trustless. If the admin account is compromised or malicious, staked NFTs can be redirected and permanently lost.\n\n## Recommendation\n\nRestrict emergency functions to require multi-sig approval.\n\n## Team Response\n\nFixed.\n\n",
+    "summary": "\nThe report discusses a bug in the `BeetleBattleGame.emergencyUnstake()` function, which allows an admin to transfer NFTs staked by any user to an arbitrary address without their consent. This gives the admin complete control over all user assets, which can be dangerous if the admin account is compromised or malicious. The recommendation is to restrict emergency functions to require multi-sig approval. The team has fixed the bug.",
+    "report_date": "2025-08-30T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/shieldify-security/audits-portfolio-md/blob/main/Beetle-Security-Review.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "m-01-admin-can-arbitrarily-seize-user-assets-shieldify-none-beetle-markdown",
+    "firm_name": "Shieldify",
+    "firm_logo_square": "Shieldify_square.png",
+    "protocol_name": "Beetle",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Shieldify Security"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Shieldify",
+        "logo_square": "Shieldify_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Beetle",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

@@ -1,0 +1,55 @@
+{
+    "id": 62321,
+    "kind": "PDF",
+    "auditfirm_id": 6,
+    "impact": "LOW",
+    "finders_count": 3,
+    "protocol_id": 2863,
+    "title": "Missing onUSD refund on mints",
+    "content": "## Severity: Low Risk\n\n## Context\nGMTokenManager.sol#L196-L206\n\n## Description\nThe `mintWithAttestation` allows paying with tokens other than `onUSD`. The issue is in that case, the user is charged the entire specified amount `depositTokenAmount` instead of the actual cost `mintOnusdValue`. \n\nWhen minting with other tokens, the user's funds are first passed into the `onUSDManager` contract, which mints temporary `onUSD` tokens for the purchase. Suppose the user is using some tokens that can have a volatile exchange rate with respect to `onUSD` tokens. In that case, they will need to specify a higher than necessary input amount to ensure their transaction goes through reliably.\n\nThese funds are then used to mint `onUSD` tokens, which are then burnt to mint the actual GM tokens. The price for the GM tokens is calculated in the `mintOnusdValue` variable. The contract only burns `mintOnusdValue` worth of `onUSD` tokens but does not pay out the remainder of the tokens. Therefore, if users specify `depositTokenAmount` to be higher than the required amount to account for the potential volatility of the payment token, they are charged the full amount even though they should only be charged `mintOnusdValue` amount.\n\n## Proof of Concept\n```diff\ndiff --git a/forge-tests/globalMarkets/tokenManager/GMTokenManagerPSMIntegrationTest.t.sol b/forge-tests/globalMarkets/tokenManager/GMTokenManagerPSMIntegrationTest.t.sol\nindex d480e39..2988795 100644\n--- a/forge-tests/globalMarkets/tokenManager/GMTokenManagerPSMIntegrationTest.t.sol\n+++ b/forge-tests/globalMarkets/tokenManager/GMTokenManagerPSMIntegrationTest.t.sol\n@@ -251,9 +251,9 @@ contract onUSDManagerTest_ETH is OUSG_InstantManager_BasicDeployment {\nbytes memory signature = _createAttestation(attesterPrivateKey, quote);\n// Approve manager to spend user's onUSD\n- deal(address(USDC), user, usdcDepositAmount);\n+ deal(address(USDC), user, 2 * usdcDepositAmount);\nvm.startPrank(user);\n- USDC.approve(address(gmTokenManager), usdcDepositAmount);\n+ USDC.approve(address(gmTokenManager), 2 * usdcDepositAmount);\n// Token supply before subscription/burn\nuint256 onUsdSupply = onusd.totalSupply();\n@@ -262,7 +262,7 @@ contract onUSDManagerTest_ETH is OUSG_InstantManager_BasicDeployment {\nquote,\nsignature,\naddress(USDC),\n- usdcDepositAmount\n+ 2 * usdcDepositAmount\n);\nvm.stopPrank();\nOutput tokens remain the same even though the input USDC amount doubles.\n```\n\n## Recommendation\nAs long as `onUSD` and the `depositToken` maintain their peg, only `mintOnusdValue` worth of tokens should be charged (for a 1:1 peg). For unpegged `depositToken`, consider refunding the unused amount of `onUSD` tokens.\n\n```solidity\nuint256 depositedOnusdValue = onUSDManager.subscribe(\n    depositToken,\n    depositTokenAmount,\n    mintOnusdValue\n);\nuint256 refund = depositedOnusdValue - mintOnusdValue;\n```\n\n**Ondo Finance:** Fixed in PR 435.\n\n**Spearbit:** Fix verified.",
+    "summary": "",
+    "report_date": "2025-06-17T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Ondo-Spearbit-Security-Review-May-2025.pdf",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Ondo-Spearbit-Security-Review-May-2025.pdf",
+    "github_link": "",
+    "pdf_link": "https://solodit-bucket.s3.amazonaws.com/storage/reports/spearbit/Ondo-Spearbit-Security-Review-May-2025.pdf",
+    "pdf_page_from": 10,
+    "contest_id": "",
+    "slug": "missing-onusd-refund-on-mints-spearbit-none-ondo-rwa-internal-pdf",
+    "firm_name": "Spearbit",
+    "firm_logo_square": "spearbit_square.png",
+    "protocol_name": "Ondo RWA Internal",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "CarrotSmuggler"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Anurag Jain"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Desmond Ho"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Spearbit",
+        "logo_square": "spearbit_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Ondo RWA Internal",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

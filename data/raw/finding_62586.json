@@ -1,0 +1,45 @@
+{
+    "id": 62586,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 16,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3420,
+    "title": "[L-28] Potential revenue loss due to fee calculation method",
+    "content": "\n_Resolved_\n\nThe current fee calculation in the `Marketplace` contract uses a straightforward truncation method when determining the `fee` amount from a listing price.\n\n```solidity\n            uint256 feeAmount = (listings[i].request.price * fees) / 10000;\n            uint256 sellerAmount = listings[i].request.price - feeAmount;\n            // Update state before external calls\n            totalPendingFees += feeAmount;\n            \n            address payee = chargeDelegate ? address(msg.sender) : listings[i].receiver;\n```\n\nThis can lead to rounding down and result in a loss of revenue for the protocol. For instance, this truncation can lead to a fee loss of up to `0.01 USDC` per `NFT purchase`. Over time, especially with a high volume of transactions, this could accumulate to a significant loss in potential revenue for the project.\n\nRecommendations:\n\nOptimize the fee calculation and ensure it is more favorable to the protocol.\n\n\n\n",
+    "summary": "",
+    "report_date": "2025-09-11T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/pashov/audits/blob/master/team/md/RipIt-security-review_2025-04-25.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "l-28-potential-revenue-loss-due-to-fee-calculation-method-pashov-audit-group-none-ripit_2025-04-25-markdown",
+    "firm_name": "Pashov Audit Group",
+    "firm_logo_square": "Pashov_square.png",
+    "protocol_name": "RipIt_2025-04-25",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Pashov Audit Group"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Pashov Audit Group",
+        "logo_square": "Pashov_square.png"
+    },
+    "protocols_protocol": {
+        "name": "RipIt_2025-04-25",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

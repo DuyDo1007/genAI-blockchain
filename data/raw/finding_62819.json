@@ -1,0 +1,55 @@
+{
+    "id": 62819,
+    "kind": "GIT",
+    "auditfirm_id": 3,
+    "impact": "MEDIUM",
+    "finders_count": 3,
+    "protocol_id": 3398,
+    "title": "M-4: Users always pay fee on the full swapped amount in the `DeliHook`, even if the swap is smaller",
+    "content": "\nSource: https://github.com/sherlock-audit/2025-09-bmx-deli-swap-judging/issues/154 \n\n## Found by \n0x73696d616f, blockace, cergyk\n\n### Summary\n\nUsers can specify a price limit in their swap, limiting the amount of funds actually swapped, or there may not be enough assets of one of the tokens to swap. The `DeliHook` doesn't take this into account, always paying fee over the full amount specified, overcharging the user by a very significant amount, [link](https://github.com/sherlock-audit/2025-09-bmx-deli-swap/blob/main/deli-swap-contracts/src/DeliHook.sol#L231).\n\n### Root Cause\n\nIn `DeliHook.sol:231`, the fee is always calculated on the full input amount, regardless of the actual amount swappd.\n\n### Internal Pre-conditions\n\nNone.\n\n### External Pre-conditions\n\nNone.\n\n### Attack Path\n\n1. User does a swap, specifying a sqrt limit price that will be [hit](https://github.com/Uniswap/v4-core/blob/main/src/libraries/Pool.sol#L344) without using the full input/output amount. Or, alternatively, the pool runs out of one of the tokens.\n2. `DeliHook` will apply the fee on the full input amount, instead of just the amount swapped, [link](https://github.com/Uniswap/v4-core/blob/main/src/libraries/Hooks.sol#L311-L312) to where the fee is applied.\n\n### Impact\n\nIf the user specifies a sqrtPrice limit that only swaps 50% of the input/output funds, and the fee is calculated on 100% of the amount, it would be an error of 100%, high severity, and scales with the amount swapped.\n\n### PoC\n\nNone\n\n### Mitigation\n\nAdjust the fee for the actual amount swapped.\n\n",
+    "summary": "\nThe bug report discusses an issue with the DeliSwap smart contract, specifically the DeliHook function. The problem is that the fee is always calculated on the full input amount, even if the user doesn't swap the full amount or if there are not enough assets of one of the tokens to complete the swap. This results in the user being overcharged by a significant amount. The root cause of this issue is a line of code in the DeliHook function that always calculates the fee on the full input amount. This bug can have a severe impact, causing an error of 100% and scaling with the amount being swapped. Currently, there is no proof of concept for this bug, but it can be mitigated by adjusting the fee to match the actual amount being swapped.",
+    "report_date": "2025-09-16T15:00:00.000Z",
+    "contest_prize_txt": "47000 USDC",
+    "contest_link": "https://app.sherlock.xyz/audits/contests/1154",
+    "sponsor_name": "",
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "",
+    "github_link": "https://github.com/sherlock-audit/2025-09-bmx-deli-swap-judging/issues/154",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "1154",
+    "slug": "m-4-users-always-pay-fee-on-the-full-swapped-amount-in-the-delihook-even-if-the-swap-is-smaller-sherlock-bmx-deli-swap-git",
+    "firm_name": "Sherlock",
+    "firm_logo_square": "sherlock_square.png",
+    "protocol_name": "BMX Deli Swap",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "cergyk"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "0x73696d616f"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "blockace"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Sherlock",
+        "logo_square": "sherlock_square.png"
+    },
+    "protocols_protocol": {
+        "name": "BMX Deli Swap",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

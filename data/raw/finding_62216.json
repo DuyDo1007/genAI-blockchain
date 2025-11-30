@@ -1,0 +1,50 @@
+{
+    "id": 62216,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 11,
+    "impact": "LOW",
+    "finders_count": 2,
+    "protocol_id": 3392,
+    "title": "Enforce minimum transaction amounts in `StakingVault`",
+    "content": "**Description:** Some elaborate vault hacks have involved performing vault transactions using very small amounts such as 1 wei in order to manipulate the vault via rounding.\n\nNormal users will never perform transactions using such small amounts; hence consider enforcing minimum transaction amounts to deprive attackers of this potential attack path.\n\nSince hBTC uses 8 decimals and is 1:1 redeemable for BTC:\n* 100000000 = 1 BTC ($118K)\n* 10000 = 0.0001 BTC($11.87)\n\nConsider making the minimum transaction limit a configurable parameter that the admin can change as the price of BTC fluctuates, so that it can remain around ~$10 (or even higher if preferred).\n\nThe best way to enforce this is likely overriding `ERC4626::_deposit, _withdraw` and reverting inside them if `assets` is smaller than the minimum transaction amount.\n\n**Syntetika:**\nFixed in commit [5ba3c19](https://github.com/SyntetikaLabs/monorepo/commit/5ba3c199cf571679503f8f472769c8efe869a001).\n\n**Cyfrin:** Verified.",
+    "summary": "",
+    "report_date": "2025-08-01T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/solodit/solodit_content/blob/main/reports/Cyfrin/2025-08-01-cyfrin-syntetika-v2.0.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "enforce-minimum-transaction-amounts-in-stakingvault-cyfrin-none-syntetika-markdown",
+    "firm_name": "Cyfrin",
+    "firm_logo_square": "Cyfrin_square.jpg",
+    "protocol_name": "Syntetika",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Dacian"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Jorge"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Cyfrin",
+        "logo_square": "Cyfrin_square.jpg"
+    },
+    "protocols_protocol": {
+        "name": "Syntetika",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

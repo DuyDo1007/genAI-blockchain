@@ -1,0 +1,55 @@
+{
+    "id": 62731,
+    "kind": "GIT",
+    "auditfirm_id": 3,
+    "impact": "MEDIUM",
+    "finders_count": 3,
+    "protocol_id": 3324,
+    "title": "M-8: mErc20Host: It is not possible to permissionlessly call \"external\" endpoints when source chain is Eth mainnet, because l1Inclusion flag cannot be set to true",
+    "content": "\nSource: https://github.com/sherlock-audit/2025-07-malda-judging/issues/264 \n\nThis issue has been acknowledged by the team but won't be fixed at this time.\n\n## Found by \nLeFy, cergyk, pyk\n\n### Description\n\nWe see that in order to submit a proof to the `malda-lending` contracts permissionlessly (user is not proof forwarder or batch proof forwarder), the l1Inclusion flag has to be set:\n\n[mErc20Host.sol#L378-L399](https://github.com/sherlock-audit/2025-07-malda/blob/main/malda-lending/src/mToken/host/mErc20Host.sol#L378-L399):\n```solidity\n    function _verifyProof(bytes calldata journalData, bytes calldata seal) internal view {\n        require(journalData.length > 0, mErc20Host_JournalNotValid());\n\n\n        // Decode the dynamic array of journals.\n        bytes[] memory journals = _decodeJournals(journalData);\n\n\n        // Check the L1Inclusion flag for each journal.\n        bool isSequencer = _isAllowedFor(msg.sender, _getProofForwarderRole())\n            || _isAllowedFor(msg.sender, _getBatchProofForwarderRole());\n\n\n        if (!isSequencer) {\n            for (uint256 i = 0; i < journals.length; i++) {\n>               (,,,,,, bool L1Inclusion) = mTokenProofDecoderLib.decodeJournal(journals[i]);\n>               if (!L1Inclusion) {\n>                   revert mErc20Host_L1InclusionRequired();\n>               }\n            }\n        }\n\n\n        // verify it using the IZkVerifier contract\n        verifier.verifyInput(journalData, seal);\n    }\n```\n\nHowever if attempting to request a proof for data originating from the ETH mainnet, with `l1Inclusion` flag set, it will panic in `viewcalls.rs`, during the `get_env_input_for_l1_inclusion_and_l2_block_number` call:\n\n[viewcalls.rs#L933-L970](https://github.com/sherlock-audit/2025-07-malda/blob/main/malda-zk-coprocessor/malda_rs/src/viewcalls.rs#L933-L970):\n```rust\npub async fn get_env_input_for_l1_inclusion_and_l2_block_number(\n    chain_id: u64,\n    is_sepolia: bool,\n    l1_inclusion: bool,\n    ethereum_block: Option<u64>,\n    fallback: bool,\n) -> (Option<EvmInput<EthEvmFactory>>, Option<u64>) {\n    if !l1_inclusion {\n        // If L1 inclusion is not required, return None for both values\n        (None, None)\n    } else {\n        //@audit handle the l1_inclusion == true case\n        // Prepare the L1 RPC URL\n        let l1_rpc_url = get_rpc_url(\"ETHEREUM\", fallback, is_sepolia);\n        // Determine the L1 block to use for inclusion\n        let l1_block = if is_linea_chain(chain_id) {\n            ethereum_block.unwrap()\n        } else {\n            if is_sepolia {\n                ethereum_block.unwrap() - REORG_PROTECTION_DEPTH_ETHEREUM_SEPOLIA\n            } else if !is_sepolia {\n                ethereum_block.unwrap() - REORG_PROTECTION_DEPTH_ETHEREUM\n            } else {\n                panic!(\"Invalid chain ID\");\n            }\n        };\n\n\n        // Delegate to the appropriate helper based on chain type\n        if is_opstack_chain(chain_id) {\n            get_env_input_for_opstack_dispute_game(chain_id, l1_block, fallback).await\n        } else if is_linea_chain(chain_id) {\n            get_env_input_for_linea_l1_call(chain_id, l1_rpc_url, l1_block).await\n        } else {\n            //@audit if ETH mainnet && l1_inclusion, panic \n>           panic!(\n>               \"L1 Inclusion only supported for Optimism, Base, Linea and their Sepolia variants\"\n>           );\n        }\n    }\n}\n```\n\n### Impact\n\nIt is impossible to carry some `external` actions on host in a permissionless way (caller is not sequencer), when source chain is Eth mainnet. The impact is even more acute since there is no clear path to trigger some external endpoints for execution by the sequencer (see issue about [liquidateExternal](https://github.com/sherlock-audit/2025-07-malda-CergyK/issues/16)).\n\n### Likelihood\n\nNo preconditions, the bug is inevitable\n\n### Recommendation\n\nThe process of validating the data (guest program, logic of which is in `validators.rs`) allows for validating a proof with `l1Inclusion` set to true for ETH_MAINNET, it only requires the `env_input_eth_for_l1_inclusion` to be `Some` (this value is not used anymore after determining `validate_l1_inclusion`).\n\n[malda-zk-coprocessor/malda_utils/src/validators.rs#L195](https://github.com/sherlock-audit/2025-07-malda/blob/main/malda-zk-coprocessor/malda_utils/src/validators.rs#L195):\n```rust\n    let validate_l1_inclusion = env_input_eth_for_l1_inclusion.is_some();\n```\n\nSo we should just handle the ethereum case by returning a default ENV value:\n\n```diff\n        // Delegate to the appropriate helper based on chain type\n        if is_opstack_chain(chain_id) {\n            get_env_input_for_opstack_dispute_game(chain_id, l1_block, fallback).await\n        } else if is_linea_chain(chain_id) {\n            get_env_input_for_linea_l1_call(chain_id, l1_rpc_url, l1_block).await\n-       } else {\n-          panic!(\n-              \"L1 Inclusion only supported for Optimism, Base, Linea and their Sepolia variants\"\n-          );\n+       } else if is_ethereum(chain_id) {\n+          Env::default();\n+       } else {\n+          panic!(\n+              \"L1 Inclusion only supported for Optimism, Base, Linea and their Sepolia variants\"\n+          );\n+       }\n```\n\n> If disallowing l1Inclusion for Eth mainnet is really intended, it should then also be enforced in the guest program, which is not the case currently, and any user can provide alternative inputs to prove for Eth mainnet with l1Inclusion, as shown above (set parameter `env_input_eth_for_l1_inclusion` to a dummy non-empty value).\n\nIn that case, one can change the contracts to accept proofs which do not have l1Inclusion in case chainId is the one from Eth mainnet:\n\n[mErc20Host.sol#L378-L399](https://github.com/sherlock-audit/2025-07-malda/blob/main/malda-lending/src/mToken/host/mErc20Host.sol#L378-L399):\n```diff\nfunction _verifyProof(bytes calldata journalData, bytes calldata seal) internal view {\n    require(journalData.length > 0, mErc20Host_JournalNotValid());\n\n\n    // Decode the dynamic array of journals.\n    bytes[] memory journals = _decodeJournals(journalData);\n\n\n    // Check the L1Inclusion flag for each journal.\n    bool isSequencer = _isAllowedFor(msg.sender, _getProofForwarderRole())\n        || _isAllowedFor(msg.sender, _getBatchProofForwarderRole());\n\n\n    if (!isSequencer) {\n        for (uint256 i = 0; i < journals.length; i++) {\n-           (,,,,,, bool L1Inclusion) = mTokenProofDecoderLib.decodeJournal(journals[i]);\n-           if (!L1Inclusion) {\n+           (,,,,uint chainId,, bool L1Inclusion) = mTokenProofDecoderLib.decodeJournal(journals[i]);\n+           if (!L1Inclusion && !(chainId == ETHEREUM_MAINNET)) {\n                revert mErc20Host_L1InclusionRequired();\n            }\n        }\n    }\n\n\n    // verify it using the IZkVerifier contract\n    verifier.verifyInput(journalData, seal);\n}\n```\n\n## Discussion\n\n**Barnadrot**\n\nAcknowledged: \n\nWe wont fix as the intended/crucial and required use-case for self-sequencing is permissionless exit which requires proving Linea state. \n\nThe fix is extensive and we have further proof upgrades required by external circumstances, therefore this is going to be remedied in a future version where self-sequencing latency and centralized sequencer latency is closer together. \n\n\n\n",
+    "summary": "\nThis bug report discusses an issue with the `malda-lending` contracts where the `l1Inclusion` flag needs to be set in order to submit a proof permissionlessly. However, when trying to request a proof for data from the ETH mainnet with the flag set, it results in an error. This bug affects the ability to carry out external actions on the host in a permissionless manner when the source chain is ETH mainnet. The likelihood of this bug occurring is high and the recommendation is to handle the ETH mainnet case by returning a default value. The team has acknowledged the issue but will not fix it at this time due to the extensive fix required and other planned upgrades.",
+    "report_date": "2025-08-14T17:00:00.000Z",
+    "contest_prize_txt": "80000 USDC",
+    "contest_link": "https://app.sherlock.xyz/audits/contests/1029",
+    "sponsor_name": "",
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "",
+    "github_link": "https://github.com/sherlock-audit/2025-07-malda-judging/issues/264",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "1029",
+    "slug": "m-8-merc20host-it-is-not-possible-to-permissionlessly-call-external-endpoints-when-source-chain-is-eth-mainnet-because-l1inclusion-flag-cannot-be-set-to-true-sherlock-malda-git",
+    "firm_name": "Sherlock",
+    "firm_logo_square": "sherlock_square.png",
+    "protocol_name": "Malda",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "cergyk"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "LeFy"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "pyk"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Sherlock",
+        "logo_square": "sherlock_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Malda",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

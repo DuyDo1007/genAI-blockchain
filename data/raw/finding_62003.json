@@ -1,0 +1,55 @@
+{
+    "id": 62003,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 37,
+    "impact": "LOW",
+    "finders_count": 3,
+    "protocol_id": 3365,
+    "title": "Silently Failing Storage Writes",
+    "content": "**Update**\nMarked as \"Fixed\" by the client. Addressed in: `5bffa00d0b2bb6e3325265c21bfa4815e17e3dbc`. Additional fixes in: `cc05e3065dd10d4d1d4792302d973fa59d9d2a1f` The client provided the following explanation:\n\n> Add validation checks for setSecureItem operations in wallet creation and handle useDeleteWallet() errors\n\n**File(s) affected:**`wallet/index.ts`\n\n**Description:** During wallet creation, there is currently no check on the returned boolean from `setSecureItem()`, creating a situation where the wallet creation can succeed, but silently fail to write the secure store keys. This does not put any user funds at risk, as the wallet was never stored and therefore is inaccessible, however it does have the potential to unnecessarily bloat memory used by the user's device.\n\n**Recommendation:** Enforce that `setSecureItem()` passes successfully.",
+    "summary": "",
+    "report_date": "2025-08-26T12:12:16.438Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://certificate.quantstamp.com/full/saucer-swap-wallet/d30efab8-8abd-46b1-bba5-6360b87e3aa3/index.html",
+    "sponsor_name": "",
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://certificate.quantstamp.com/full/saucer-swap-wallet/d30efab8-8abd-46b1-bba5-6360b87e3aa3/index.html",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "silently-failing-storage-writes-quantstamp-saucerswap-wallet-markdown",
+    "firm_name": "Quantstamp",
+    "firm_logo_square": "quantstamp_square.png",
+    "protocol_name": "SaucerSwap Wallet",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Albert Heinle"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Darren Jensen"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Jonathan Mevs"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Quantstamp",
+        "logo_square": "quantstamp_square.png"
+    },
+    "protocols_protocol": {
+        "name": "SaucerSwap Wallet",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

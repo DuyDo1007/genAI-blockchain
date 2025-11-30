@@ -1,0 +1,70 @@
+{
+    "id": 62502,
+    "kind": "GIT",
+    "auditfirm_id": 3,
+    "impact": "MEDIUM",
+    "finders_count": 6,
+    "protocol_id": 3104,
+    "title": "M-10: Incorrect asset matching for ETH/WETH leads to potential DoS of exitPosition in CurveConvexStrategy",
+    "content": "\nSource: https://github.com/sherlock-audit/2025-06-notional-exponent-judging/issues/581 \n\n## Found by \n0xDeoGratias, Cybrid, HeckerTrieuTien, auditgpt, bretzel, touristS\n\n### Summary\n\nWhen redeeming shares in `CurveConvexStrategy`, the `_executeRedemptionTrades` function is intended to skip swap logic for the primary token. \nHowever, when the strategy's asset is WETH and one of the exit tokens is ETH_ADDRESS, the comparison `(address(tokens[i]) == address(asset))` fails because ETH and WETH have different addresses. This leads to an unnecessary swap attempt using invalid trade parameters, potentially causing a denial of service (DoS).\n\n---\n\n### Root Cause\n\nIn the CurveConvex strategy, when redeeming shares (via `exitPosition` or `initiateWithdraw`), LP tokens are first unstaked and exited from the pool using `unstakeAndExitPool()`.\nIf one of the pool tokens is native ETH and the strategy’s `ASSET` is WETH, the strategy wraps ETH into WETH.\nhttps://github.com/sherlock-audit/2025-06-notional-exponent-sylvarithos/blob/82c87105f6b32bb362d7523356f235b5b07509f9/notional-v4/src/single-sided-lp/CurveConvex2Token.sol#L205\n```solidity\nfunction unstakeAndExitPool(\n    uint256 poolClaim, uint256[] memory _minAmounts, bool isSingleSided\n) external returns (uint256[] memory exitBalances) {\n    _unstakeLpTokens(poolClaim);\n\n    exitBalances = _exitPool(poolClaim, _minAmounts, isSingleSided);\n\n205  if (ASSET == address(WETH)) {\n        if (TOKEN_1 == ETH_ADDRESS) {\n            WETH.deposit{value: exitBalances[0]}();\n        } else if (TOKEN_2 == ETH_ADDRESS) {\n            WETH.deposit{value: exitBalances[1]}();\n        }\n    }\n}\n```\n\nWhen not singlesided trade, it executes trade to convert to primary token.\nhttps://github.com/sherlock-audit/2025-06-notional-exponent-sylvarithos/blob/82c87105f6b32bb362d7523356f235b5b07509f9/notional-v4/src/single-sided-lp/AbstractSingleSidedLP.sol#L176\n```solidity\nfunction _redeemShares(\n    uint256 sharesToRedeem,\n    address sharesOwner,\n    bool isEscrowed,\n    bytes memory redeemData\n) internal override {\n    RedeemParams memory params = abi.decode(redeemData, (RedeemParams));\n    ...\n    if (!isSingleSided) {\n        // If not a single sided trade, will execute trades back to the primary token on\n        // external exchanges. This method will execute EXACT_IN trades to ensure that\n        // all of the balance in the other tokens is sold for primary.\n        // Redemption trades are not automatically enabled on vaults since the trading module\n        // requires explicit permission for every token that can be sold by an address.\n        _executeRedemptionTrades(tokens, exitBalances, params.redemptionTrades);\n    }\n}\n```\n\nHowever, in `_executeRedemptionTrades()`, when iterating over the `tokens` array to check if a token matches `asset` (to skip trading), it uses a strict equality check:\nhttps://github.com/sherlock-audit/2025-06-notional-exponent-sylvarithos/blob/82c87105f6b32bb362d7523356f235b5b07509f9/notional-v4/src/single-sided-lp/AbstractSingleSidedLP.sol#L229\n```solidity\nfunction _executeRedemptionTrades(\n    ERC20[] memory tokens,\n    uint256[] memory exitBalances,\n    TradeParams[] memory redemptionTrades\n) internal returns (uint256 finalPrimaryBalance) {\n    for (uint256 i; i < exitBalances.length; i++) {\n229     if (address(tokens[i]) == address(asset)) {\n            finalPrimaryBalance += exitBalances[i];\n            continue;\n        }\n\n        TradeParams memory t = redemptionTrades[i];\n        // Always sell the entire exit balance to the primary token\n        if (exitBalances[i] > 0) {\n            Trade memory trade = Trade({\n                tradeType: t.tradeType,\n                sellToken: address(tokens[i]),\n                buyToken: address(asset),\n                amount: exitBalances[i],\n                limit: t.minPurchaseAmount,\n                deadline: block.timestamp,\n                exchangeData: t.exchangeData\n            });\n            (/* */, uint256 amountBought) = _executeTrade(trade, t.dexId);\n\n            finalPrimaryBalance += amountBought;\n        }\n    }\n}\n```\n\nThis fails when `tokens[i]` is ETH (i.e., `ETH_ADDRESS`) and `asset` is WETH, even though ETH was already converted into WETH during the exit step.\nThis leads to an unnecessary swap attempt using invalid trade parameters, potentially causing a denial of service (DoS).\n\n---\n\n### Internal Pre-conditions\n\n- The strategy asset is set to WETH.\n- The LP token pool contains ETH as one of its underlying tokens.\n\n---\n\n### Impact\n\nA revert in `_executeTrade()` halts redemptions, locking user funds in the vault. This can block all users from exiting if their share includes ETH from the pool.\n\n---\n\n### Mitigation\n\nShould compare with primary_index.\n\n```solidity\nfunction _executeRedemptionTrades(\n    ERC20[] memory tokens,\n    uint256[] memory exitBalances,\n    TradeParams[] memory redemptionTrades\n) internal returns (uint256 finalPrimaryBalance) {\n    for (uint256 i; i < exitBalances.length; i++) {\n-       if (address(tokens[i]) == address(asset)) {\n+       if (address(tokens[i]) == PRIMARY_INDEX()) {\n            finalPrimaryBalance += exitBalances[i];\n            continue;\n        }\n\t...\n}\n```\n\n",
+    "summary": "\nThis bug report discusses an issue found by a group of individuals in a code repository. The bug occurs in a function that is meant to skip a certain type of trade, but due to a comparison error, it fails to do so when a specific token is involved. This can lead to a denial of service, causing user funds to be locked in the system. The report suggests a solution to fix the issue.",
+    "report_date": "2025-07-18T15:00:00.000Z",
+    "contest_prize_txt": "75500 USDC",
+    "contest_link": "https://app.sherlock.xyz/audits/contests/1001",
+    "sponsor_name": "",
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "",
+    "github_link": "https://github.com/sherlock-audit/2025-06-notional-exponent-judging/issues/581",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "1001",
+    "slug": "m-10-incorrect-asset-matching-for-ethweth-leads-to-potential-dos-of-exitposition-in-curveconvexstrategy-sherlock-notional-exponent-git",
+    "firm_name": "Sherlock",
+    "firm_logo_square": "sherlock_square.png",
+    "protocol_name": "Notional Exponent",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "bretzel"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "HeckerTrieuTien"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "touristS"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "0xDeoGratias"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "auditgpt"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Cybrid"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Sherlock",
+        "logo_square": "sherlock_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Notional Exponent",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

@@ -1,0 +1,60 @@
+{
+    "id": 62810,
+    "kind": "GIT",
+    "auditfirm_id": 3,
+    "impact": "HIGH",
+    "finders_count": 4,
+    "protocol_id": 3398,
+    "title": "H-3: DoSed `Voter::finalize()` due to unbounded pending removals lacking a batch argument variable",
+    "content": "\nSource: https://github.com/sherlock-audit/2025-09-bmx-deli-swap-judging/issues/68 \n\n## Found by \n0x73696d616f, Bobai23, ezsia, maigadoh\n\n### Summary\n\n`Voter::finalize()` processes in batches to allow finalizing epochs and distributing rewards without running out of gas. However, `Voter::_processPendingRemovals()` doesn't take a batch variable into account, making it possible for an attacker to register as auto voter with a balance > 0, and then transfer their votes out, being sent to the pending removals array as soon as the epoch is finalized. By spamming this in a huge number of accounts, an attacker is able to DoS epoch finalization for all epochs, effectively making all rewards stuck.\n\n### Root Cause\n\n\nIn `Voter.sol:386`, [Voter::_processPendingRemovals()](https://github.com/sherlock-audit/2025-09-bmx-deli-swap/blob/main/deli-swap-contracts/src/Voter.sol#L386) is missing a batch variable argument.\n\n### Internal Pre-conditions\n\nNone\n\n### External Pre-conditions\n\nNone\n\n### Attack Path\n\n1. Attacker calls `Voter::vote()` with a wei balance, enabling auto voting, and then transferring the balance out. Attacker does this for multipler addresses such that `Voter::finalize()` runs out of gas.\n2. Admin calls `Voter::finalize()`, and in `Voter::_tallyAutoVotes()`, all the accounts are pushed to the pendingRemovals array. Due to the lack of a batch argument in the `Voter::_processPendingRemovals()` function, it will run out of gas trying to remove all the addresses of the attacker.\n\n### Impact\n\nEpoch finalization is impossible and rewards are forever stuck.\n\n### PoC\n\nNote `Voter.sol::_processPendingRemovals()`:\n\n```solidity\nfunction _processPendingRemovals(uint256 ep) internal {\n    address[] memory toRemove = pendingRemovals[ep];\n    for (uint256 i = 0; i < toRemove.length; i++) {\n        address addr = toRemove[i];\n        uint256 idx = autoIndex[addr];\n        if (idx > 0) {\n            _removeAutoVoter(addr, idx - 1);\n        }\n    }\n    delete pendingRemovals[ep];\n}\n```\n\n### Mitigation\n\nSend a batch argument, to avoid OOG revert.\n\n",
+    "summary": "\nThis bug report discusses an issue found in the code for a project called BMX Deli Swap Judging. The issue was discovered by a group of users and could potentially be exploited by an attacker to cause a denial of service (DoS) attack. The root cause of the issue is a missing batch variable in a function called `Voter::_processPendingRemovals()`. This could allow an attacker to register as an auto voter with a balance greater than zero and then transfer their votes out, causing the epoch finalization process to run out of gas. This would result in all rewards being stuck and the inability to finalize any epochs. The report suggests adding a batch argument to the function as a mitigation for this issue.",
+    "report_date": "2025-09-16T15:00:00.000Z",
+    "contest_prize_txt": "47000 USDC",
+    "contest_link": "https://app.sherlock.xyz/audits/contests/1154",
+    "sponsor_name": "",
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "",
+    "github_link": "https://github.com/sherlock-audit/2025-09-bmx-deli-swap-judging/issues/68",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "1154",
+    "slug": "h-3-dosed-voterfinalize-due-to-unbounded-pending-removals-lacking-a-batch-argument-variable-sherlock-bmx-deli-swap-git",
+    "firm_name": "Sherlock",
+    "firm_logo_square": "sherlock_square.png",
+    "protocol_name": "BMX Deli Swap",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "0x73696d616f"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Bobai23"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "maigadoh"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "ezsia"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Sherlock",
+        "logo_square": "sherlock_square.png"
+    },
+    "protocols_protocol": {
+        "name": "BMX Deli Swap",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

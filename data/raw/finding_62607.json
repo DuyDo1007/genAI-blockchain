@@ -1,0 +1,45 @@
+{
+    "id": 62607,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 16,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3421,
+    "title": "[L-10] Silent error swallowing due to early event",
+    "content": "\n_Resolved_\n\nIn `MarketplaceAdmin.sol`, multiple administrative functions use a try/catch pattern when calling functions on the Marketplace contract, but then silently ignore any errors that occur. More concerning, the contract emits success events before entering the try/catch block, meaning events are emitted even if the underlying operation fails.\nThis occurs in multiple functions, including:\n- updateAcceptedCurrency().\n- updateFeeReceiver().\n- updateFees().\n- updateTradeFee().\n- collectFees().\n- updateWhitelistRegistryAddress().\n- emergencyShutdown().\n\nThis pattern create issue, because events are emitted indicating success even if the operation fails, so Incorrect event logs may mislead users, frontend applications, and monitoring systems. Admin functions appear to succeed when they actually fail. \n\nTo resolve this, move event emissions inside the try block or after successful execution to ensure events are only emitted upon success.\n\n\n\n",
+    "summary": "",
+    "report_date": "2025-09-11T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/pashov/audits/blob/master/team/md/RipIt-security-review_2025-05-10.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "l-10-silent-error-swallowing-due-to-early-event-pashov-audit-group-none-ripit_2025-05-10-markdown",
+    "firm_name": "Pashov Audit Group",
+    "firm_logo_square": "Pashov_square.png",
+    "protocol_name": "RipIt_2025-05-10",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Pashov Audit Group"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Pashov Audit Group",
+        "logo_square": "Pashov_square.png"
+    },
+    "protocols_protocol": {
+        "name": "RipIt_2025-05-10",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

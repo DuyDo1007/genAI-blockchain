@@ -1,0 +1,45 @@
+{
+    "id": 62370,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 34,
+    "impact": "MEDIUM",
+    "finders_count": 1,
+    "protocol_id": 1390,
+    "title": "[ASTRO-19] Missing fee limits check",
+    "content": "**Severity:** Medium\n\n**Path:** Crate.sol\n\n**Description:** Unlike in the setFees function, the Crate contract constructor is setting the withdraw, performance and management fees, which are not being checked to be smaller than some amount (e.g. 10%); checks should exist ensuring that the fees are not exceeding some appropriate amount.\n\nThis way, the contract creator can set big fee values, even those that will surpass 100% and drain the assets via a fee mechanism.\n```\n    constructor(\n        address _asset, // The asset we are using\n        string memory _name, // The name of the token\n        string memory _symbol, // The symbol of the token\n        uint256 _performanceFee, // 100% = 10000\n        uint256 _managementFee, // 100% = 10000\n        uint256 _withdrawFee // 100% = 10000\n    ) ERC20(_name, _symbol) {\n        asset = IERC20(_asset);\n        performanceFee = _performanceFee;\n        managementFee = _managementFee;\n        withdrawFee = _withdrawFee; \n        tokenDecimals = IERC20Metadata(_asset).decimals();\n        checkpoint = Checkpoint(block.timestamp, 10 ** tokenDecimals);\n        _pause(); // We start paused\n    }\n```\n\n**Remediation:**  Add checks for fees in the contract constructor to ensure that they are not bigger than `MAX_PERF_FEE`, `MAX_MGMT_FEE` and `MAX_WITHDRAW_FEE` values.\n\n**Status:** Fixed\n\n- - -",
+    "summary": "\nThis bug report is about a problem in the Crate contract's constructor, which is used to create new contracts. The issue is that the constructor does not have checks in place to make sure that the fees being set are not too high. This means that the creator of the contract can set fees that are more than 100%, which can drain the contract's assets. To fix this, checks need to be added to the constructor to limit the fees to a certain amount. This bug has been fixed.",
+    "report_date": "2023-04-17T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/solodit/solodit_content/blob/main/reports/Hexens/2023-04-17-Astrolab.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "astro-19-missing-fee-limits-check-hexens-none-astrolab-markdown",
+    "firm_name": "Hexens",
+    "firm_logo_square": "Hexens_square.png",
+    "protocol_name": "Astrolab",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Hexens"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Hexens",
+        "logo_square": "Hexens_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Astrolab",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

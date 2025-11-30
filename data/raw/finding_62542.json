@@ -1,0 +1,45 @@
+{
+    "id": 62542,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 16,
+    "impact": "HIGH",
+    "finders_count": 1,
+    "protocol_id": 3420,
+    "title": "[H-05] Currency validation missing in listing and offer requests",
+    "content": "\n_Resolved_\n\n## Severity\n\n**Impact:** High\n\n**Likelihood:** Medium\n\n## Description\n\n The `Marketplace` contract defines the currency in both `ListingRequest` and `OfferRequest`:\n\n```solidity\n    struct ListingRequest {\n        address tokenContractAddress;\n        uint256 tokenId;\n        uint256 price;\n        **address acceptedCurrency;**\n        uint256 deadline;\n        address owner;\n        uint256 chainId;\n    }\n\n    struct OfferRequest {\n        address tokenContractAddress;\n        uint256 tokenId;\n        uint256 price;\n        **address offerCurrency;**\n        uint256 deadline;\n        address requester;\n        uint256 chainId;\n    }\n```\n\nHowever, in the relevant check `isValidListing` and `isValidBid`, there is no validation to ensure that the currency specified in these requests matches the `acceptedCurrency` stored in the contract.\n\n```solidity\n    function isValidListing(ListingParams calldata listing) public view returns (bool) {\n        if (listing.request.price == 0) revert InvalidPrice();\n        if (block.timestamp > listing.request.deadline) revert ListingExpired();\n        if (listing.request.chainId != block.chainid) revert InvalidChainId();\n        bytes32 listingHash = generateListingSignatureHash(listing.request);\n        if (usedListings[listingHash]) revert ListingAlreadyUsed();\n        if (!IWhitelistRegistry(whitelistRegistry).isWhitelisted(listing.request.tokenContractAddress)) {\n            revert NFTNotWhitelisted();\n        }\n        if (IERC721(listing.request.tokenContractAddress).ownerOf(listing.request.tokenId) != listing.request.owner) {\n            revert NotOwner();\n        }\n\n        if (!SignatureChecker.isValidSignatureNow(listing.request.owner, listingHash, listing.sig)) {\n            revert InvalidSignature();\n        }\n\n        if (msg.sender != listing.receiver && !SignatureChecker.isValidSignatureNow(listing.receiver, listingHash, listing.receiverSig)) {\n            revert InvalidSignature();\n        }\n\n        return true;\n    }\n   ....\n```\nThis oversight can lead to significant issues:\n\n- In the `buy` function, the function directly uses `acceptedCurrency` to pay. If the `acceptedCurrency` has changed between the time of signing and execution, it could result in incorrect charges (if the payee happens to have approved enough allowance) or a DOS.\n\n```solidity\n            // External calls after state changes\n            IERC20(acceptedCurrency).transferFrom(payee, listings[i].request.owner, sellerAmount);\n            IERC20(acceptedCurrency).transferFrom(payee, address(this), feeAmount);\n```\n\n- More significantly, In the `acceptOffer` function, the function uses `offers[i].request.offerCurrency` to pay. This bypasses the `acceptedCurrency` check, potentially leading to incorrect calculations of `totalPendingFees` and making it impossible to retrieve the actual fee. \n\n```solidity\n            // Update state before external calls\n            totalPendingFees += feeAmount;\n            // External calls after state changes\n            IERC20(offers[i].request.offerCurrency).transferFrom(offers[i].request.requester, offers[i].receiver, sellerAmount);\n            IERC20(offers[i].request.offerCurrency).transferFrom(offers[i].request.requester, address(this), feeAmount);\n```\n\n- Furthermore, if `acceptedCurrency` is set to zero during an `emergencyShutdown`, transactions of `acceptOffer` could still be completed, undermining the purpose of the emergency shutdown mechanism.\n\n```solidity\n    function emergencyShutdown() external {\n        require(msg.sender == marketplaceAdmin, \"Only marketplaceAdmin can call\");\n        // First collect any pending fees\n        uint256 amount = totalPendingFees;\n        if (amount > 0 && acceptedCurrency != address(0)) {\n            totalPendingFees = 0;\n            IERC20(acceptedCurrency).transfer(feeReceiver, amount);\n        }\n        // Set currency to address(0) to prevent any new trades\n        acceptedCurrency = address(0);\n    }\n```\n\n## Recommendations\n\nTo enhance the integrity of the contract and prevent these issues, implement validation checks to ensure that the currency used in both `ListingRequest` and `OfferRequest` matches the `acceptedCurrency` before executing any transactions.\n\n\n\n",
+    "summary": "\nThe Marketplace contract has a bug where the currency specified in `ListingRequest` and `OfferRequest` is not properly validated against the `acceptedCurrency` stored in the contract. This can lead to incorrect charges and make it impossible to retrieve fees. To fix this, validation checks should be implemented to ensure that the currency used in the requests matches the accepted currency before executing any transactions.",
+    "report_date": "2025-09-11T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/pashov/audits/blob/master/team/md/RipIt-security-review_2025-04-25.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "h-05-currency-validation-missing-in-listing-and-offer-requests-pashov-audit-group-none-ripit_2025-04-25-markdown",
+    "firm_name": "Pashov Audit Group",
+    "firm_logo_square": "Pashov_square.png",
+    "protocol_name": "RipIt_2025-04-25",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Pashov Audit Group"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Pashov Audit Group",
+        "logo_square": "Pashov_square.png"
+    },
+    "protocols_protocol": {
+        "name": "RipIt_2025-04-25",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

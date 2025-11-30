@@ -1,0 +1,45 @@
+{
+    "id": 62432,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 34,
+    "impact": "MEDIUM",
+    "finders_count": 1,
+    "protocol_id": 3407,
+    "title": "[ZLS1-5] Compilation failed due to incompatible Solidity versions",
+    "content": "**Severity:** Medium\n\n**Path:** contracts/ZealousSwapPair.sol#L1  \ncontracts/interfaces/IZealousSwapDiscountManager.sol#L1  \n\n**Description:** The contract `ZealousSwapPair` imports the interface `IZealousSwapDiscountManager`. However, there is a version mismatch: `ZealousSwapPair` is written for Solidity `0.5.16`, while `IZealousSwapDiscountManager` requires Solidity version `>=0.8.20`. This version discrepancy causes a compiler error when attempting to compile `ZealousSwapPair`.\n```\npragma solidity =0.5.16;\n```\n```\npragma solidity ^0.8.20;\n```\n\n\n**Remediation:**  Consider changing the solidity version of the interface `IZealousSwapDiscountManager` to `0.5.16`.\n\n**Status:** Fixed\n\n\n- - -",
+    "summary": "\nA bug has been reported in the `ZealousSwapPair` contract, where it is unable to compile due to a version mismatch with the `IZealousSwapDiscountManager` interface. The contract is written for Solidity version `0.5.16`, while the interface requires version `>=0.8.20`. To fix this, the interface's solidity version can be changed to `0.5.16`. The bug has been marked as fixed.",
+    "report_date": "2025-05-26T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/solodit/solodit_content/blob/main/reports/Hexens/2025-05-26-Zealous.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "zls1-5-compilation-failed-due-to-incompatible-solidity-versions-hexens-none-zealous-markdown",
+    "firm_name": "Hexens",
+    "firm_logo_square": "Hexens_square.png",
+    "protocol_name": "Zealous",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Hexens"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Hexens",
+        "logo_square": "Hexens_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Zealous",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

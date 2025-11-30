@@ -1,0 +1,55 @@
+{
+    "id": 62308,
+    "kind": "PDF",
+    "auditfirm_id": 6,
+    "impact": "LOW",
+    "finders_count": 3,
+    "protocol_id": 3396,
+    "title": "Division by zero in calculateInterestRates due to reserveFactor being 100%",
+    "content": "## Severity: Low Risk\n\n## Context\nMiniPoolPiReserveInterestRateStrategy.sol#L217\n\n## Description\nAggregate (Cod3x and MinipoolOwner) reserveFactor can be 100%, and in that case a divide by zero could cause an interest rate update in `MiniPoolPiReserveInterestRateStrategy.calculateInterestRates`.\n\n## Recommendation\nCheck that `PercentageMath.PERCENTAGE_FACTOR - reserveFactor` is not zero:\n\n```solidity\nif (currentLiquidityRate < minLiquidityRate && utilizationRate != 0) {\n    // Original code\n    // ...\n}\n\n+ if (currentLiquidityRate < minLiquidityRate &&\n+     utilizationRate != 0 &&\n+     (PercentageMath.PERCENTAGE_FACTOR - reserveFactor != 0)) {\n    currentLiquidityRate = minLiquidityRate;\n    currentVariableBorrowRate = currentLiquidityRate.rayDiv(\n        utilizationRate.percentMul(PercentageMath.PERCENTAGE_FACTOR - reserveFactor)\n    );\n}\n```\n\n## Astera\nFixed in commit 1eb7b435.\n\n## Spearbit\nPerhaps this scenario should be handled differently. Since we want to always make sure that the mini pool can repay its borrowing position in the main lending pool when there is a non-zero flow.",
+    "summary": "",
+    "report_date": "2025-08-29T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Astera-Spearbit-Security-Review-December-2024.pdf",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Astera-Spearbit-Security-Review-December-2024.pdf",
+    "github_link": "",
+    "pdf_link": "https://solodit-bucket.s3.amazonaws.com/storage/reports/spearbit/Astera-Spearbit-Security-Review-December-2024.pdf",
+    "pdf_page_from": 36,
+    "contest_id": "",
+    "slug": "division-by-zero-in-calculateinterestrates-due-to-reservefactor-being-100-spearbit-none-astera-pdf",
+    "firm_name": "Spearbit",
+    "firm_logo_square": "spearbit_square.png",
+    "protocol_name": "Astera",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Saw-mon and Natalie"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Cergyk"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Jonatas Martins"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Spearbit",
+        "logo_square": "spearbit_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Astera",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

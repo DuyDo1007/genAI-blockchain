@@ -1,0 +1,55 @@
+{
+    "id": 62498,
+    "kind": "GIT",
+    "auditfirm_id": 3,
+    "impact": "MEDIUM",
+    "finders_count": 3,
+    "protocol_id": 3104,
+    "title": "M-6: Withdrawals ongoing for OETH, apxETH, weETH, and almost any LST are overpriced by the oracle",
+    "content": "\nSource: https://github.com/sherlock-audit/2025-06-notional-exponent-judging/issues/322 \n\n## Found by \n0xpiken, mstpr-brainbot, xiaoming90\n\n### Summary\n\nWhen users initiate a withdrawal, if the yield token has a specific withdrawal method, the withdrawal will be initialized and for LSTs, this means unstaking from the beacon chain, which can take hours, days, or even weeks.\n\nWhile the withdrawal is not finalized, the price of the token is assumed to be the same as the yield token for example, the OETH amount held in the Withdraw Request Manager contract. However, once the withdrawal is initialized on the beacon chain, LSTs stop earning yield. Therefore, the oracle will always **overprice** the token.\n\n\n### Root Cause\n\nAs we can see, when `initiateWithdraw` is called for an LST (e.g., OETH), the OETH will be taken from the yield strategy and sent to the Withdraw Request Manager to initialize the withdrawal process from the beacon chain:\n[https://github.com/sherlock-audit/2025-06-notional-exponent/blob/82c87105f6b32bb362d7523356f235b5b07509f9/notional-v4/src/staking/AbstractStakingStrategy.sol#L64-L74](https://github.com/sherlock-audit/2025-06-notional-exponent/blob/82c87105f6b32bb362d7523356f235b5b07509f9/notional-v4/src/staking/AbstractStakingStrategy.sol#L64-L74)\n[https://github.com/sherlock-audit/2025-06-notional-exponent/blob/82c87105f6b32bb362d7523356f235b5b07509f9/notional-v4/src/withdraws/AbstractWithdrawRequestManager.sol#L97-L120](https://github.com/sherlock-audit/2025-06-notional-exponent/blob/82c87105f6b32bb362d7523356f235b5b07509f9/notional-v4/src/withdraws/AbstractWithdrawRequestManager.sol#L97-L120)\n[https://github.com/sherlock-audit/2025-06-notional-exponent/blob/82c87105f6b32bb362d7523356f235b5b07509f9/notional-v4/src/withdraws/Origin.sol#L12-L19](https://github.com/sherlock-audit/2025-06-notional-exponent/blob/82c87105f6b32bb362d7523356f235b5b07509f9/notional-v4/src/withdraws/Origin.sol#L12-L19)\n\nSo the OETH withdrawal from the beacon chain is started. OETH is burned and is now waiting for ETH to be finalized and received from the beacon chain.\n\nMeanwhile, since the user still has collateral on the Morpho market, they can continue borrowing. However, once the withdrawal is initiated, the pricing of the tokens becomes inaccurate:\n[https://github.com/sherlock-audit/2025-06-notional-exponent/blob/82c87105f6b32bb362d7523356f235b5b07509f9/notional-v4/src/staking/AbstractStakingStrategy.sol#L50-L54](https://github.com/sherlock-audit/2025-06-notional-exponent/blob/82c87105f6b32bb362d7523356f235b5b07509f9/notional-v4/src/staking/AbstractStakingStrategy.sol#L50-L54)\n[https://github.com/sherlock-audit/2025-06-notional-exponent/blob/82c87105f6b32bb362d7523356f235b5b07509f9/notional-v4/src/withdraws/AbstractWithdrawRequestManager.sol#L307-L340](https://github.com/sherlock-audit/2025-06-notional-exponent/blob/82c87105f6b32bb362d7523356f235b5b07509f9/notional-v4/src/withdraws/AbstractWithdrawRequestManager.sol#L307-L340)\n\nNow, since the withdrawal is not yet finalized, the request remains unfulfilled, and the `else` branch will be executed:\n\n```solidity\nelse {\n    // Otherwise we use the yield token rate\n    (tokenRate, /* */) = TRADING_MODULE.getOraclePrice(YIELD_TOKEN, asset);\n    tokenDecimals = TokenUtils.getDecimals(YIELD_TOKEN);\n    tokenAmount = w.yieldTokenAmount;\n}\n```\n\nAs we can see, the pricing is done using the YIELD\\_TOKEN, which is OETH. However, the OETH has already been burned, and since it's in the withdrawal queue on the beacon chain, **it no longer earns yield!**\n\n\n### Internal Pre-conditions\n\nNone needed\n\n### External Pre-conditions\n\nNone needed\n\n### Attack Path\n\n1. Initiate withdraw\n2. Collateral is overpriced borrow more without taking LST risk\n\n### Impact\n\nSince the LST holding risk is no longer present once a withdrawal request is initiated and also due to the overpricing of it, users can borrow more from the Morpho market, even though their actual collateral is not as high as it’s assumed to be.\n\nThe opposite case can also be problematic, where the LST price decreases (e.g., due to slashing), and the collateral ends up being underpriced.\n\n### PoC\n\n_No response_\n\n### Mitigation\n\nFor LST's override the `getWithdrawRequestValue` function\n\n",
+    "summary": "\nThe bug report is about an issue found by a group of users when initiating a withdrawal on a platform. The problem occurs when the yield token has a specific withdrawal method, causing the withdrawal to be initialized and for LSTs, this means unstaking from the beacon chain, which can take a long time. During this time, the price of the token is assumed to be the same as the yield token, but once the withdrawal is initialized, LSTs stop earning yield. This causes the oracle to overprice the token, making it possible for users to borrow more from the platform without taking on the risk associated with holding LSTs. This can also lead to underpricing of collateral if the LST price decreases. The report suggests overriding the `getWithdrawRequestValue` function for LSTs as a potential solution.",
+    "report_date": "2025-07-18T15:00:00.000Z",
+    "contest_prize_txt": "75500 USDC",
+    "contest_link": "https://app.sherlock.xyz/audits/contests/1001",
+    "sponsor_name": "",
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "",
+    "github_link": "https://github.com/sherlock-audit/2025-06-notional-exponent-judging/issues/322",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "1001",
+    "slug": "m-6-withdrawals-ongoing-for-oeth-apxeth-weeth-and-almost-any-lst-are-overpriced-by-the-oracle-sherlock-notional-exponent-git",
+    "firm_name": "Sherlock",
+    "firm_logo_square": "sherlock_square.png",
+    "protocol_name": "Notional Exponent",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "mstpr-brainbot"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "0xpiken"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "xiaoming90"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Sherlock",
+        "logo_square": "sherlock_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Notional Exponent",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

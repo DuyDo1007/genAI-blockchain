@@ -1,0 +1,45 @@
+{
+    "id": 62323,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 16,
+    "impact": "MEDIUM",
+    "finders_count": 1,
+    "protocol_id": 3400,
+    "title": "[M-01] Inconsistencies in Blacklisting logic",
+    "content": "\n_Resolved_\n\n## Severity\n\n**Impact:** Medium\n\n**Likelihood:** Medium\n\n## Description\nThe implementation of full/soft restrictions in `sdeusd.move` shows some inconsistencies that may allow bypasses of it. The full details are described below.\n\nFinding a full description.\nFull restrictions include adding user to an `sdeUSD` deny list, which prevents him from operating those coins via the native mechanism. There is also a soft restriction which is meant to prevent access to some of protocol features.\n\n- In functions `deposit` and `mint`, there is only a check against `is_soft_restricted_staker`. Then sdeUSD is transferred to the `receiver`. However, if a restricted user points out another `receiver` address, they may still be able to stake, as the sdeUSD will be transferred to a non-blocked address.\n- For the deposit/mint functions, newly minted sdeUSD can still be sent to an address that is fully blacklisted in the current epoch. This is because the restriction on receiving tokens only takes effect in the following epoch.\n- Similar case might also happen with `unstake`, if the user becomes restricted after the cooldown is initiated, as the last check for full restrictions happens in `withdraw_to_silo`, then that user will still be able to unstake the funds and exit the protocol\n- Finally, since full restriction implements all features of a soft restriction + extra restrictions, then `is_soft_restricted_staker` could potentially invoke `is_full_restricted_staker` inside, as all full restricted stakers are also soft restricted at the same time (but not all soft restricted are full restricted).\n\n## Recommendations\nConsider implementing additional restriction checks according to above points.\n\n\n\n",
+    "summary": "\nThis bug report discusses inconsistencies in the implementation of full and soft restrictions in the `sdeusd.move` function. These restrictions are meant to prevent certain actions from being taken by restricted users. However, there are some cases where these restrictions can be bypassed. For example, a restricted user can still stake if they point to a non-blocked address as the receiver of the sdeUSD. Additionally, newly minted sdeUSD can still be sent to fully blacklisted addresses in the current epoch. The report recommends implementing additional checks to address these issues.",
+    "report_date": "2025-09-02T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/pashov/audits/blob/master/team/md/Elixir-security-review_2025-08-17.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "m-01-inconsistencies-in-blacklisting-logic-pashov-audit-group-none-elixir_2025-08-17-markdown",
+    "firm_name": "Pashov Audit Group",
+    "firm_logo_square": "Pashov_square.png",
+    "protocol_name": "Elixir_2025-08-17",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Pashov Audit Group"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Pashov Audit Group",
+        "logo_square": "Pashov_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Elixir_2025-08-17",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

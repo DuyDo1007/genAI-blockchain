@@ -1,0 +1,50 @@
+{
+    "id": 62450,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 8,
+    "impact": "MEDIUM",
+    "finders_count": 2,
+    "protocol_id": 3410,
+    "title": "Burning on L2 Is Not Reflected in the Total Supply ✓ Fixed",
+    "content": "...\n\nExport to GitHub ...\n\nSet external GitHub Repo ...\n\nExport to Clipboard (json)\n\nExport to Clipboard (text)\n\n#### Resolution\n\nThis has been fixed in [PR 11](https://github.com/Consensys/linea-tokens/pull/11) (last commit on the branch: [b9aad54](https://github.com/Consensys/linea-tokens/tree/b9aad5421a6fe8bd52602209bd38472911e19d77)).\n\n#### Description\n\nMinting tokens is only possible on the L1, not on the L2 (except *technically*, as L2 counterpart for the tokens locked in the L1 bridge, but not semantically). Hence, the `totalSupply` on the L1 token reflects (or is *supposed* to reflect) the entire supply across L1 and L2, while `totalSupply` on the L2 token only reflects the supply on L2.\n\nHowever, as `L2LineaToken` inherits from `ERC20BurnableUpgradeable`, burning (as opposed to minting) *is* possible on L2, but this will not be reflected in the `totalSupply` of the L1 token. Instead, `totalSupply` on L1 will overestimate the real total supply by the amount of tokens that have been burnt on L2. These could also never be re-minted as their L1 counterparts are stuck on the L1 bridge.\n\nHence, in order for `totalSupply` on L1 to accurately reflect the total supply across L1 and L2, the possibility to burn on the L2 should be removed (except, of course, the *technical* burning of tokens that are bridged back to the L1).\n\n#### Recommendation\n\nWe recommend removing the inheritance from `ERC20BurnableUpgradeable` in `L2LineaToken`. Burning directly on L2 won’t be possible then; instead, tokens that are currently on L2 and should be burned have to be bridged back to L1 first and can then be burned there.\n\n#### Remark\n\nThis was brought up by thedarkjester from the Linea team in a call with the client at the beginning of the engagement.",
+    "summary": "\nThe report describes a bug where the total supply of tokens on the L1 and L2 networks are not accurately reflected due to the ability to burn tokens on the L2 network. This results in an overestimation of the total supply on the L1 network. The recommendation is to remove the ability to burn tokens on the L2 network and instead have them bridged back to the L1 network for burning. This bug was brought up by a member of the Linea team during a call with the client. The bug has been fixed in a recent pull request on GitHub.",
+    "report_date": "2025-07-01T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://diligence.consensys.io/audits/2025/07/linea-token-and-airdrop-contracts/",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "burning-on-l2-is-not-reflected-in-the-total-supply-fixed-consensys-none-linea-token-and-airdrop-contracts-markdown",
+    "firm_name": "ConsenSys",
+    "firm_logo_square": "consensys_square.png",
+    "protocol_name": "Linea Token and Airdrop Contracts",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "George Kobakhidze"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": " Heiko Fisch\n                        "
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "ConsenSys",
+        "logo_square": "consensys_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Linea Token and Airdrop Contracts",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

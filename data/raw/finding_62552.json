@@ -1,0 +1,45 @@
+{
+    "id": 62552,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 16,
+    "impact": "MEDIUM",
+    "finders_count": 1,
+    "protocol_id": 3420,
+    "title": "[M-08] Inconsistent logic in `initiateBurn()` and `initiateBurnBatch()` functions",
+    "content": "\n_Resolved_\n\n## Severity\n\n**Impact:** Medium\n\n**Likelihood:** Medium\n\n## Description\n\nThe `initiateBurnBatch` function in the Packet contract exhibits inconsistent logic compared to the `initiateBurn` function. \n\nIn `initiateBurn`, if the `burnType` is `BurnType.INSTANT_OPEN_PACKET`, the function calls `instantOpenPacket` to handle the burn operation.\n\n```solidity\n        if (params.burnType == BurnType.INSTANT_OPEN_PACKET) {\n            randomAllocationPool.instantOpenPacket(params.packetId, _packetTypeIds[params.packetId], msg.sender);\n        }\n```\n\nHowever, the `initiateBurnBatch` function lacks similar logic to process `BurnType.INSTANT_OPEN_PACKET`, which means that batch burning does not trigger the same behavior as individual burning. This inconsistency could lead to unexpected outcomes, **where packets intended for instant opening are not handled correctly when burned in a batch.**\n\n```solidity\n    function initiateBurnBatch(PacketBurnParams[] calldata params) external {\n        for (uint256 i = 0; i < params.length; i++) {\n            if (params[i].burnType == BurnType.NONE) {\n                revert InvalidBurnType();\n            }\n            if (ownerOf(params[i].packetId) != msg.sender) {\n                revert NotPacketOwner();\n            }\n            if (_packetBurnType[params[i].packetId] != BurnType.NONE) {\n                revert PacketAlreadyInBurnState();\n            }\n\n            _packetBurnType[params[i].packetId] = params[i].burnType;\n            emit BurnInitiated(params[i].packetId, params[i].burnType, msg.sender);\n        }\n    }\n```\n\n## Recommendations\n\nTo ensure consistency between the two functions, the `initiateBurnBatch` function should include logic to handle the `BurnType.INSTANT_OPEN_PACKET` case. Or simply prohibit the usage of `BurnType.INSTANT_OPEN_PACKET` in `initiateBurnBatch`.\n\n\n\n",
+    "summary": "\nThere is a bug in the `initiateBurnBatch` function of the Packet contract. This function does not have the same logic as the `initiateBurn` function, causing inconsistent behavior when burning packets in batches. This means that packets intended for instant opening may not be handled correctly when burned in a batch. To fix this, the `initiateBurnBatch` function should include the same logic as the `initiateBurn` function for handling `BurnType.INSTANT_OPEN_PACKET` or prohibit the usage of this burn type in `initiateBurnBatch`.",
+    "report_date": "2025-09-11T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/pashov/audits/blob/master/team/md/RipIt-security-review_2025-04-25.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "m-08-inconsistent-logic-in-initiateburn-and-initiateburnbatch-functions-pashov-audit-group-none-ripit_2025-04-25-markdown",
+    "firm_name": "Pashov Audit Group",
+    "firm_logo_square": "Pashov_square.png",
+    "protocol_name": "RipIt_2025-04-25",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Pashov Audit Group"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Pashov Audit Group",
+        "logo_square": "Pashov_square.png"
+    },
+    "protocols_protocol": {
+        "name": "RipIt_2025-04-25",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

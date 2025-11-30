@@ -1,0 +1,45 @@
+{
+    "id": 62196,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 7,
+    "impact": "MEDIUM",
+    "finders_count": 1,
+    "protocol_id": 3391,
+    "title": "Excess Gas Remains in SpokePool",
+    "content": "The `Polygon_SpokePool` contract is intended to support sending USDT0 to Ethereum mainnet. This is done when an account calls the [`executeRelayerRefundLeaf` function](https://github.com/across-protocol/contracts/blob/d9826e30b51bbb3067df07c9532f4a5f6fe56f1c/contracts/SpokePool.sol#L1208-L1212) of the `Polygon_SpokePool` contract. Within this function, a call is made to the [`_transferViaOFT` function](https://github.com/across-protocol/contracts/blob/d9826e30b51bbb3067df07c9532f4a5f6fe56f1c/contracts/libraries/OFTTransportAdapter.sol#L69) of the `SpokePool` contract, in which `_messenger.quoteSend` is used to return the amount of fees which should be forwarded with the [`_messenger.send` call](https://github.com/across-protocol/contracts/blob/d9826e30b51bbb3067df07c9532f4a5f6fe56f1c/contracts/libraries/OFTTransportAdapter.sol#L102).\n\nThe caller of the `executeRelayerRefundLeaf` function must call `quoteSend` first to obtain the fee cost beforehand in order for them to forward the appropriate amount of gas with the call. If the price moves downwards in between obtaining the quote and calling `executeRelayerRefundLeaf`, then the excess native tokens sent with the call will remain in the contract.\n\nConsider returning the excess native tokens to the caller at the end of the transaction.\n\n**Update:** *Resolved in [pull request #1082](https://github.com/across-protocol/contracts/pull/1082).*",
+    "summary": "\nThe `Polygon_SpokePool` contract is designed to allow the transfer of USDT0 to Ethereum mainnet by using the `executeRelayerRefundLeaf` function. This function calls the `_transferViaOFT` function, which uses `_messenger.quoteSend` to determine the amount of fees to be sent with the `_messenger.send` call. However, if the price decreases between obtaining the quote and calling `executeRelayerRefundLeaf`, the excess tokens sent will remain in the contract. A proposed solution is to return the excess tokens to the caller at the end of the transaction. This issue has been resolved in a recent pull request.",
+    "report_date": "2025-08-27T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://blog.openzeppelin.com/usdt0-polygon-integration-audit",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "excess-gas-remains-in-spokepool-openzeppelin-none-usdt0-polygon-integration-audit-markdown",
+    "firm_name": "OpenZeppelin",
+    "firm_logo_square": "openzeppelin_square.png",
+    "protocol_name": "USDT0 Polygon Integration Audit",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "OpenZeppelin"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "OpenZeppelin",
+        "logo_square": "openzeppelin_square.png"
+    },
+    "protocols_protocol": {
+        "name": "USDT0 Polygon Integration Audit",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

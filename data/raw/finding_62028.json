@@ -1,0 +1,55 @@
+{
+    "id": 62028,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 37,
+    "impact": "HIGH",
+    "finders_count": 3,
+    "protocol_id": 3367,
+    "title": "`processQAPenalty()` Function Incorrectly Double Counts Tokens in Cooldown",
+    "content": "**Update**\nMarked as \"Fixed\" by the client. Addressed in: `56d63be892926ae9381098d467d0c235a1b660ad`.\n\n**File(s) affected:**`SapienVault.sol`\n\n**Description:** The `_calculateApplicablePenalty()` function incorrectly calculates available tokens for penalties by adding `userStake.amount + userStake.cooldownAmount`. However, `cooldownAmount` represents tokens that are already included in `amount` but are queued for unstaking. This double counting allows penalties to exceed the user's actual stake balance, potentially leading to accounting errors or failed penalty applications when the contract attempts to transfer more tokens than available.\n\n**Recommendation:** Consider using only `userStake.amount` as the total available balance for penalties since `cooldownAmount` is a subset of this value, not an additional amount. In cases where the penalty amount is greater then `amount - cooldownAmount` the leftover tokens must be deducted from both `amount` and `cooldownAmount` to ensure the contract's internal accounting remains correct.",
+    "summary": "The client has marked the reported issue as \"Fixed\". The bug was found in the `SapienVault.sol` file and it involves the `_calculateApplicablePenalty()` function. The function incorrectly calculates the available tokens for penalties by adding the user's stake amount and cooldown amount. However, the cooldown amount is already included in the stake amount, leading to double counting and potential errors or failed penalty applications. The recommendation is to only use the stake amount for calculating penalties and to deduct any leftover tokens from both the stake amount and cooldown amount to ensure the contract's internal accounting remains accurate.",
+    "report_date": "2025-07-02T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://certificate.quantstamp.com/full/sapien-2/9f938662-5bf7-4dc3-8774-3e7a12204cc3/index.html",
+    "sponsor_name": "",
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://certificate.quantstamp.com/full/sapien-2/9f938662-5bf7-4dc3-8774-3e7a12204cc3/index.html",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "processqapenalty-function-incorrectly-double-counts-tokens-in-cooldown-quantstamp-sapien-2-markdown",
+    "firm_name": "Quantstamp",
+    "firm_logo_square": "quantstamp_square.png",
+    "protocol_name": "Sapien - 2",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Paul Clemson"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Julio Aguilar"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Tim Sigl"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Quantstamp",
+        "logo_square": "quantstamp_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Sapien - 2",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

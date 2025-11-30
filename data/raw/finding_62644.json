@@ -1,0 +1,45 @@
+{
+    "id": 62644,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 30,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3429,
+    "title": "[L-01] Misleading `setLevel()` Governance Check with `onlyOwner`",
+    "content": "\n## Severity\n\nLow Risk\n\n## Description\n\nThe `setLevel()` uses `onlyOwner` and also enforces `msg.sender == levelOwner`. Given `initialize(address _levelOwner, address _initialOwner)` can set different addresses, the effective authority is the `levelOwner`. The `onlyOwner` modifier is misleading and may cause governance friction or accidental lockout expectations.\n\n## Location of Affected Code\n\nFile: [src/BondDealer.sol#L63](https://github.com/batoshidao/berabtc-vault-token/blob/c68f412b3c7dfd99d3f6302a42bdf772ededb2a3/src/BondDealer.sol#L63)\n\n```solidity\nfunction setLevel(address[] calldata users, uint256[] calldata levels) external onlyOwner {\n  require(msg.sender == levelOwner,\"BondDealer: Invalid level owner\");\n  // code\n}\n```\n\n## Impact\n\nConfusing authority model since it implies owner control while enforcing levelOwner, and possibly governance friction.\n\n## Recommendation\n\nConsider making `setLevel()` explicitly `levelOwner`-only and removing `onlyOwner`. Also, consider implementing a `setLevelOwner()` function.\n\n## Team Response\n\nFixed.\n\n",
+    "summary": "",
+    "report_date": "2025-09-17T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/shieldify-security/audits-portfolio-md/blob/main/Terplayer-BVT-Staking&Distribution-Security-Review.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "l-01-misleading-setlevel-governance-check-with-onlyowner-shieldify-none-terplayer-bvt-stakingdistribution-markdown",
+    "firm_name": "Shieldify",
+    "firm_logo_square": "Shieldify_square.png",
+    "protocol_name": "Terplayer Bvt Staking&Distribution",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Shieldify Security"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Shieldify",
+        "logo_square": "Shieldify_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Terplayer Bvt Staking&Distribution",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

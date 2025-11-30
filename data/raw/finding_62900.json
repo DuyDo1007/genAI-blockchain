@@ -1,0 +1,60 @@
+{
+    "id": 62900,
+    "kind": "PDF",
+    "auditfirm_id": 6,
+    "impact": "MEDIUM",
+    "finders_count": 4,
+    "protocol_id": 3419,
+    "title": "num_txs is incorrectly decremented on address removal in pending pool",
+    "content": "## Severity: Medium Risk\n\n## Context\n`mod.rs#L84-L92`\n\n## Description\nIn the pending pool, the number of transactions present is tracked by `self.num_txs` and is used for a variety of checks. For example, it determines whether to drop a transaction if `self.num_txs >= MAX_TXS`. \n\nThe problem is that in the `remove()` function, which is called when an address is promoted from the pending pool, `num_txs` is decreased by 1 instead of the actual number of transactions an address has in the pending pool.\n\n```rust\nmod.rs#L84-L92:\npub fn remove(&mut self, address: &Address) -> Option<PendingTxList> {\n    if let Some(tx) = self.txs.swap_remove(address) {\n        self.num_txs = self\n            .num_txs\n            .checked_sub(1)\n            .expect(\"num txs does not underflow \");\n        return Some(tx);\n    }\n}\n```\n\nAs such, `self.num_txs` will be tracked incorrectly by the pending pool, which could lead to transactions being incorrectly dropped even though `MAX_TXS` has not been reached in the pending pool.\n\n## Recommendation\nDecrement `self.num_txs` by the actual number of transactions that an address has in the pending pool during `remove()`.\n\n## Category Labs\nFixed in PR 1980.\n\n## Spearbit\nFix verified.",
+    "summary": "\nThis bug report is about a problem in the `remove()` function of the pending pool. The number of transactions present in the pool is tracked by `self.num_txs`, which is used to determine when to drop a transaction. However, in the `remove()` function, `num_txs` is decreased by 1 instead of the actual number of transactions an address has in the pool. This can lead to incorrect tracking and potentially cause transactions to be dropped even when the maximum number of transactions has not been reached. The recommendation is to fix this by decrementing `self.num_txs` by the actual number of transactions an address has in the pool. This bug has been fixed in PR 1980 and verified by Spearbit.",
+    "report_date": "2025-09-19T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Monad-Spearbit-Security-Review-September-2025.pdf",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Monad-Spearbit-Security-Review-September-2025.pdf",
+    "github_link": "",
+    "pdf_link": "https://solodit-bucket.s3.amazonaws.com/storage/reports/spearbit/Monad-Spearbit-Security-Review-September-2025.pdf",
+    "pdf_page_from": 27,
+    "contest_id": "",
+    "slug": "num_txs-is-incorrectly-decremented-on-address-removal-in-pending-pool-spearbit-none-monad-pdf",
+    "firm_name": "Spearbit",
+    "firm_logo_square": "spearbit_square.png",
+    "protocol_name": "Monad",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Haxatron"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Dtheo"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Guido Vranken"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Rikard Hjort"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Spearbit",
+        "logo_square": "spearbit_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Monad",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

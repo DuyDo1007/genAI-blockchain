@@ -1,0 +1,55 @@
+{
+    "id": 62254,
+    "kind": "PDF",
+    "auditfirm_id": 9,
+    "impact": "LOW",
+    "finders_count": 3,
+    "protocol_id": 3394,
+    "title": "Incorrect rounding in present/principal value calculations for negative values",
+    "content": "## Description\n\nDuring the supply and withdrawal flows, the protocol calculates the new principal value of the user position by calculating the actual present value of the position, adding or removing from it the new deposit or withdrawal, and calculating the principal value of that updated present value. This process, consisting of multiplications and divisions, is subject to rounding errors.\n\nThese rounding errors can lead to situations where, if the supplied or withdrawn value is zero or very small, the resulting present value is incorrectly calculated. In particular, in some cases, the resulting principal value may be less than the original value for supply operations, or more than the original value for withdrawal operations.\n\nThe present value and principal value calculation functions use inappropriate rounding for negative principal values (borrows), creating a systematic bias that favors borrowers at the expense of the protocol. The `muldivc` ceiling function rounds negative values toward zero rather than away from zero, which is incorrect for conservative debt calculations.\n\nThe present value calculation function routes to different rounding implementations based on the sign of the principal value:\n\n```c\n(int) present_value_borrow_calc (int index, int principal_value) inline {\n    return muldivc(principal_value, index, constants::factor_scale);\n}\n```\n\n```c\n(int) present_value(int s_rate, int b_rate, int principal_value) inline {\n    if (principal_value >= 0) {\n        return present_value_supply_calc(s_rate, principal_value);\n    } else {\n        return present_value_borrow_calc(b_rate, principal_value);\n    }\n}\n```\n\n*Figure 9.1: Borrow present value calculation using ceiling division in contracts_internal/contracts/logic/utils.fc#L11*\n\nThe issue arises because `muldivc` performs ceiling division, which rounds toward positive infinity. For negative values, this means rounding toward zero, effectively reducing the absolute value of debt amounts. For example, if a calculation results in -8.5, `muldivc` rounds it to -8 instead of the more conservative -9. This systematic undercalculation of debt favors borrowers by reducing their owed amounts, while the protocol and suppliers bear the cost of these rounding errors.\n\n## Recommendations\n\n**Short term:** Ensure that present and principal value calculations use the correct rounding function that rounds negative values away from zero for conservative debt calculations.\n\n**Long term:** Implement comprehensive unit testing of all rounding operations to ensure that they align with the protocol’s risk management strategy, where debt calculations should be conservative and favor the protocol over individual users.",
+    "summary": "",
+    "report_date": "2025-08-22T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://github.com/trailofbits/publications/blob/master/reviews/2025-08-evaafinance-securityreview.pdf",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/trailofbits/publications/blob/master/reviews/2025-08-evaafinance-securityreview.pdf",
+    "github_link": "",
+    "pdf_link": "https://solodit-bucket.s3.amazonaws.com/storage/reports/trailofbits/2025-08-evaafinance-securityreview.pdf",
+    "pdf_page_from": 30,
+    "contest_id": "",
+    "slug": "incorrect-rounding-in-presentprincipal-value-calculations-for-negative-values-trailofbits-none-evaa-finance-pdf",
+    "firm_name": "TrailOfBits",
+    "firm_logo_square": "trailofbits_square.png",
+    "protocol_name": "EVAA Finance",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Kevin Valerio Trail of Bits PUBLIC"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Guillermo Larregay"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Quan Nguyen"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "TrailOfBits",
+        "logo_square": "trailofbits_square.png"
+    },
+    "protocols_protocol": {
+        "name": "EVAA Finance",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

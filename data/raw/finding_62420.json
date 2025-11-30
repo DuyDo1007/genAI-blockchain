@@ -1,0 +1,45 @@
+{
+    "id": 62420,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 34,
+    "impact": "HIGH",
+    "finders_count": 1,
+    "protocol_id": 3406,
+    "title": "[MNBD1-5] Early Pair Creation Breaks Fair Launch of New Moon Tokens And Gives An Attacker The Possibility To Steal All KAS from BondingCurvePool",
+    "content": "**Severity:** Critical\n\n**Path:** contracts/BondingCurvePool.sol#L234-L265 \n\n**Description:** A bonding curve is designed to create fair and manipulation-resistant pricing for new tokens in their early stages. However, if someone can create a Zealous pair and control the reserves or pricing, they can influence how the token is valued after its graduation.\n\nFor example, an attacker could exploit this by purchasing tokens from MoonBound and then creating a liquidity pair for the token using `ZealousSwapRouter` by calling the `addLiquidityKAS` function. They could add a large amount of KAS (e.g., 1e10 tokens) and just 1 wei of the newly created moon token. This results in an extremely low price for buying KAS with moon tokens.\n\nThe pricing formula used when adding liquidity is:\n```\namountB = (amountA * reserveB) / reserveA;\n```\nIn simple terms:\n```\nkasAmount = (moonTokenAmount * kasReserves) / moonTokenReserves;\n```\nAfter a token is launched and reaches the \"graduated\" state, it typically calls `addLiquidityKAS` on the `ZealousSwapRouter`, supplying a certain amount of KAS (X) and a portion of the token supply (Y), usually around 25% of the total supply.\n\nHowever, due to the severe imbalance in reserves caused by the attacker, the router ends up transferring nearly all of the KAS and only a negligible amount of moon tokens.\n\nA malicious user can then swap their moon tokens and extract most or all of the newly added KAS, effectively draining the pool.\n```\nERC20(token).approve(zealousSwapRouter, tokenForLiquidity);\nIZealousSwapRouter02(zealousSwapRouter).addLiquidityKAS{ value: kasCollected }(\n  token,\n  tokenForLiquidity,\n  0,\n  0,\n  address(this),\n  block.timestamp + 15 minutes\n);\n```\n\n\n**Remediation:**  The `ZealousSwapPair` contract should only be deployed after the MoonBound token has completed its `graduate()` process. In other words, the protocol should implement a modified version of the `ZealousSwapFactory` contract that includes a check to ensure the token has graduated before allowing the `createPair()` function to execute successfully.\n\nIt’s essential to ensure that the token is marked as graduated before any liquidity is added to the pair. In the `graduateToken()` function, move the `tokenManager.graduateToken(token)` call to occur before adding liquidity:\n```\nfunction graduateToken() internal {\n    // -- snip -- \n    \n++  tokenManager.graduateToken(token);\n    \n    ERC20(token).approve(zealousSwapRouter, tokenForLiquidity);\n    IZealousSwapRouter02(zealousSwapRouter).addLiquidityKAS{ value: kasCollected }(\n      token,\n      tokenForLiquidity,\n      0,\n      0,\n      address(this),\n      block.timestamp + 15 minutes\n    );\n\n    // Mark the token as graduated in the TokenManager\n    // This will disable trading on the bonding curve\n--  tokenManager.graduateToken(token);\n    \n    // -- snip -- \n}\n\n```\n\n**Status:**  Fixed\n\n\n- - -",
+    "summary": "\nA critical bug has been found in the BondingCurvePool contract that can be exploited by attackers to manipulate the pricing of new tokens. This can be done by creating a Zealous pair and controlling the reserves or pricing. The attacker can add a large amount of KAS and a small amount of the new token, resulting in an extremely low price for buying KAS with the new token. This can lead to the attacker draining the pool and extracting most or all of the newly added KAS. The bug can be fixed by implementing a modified version of the ZealousSwapFactory contract to ensure that the token has graduated before allowing the creation of a pair. The bug has been fixed.",
+    "report_date": "2025-05-26T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/solodit/solodit_content/blob/main/reports/Hexens/2025-05-26-Moonbound.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "mnbd1-5-early-pair-creation-breaks-fair-launch-of-new-moon-tokens-and-gives-an-attacker-the-possibility-to-steal-all-kas-from-bondingcurvepool-hexens-none-moonbound-markdown",
+    "firm_name": "Hexens",
+    "firm_logo_square": "Hexens_square.png",
+    "protocol_name": "Moonbound",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Hexens"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Hexens",
+        "logo_square": "Hexens_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Moonbound",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

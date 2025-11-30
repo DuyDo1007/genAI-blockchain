@@ -1,0 +1,45 @@
+{
+    "id": 62414,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 34,
+    "impact": "MEDIUM",
+    "finders_count": 1,
+    "protocol_id": 1826,
+    "title": "[EIGEN2-5] Max operator limit can be exceeded",
+    "content": "**Severity:** Medium\n\n**Path:** SlashingRegistryCoordinator.sol:_kickOperator (L395-409)\n\n**Description:** The function `_kickOperator` is used to forcefully remove an operator from a set of quorum numbers. It is called from `ejectOperator`, `_updateOperatorsStakes` and `_registerOperatorWithChurn`. The latter has an invalid assumption on the function in that it does not guarantee the removal of an operator and the decrease of the total operator count.\n\nIn `_registerOperatorWithChurn`, it will only execute the churn if the max operator count was reached using the provided kick parameters on lines 520-533:\n```\nif (results.numOperatorsPerQuorum[i] > operatorSetParams.maxOperatorCount) {\n    _validateChurn({\n        quorumNumber: uint8(quorumNumbers[i]),\n        totalQuorumStake: results.totalStakes[i],\n        newOperator: operator,\n        newOperatorStake: results.operatorStakes[i],\n        kickParams: operatorKickParams[i],\n        setParams: operatorSetParams\n    });\n\n    bytes memory singleQuorumNumber = new bytes(1);\n    singleQuorumNumber[0] = quorumNumbers[i];\n    _kickOperator(operatorKickParams[i].operator, singleQuorumNumber);\n}\n```\nHowever, in the function `_kickOperator` on lines 406-408 you can see that it does not remove the operator if the quorum numbers to be removed are not a subset of the operator’s quorum bitmap, in other words if it is not registered fully to those quorums:\n```\nif (quorumsToRemove.isSubsetOf(currentBitmap)) {\n    _forceDeregisterOperator(operator, quorumNumbers);\n}\n```\nThis edge case can be triggered if the operator to be churned has left at least one of the to be removed quorums and a new operator has taken its place using a normal registration, bringing the total operator count again to the maximum and brining code execution into `_kickOperator`, while skipping the removal.\n\nAs a result, the total operator count can be increased for every signed churn parameters, as each one can be used to increase the count by one using the edge case. It can be abused by the caller if they own both the churn operator and the to be churned operator.\n```\nfunction _kickOperator(address operator, bytes memory quorumNumbers) internal virtual {\n    OperatorInfo storage operatorInfo = _operatorInfo[operator];\n    // Only proceed if operator is currently registered\n    require(operatorInfo.status == OperatorStatus.REGISTERED, OperatorNotRegistered());\n\n    bytes32 operatorId = operatorInfo.operatorId;\n    uint192 quorumsToRemove =\n        uint192(BitmapUtils.orderedBytesArrayToBitmap(quorumNumbers, quorumCount));\n    uint192 currentBitmap = _currentOperatorBitmap(operatorId);\n\n    // Check if operator is registered for all quorums we're trying to remove them from\n    if (quorumsToRemove.isSubsetOf(currentBitmap)) {\n        _forceDeregisterOperator(operator, quorumNumbers);\n    }\n}\n```\n\n\n**Remediation:**  While the soft-failure inside of `_kickOperator` is not necessarily a bug by itself, the misassumption of `_registerOperatorWithChurn` on this function is the problem. The function `_registerOperatorWithChurn` should validate the invariant that the total operator count was not exceeded at the end of the function regardless of what happens in `_kickOperator`.\n\n**Status:**  Fixed\n\n- - -",
+    "summary": "\nThis bug report discusses an issue with the `_kickOperator` function in the SlashingRegistryCoordinator.sol file. This function is used to remove an operator from a set of quorum numbers, but there is a problem with how it is called from other functions. In particular, the `_registerOperatorWithChurn` function assumes that `_kickOperator` will always remove the operator and decrease the total operator count, but this is not always the case. This can lead to an increase in the total operator count, which can be exploited by the caller if they own both the churn operator and the operator being removed. The bug has been fixed, and the recommended solution is to validate the total operator count in the `_registerOperatorWithChurn` function. ",
+    "report_date": "2025-04-22T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/solodit/solodit_content/blob/main/reports/Hexens/2025-04-22-EigenLayer.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "eigen2-5-max-operator-limit-can-be-exceeded-hexens-none-eigenlayer-markdown",
+    "firm_name": "Hexens",
+    "firm_logo_square": "Hexens_square.png",
+    "protocol_name": "Eigenlayer",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Hexens"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Hexens",
+        "logo_square": "Hexens_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Eigenlayer",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

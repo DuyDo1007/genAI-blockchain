@@ -1,0 +1,45 @@
+{
+    "id": 62331,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 16,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3400,
+    "title": "[L-07] Missing the function to transfer the `AdminCap` object",
+    "content": "\n_Resolved_\n\nThe `AdminCap` is the protocol’s privilege credential. It is created in the `init` function and transferred to the sender. \n```rust\npublic struct AdminCap has key {\n    id: UID,\n}\n```\nHowever, the `AdminCap` object only has the `key` ability, which means it cannot be freely transferred via `public_transfer` outside the module. Moreover, there is no function within the module that allows the `AdminCap` holder to transfer ownership. This indicates that the functionality for owner transfer is missing.\n\nIt is recommended to add a function to transfer the ownership of the `AdminCap` in the `admin_cap` module.\n\n\n\n",
+    "summary": "",
+    "report_date": "2025-09-02T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/pashov/audits/blob/master/team/md/Elixir-security-review_2025-08-17.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "l-07-missing-the-function-to-transfer-the-admincap-object-pashov-audit-group-none-elixir_2025-08-17-markdown",
+    "firm_name": "Pashov Audit Group",
+    "firm_logo_square": "Pashov_square.png",
+    "protocol_name": "Elixir_2025-08-17",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Pashov Audit Group"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Pashov Audit Group",
+        "logo_square": "Pashov_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Elixir_2025-08-17",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

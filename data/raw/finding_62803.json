@@ -1,0 +1,55 @@
+{
+    "id": 62803,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 37,
+    "impact": "LOW",
+    "finders_count": 3,
+    "protocol_id": 3446,
+    "title": "Deleted and Disputed Tokens Still Receive Royalties",
+    "content": "**Update**\nMarked as \"Fixed\" by the client. Addressed in: `fbe72cb1d21ae4ee8210166c5eb42c071c2aa52a`.\n\n**File(s) affected:**`RoyaltyModule.sol`\n\n**Description:** Royalties are paid out when access to associated tokens in purchased. The `_distributeRoyalty()` function is responsible for calculating and distributing the generated profit among the token owner and the parent tokens. Currently, the state of the parent token is not checked, therefore `DELETED` and `DISPUTED` tokens keep earning royalties through derivatives.\n\n**Recommendation:** Decide on the intended behavior. If only `ACTIVE` tokens should receive royalties, consider passing the royalty share of inactive tokens to the main token owner. Recalculating all parent royalties to reflect accurate percentages would require substantially more effort and implementation changes.",
+    "summary": "",
+    "report_date": "2025-09-15T14:18:47.035Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://certificate.quantstamp.com/full/camp-nft/94cdb738-1a01-4f6c-8632-3bdec427161e/index.html",
+    "sponsor_name": "",
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://certificate.quantstamp.com/full/camp-nft/94cdb738-1a01-4f6c-8632-3bdec427161e/index.html",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "deleted-and-disputed-tokens-still-receive-royalties-quantstamp-camp-nft-markdown",
+    "firm_name": "Quantstamp",
+    "firm_logo_square": "quantstamp_square.png",
+    "protocol_name": "Camp - NFT",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Paul Clemson"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Gereon Mendler"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Tim Sigl"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Quantstamp",
+        "logo_square": "quantstamp_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Camp - NFT",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

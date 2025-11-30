@@ -1,0 +1,55 @@
+{
+    "id": 62796,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 37,
+    "impact": "MEDIUM",
+    "finders_count": 3,
+    "protocol_id": 3446,
+    "title": "Extreme Term Values Can Have Unintended Consequences",
+    "content": "**Update**\nMarked as \"Fixed\" by the client. Addressed in: `8a79f2d32f7024cba9a065b383bfe1f9df3786e8`.\n\n**File(s) affected:**`IpNFT.sol`, `RoyaltyModule.sol`\n\n**Description:** Token terms designate the conditions for buying access and minting derivative tokens. The input validation for these values is very lax, therefore extreme values can be assigned with potentially unintended consequences.\n\n1.   The price can be set to 0. In this case parents do not receive royalties anymore. This may be exploitable by creating derivative tokens to offer similar content as the original at a much lower price. Similarly, a very high price will make subscriptions impossible.\n2.   The duration can be set very low, for example 1 second. This would make subscription management near impossible, as access can only be bought for 1 period at a time. \n3.   Setting the royalty fee to 100% blocks the creation of derivative tokens, as a fee of 0 is invalid and the total must not be higher than 100%. Even other, very high values may make the creation of derivative tokens with multiple parents very challenging. \n\n```\nif (newTerms.duration == 0) revert InvalidDuration();\nif (newTerms.duration > maxTermDuration) revert InvalidDuration();\nif (newTerms.royaltyBps == 0 || newTerms.royaltyBps > LibBPS.DENOMINATOR) revert InvalidRoyalty();\nif (newTerms.paymentToken != address(0) && newTerms.paymentToken != wCAMP) revert InvalidPaymentToken();\n```\n\n**Recommendation:** Decide on intended behavior and acceptable consequences, and impose further limitations where needed. We strongly suggest adding a `minTermDuration` and also a `minPrice`. Limiting the `royaltyBps` to some threshold is not as straightforward. A possible compromise is a limit of 100/9%, which ensures that any combination of tokens can be minted as a derivative. However, it imposes strict, relatively low limits on parent royalties, resulting in higher subscription rewards for the token owner.",
+    "summary": "\nThis bug report discusses an issue with the token terms in the `IpNFT.sol` and `RoyaltyModule.sol` files. These terms determine the conditions for buying access and minting derivative tokens. The problem is that the input validation for these values is not strict enough, which allows for extreme values to be assigned and potentially cause unintended consequences. \n\nThe first issue is that the price can be set to 0, which means that parents will not receive royalties anymore. This could be exploited by creating derivative tokens with similar content as the original but at a much lower price. Additionally, setting a very high price would make it impossible for users to subscribe. \n\nThe second issue is that the duration can be set very low, for example 1 second. This would make it difficult to manage subscriptions, as access can only be bought for 1 period at a time. \n\nThe third issue is that setting the royalty fee to 100% blocks the creation of derivative tokens. This is because a fee of 0 is invalid and the total royalty fee must not be higher than 100%. Even setting a very high royalty fee can make it challenging to create derivative tokens with multiple parents. \n\nThe recommendation is to decide on the intended behavior and acceptable consequences for these values and impose further limitations where needed. It is suggested to add a `minTermDuration` and `minPrice` to address the first two issues. As for the third issue, it is recommended to limit the royalty fee to a maximum of 100/9%, which would allow for any combination of tokens to be minted as a derivative. However, this would result in lower royalties for parents and higher subscription rewards for the token owner.",
+    "report_date": "2025-09-15T14:18:47.035Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://certificate.quantstamp.com/full/camp-nft/94cdb738-1a01-4f6c-8632-3bdec427161e/index.html",
+    "sponsor_name": "",
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://certificate.quantstamp.com/full/camp-nft/94cdb738-1a01-4f6c-8632-3bdec427161e/index.html",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "extreme-term-values-can-have-unintended-consequences-quantstamp-camp-nft-markdown",
+    "firm_name": "Quantstamp",
+    "firm_logo_square": "quantstamp_square.png",
+    "protocol_name": "Camp - NFT",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Paul Clemson"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Gereon Mendler"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Tim Sigl"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Quantstamp",
+        "logo_square": "quantstamp_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Camp - NFT",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

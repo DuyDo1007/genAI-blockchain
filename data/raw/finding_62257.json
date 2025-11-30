@@ -1,0 +1,55 @@
+{
+    "id": 62257,
+    "kind": "PDF",
+    "auditfirm_id": 6,
+    "impact": "MEDIUM",
+    "finders_count": 3,
+    "protocol_id": 3395,
+    "title": "Lack of SafeERC20 can inﬂate user balance",
+    "content": "## Security Findings Report\n\n## Severity: Medium Risk\n\n### Context\n`LockManagerERC20.sol#L35-L43`\n\n### Summary\nIf the `erc20Token` configured within `LockManagerERC20` is a token that does not revert due to insufficient approved funds, the `msg.sender` can inflate their `lockedBalances[msg.sender]` by an arbitrary `_amount` without actually sending any token.\n\n### Finding Description\nThere are some ERC20 tokens that do not revert when a transfer fails (e.g., due to a lack of funds or approval to make use of a user's funds). Instead, they return 0 or false, which `_doLockTransfer` is currently not checking. As visible by the inline comment, it explicitly assumes that the `transferFrom()` call would revert if not enough balance is approved.\n\n### Flattened Code Snippet Based on LockManagerBase and LockManagerERC20\n```solidity\nabstract contract LockManagerBase is ILockManager {\n    function lock(uint256 _amount) public virtual {\n        if (_amount == 0) revert NoBalance();\n        /// @dev Reverts if not enough balance is approved\n        erc20Token.transferFrom(msg.sender, address(this), _amount);\n        lockedBalances[msg.sender] += _amount;\n        emit BalanceLocked(msg.sender, _amount);\n    }\n}\n```\n\n### Impact Explanation\nAn attacker can specify an arbitrary `_amount` without having ever given any approval of his `erc20Token` to the `LockManagerERC20`. The attacker's balance `lockedBalances[msg.sender]` still increases, allowing him to:\n- Gain unlimited voting power.\n- Drain the `LockManagerERC20` of its funds deposited by other users.\n\n### Likelihood Explanation\nThis is relatively unlikely to happen since such tokens are rare. Some examples include:\n- Basic Attention Token (BAT)\n- Huobi Token (HT)\n- Compound USD Coin (cUSDC)\n- 0x Protocol Token (ZRX)\n\n### Recommendation\nUse `SafeERC20` across all contracts that interact with an ERC20 token.\n```solidity\nusing SafeERC20 for IERC20;\n\n/// @inheritdoc LockManagerBase\nfunction _doLockTransfer(uint256 _amount) internal virtual override {\n    erc20Token.safeTransferFrom(msg.sender, address(this), _amount);\n}\n\n/// @inheritdoc LockManagerBase\nfunction _doUnlockTransfer(address _recipient, uint256 _amount) internal virtual override {\n    erc20Token.safeTransfer(_recipient, _amount);\n}\n```\n\n### Resolution\n- Aragon: Fixed in PR 32.\n- Spearbit: Fix verified.",
+    "summary": "\nThe report discusses a medium risk bug in a contract called `LockManagerERC20.sol`. This contract has a function called `lock` which allows users to lock a certain amount of a specific token. However, the bug allows a user to inflate their locked balance without actually sending any tokens. This is because the contract does not properly check if the transfer of tokens fails, which can happen with certain tokens that do not revert in such situations. This bug can be used by an attacker to gain unlimited voting power or drain the contract of its funds. The likelihood of this bug occurring is low as it only affects certain tokens. The recommendation is to use `SafeERC20` to interact with ERC20 tokens in the contract. This bug has been fixed in some platforms, such as Aragon and Spearbit.",
+    "report_date": "2025-08-28T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Aragon-Spearbit-Security-Review-July-2025.pdf",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Aragon-Spearbit-Security-Review-July-2025.pdf",
+    "github_link": "",
+    "pdf_link": "https://solodit-bucket.s3.amazonaws.com/storage/reports/spearbit/Aragon-Spearbit-Security-Review-July-2025.pdf",
+    "pdf_page_from": 9,
+    "contest_id": "",
+    "slug": "lack-of-safeerc20-can-inflate-user-balance-spearbit-none-aragon-dao-gov-plugin-pdf",
+    "firm_name": "Spearbit",
+    "firm_logo_square": "spearbit_square.png",
+    "protocol_name": "Aragon DAO Gov Plugin",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Om Parikh"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Emanuelle Ricci"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Patrick Drotleff"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Spearbit",
+        "logo_square": "spearbit_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Aragon DAO Gov Plugin",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

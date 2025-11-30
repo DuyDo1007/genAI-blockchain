@@ -1,0 +1,45 @@
+{
+    "id": 62461,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 16,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3411,
+    "title": "[L-05] Incorrect custom error description",
+    "content": "\n_Resolved_\n\nThe `describe()` functionality in `staking/contracts/src/staking/errors.cairo` aims to output a well formed string description of the custom errors defined.\nHowever, `SELF_SWITCH_NOT_ALLOWED` and `ILLEGAL_EXIT_DURATION` are not well described as done for other errors:\n```rust\n    Error::SELF_SWITCH_NOT_ALLOWED => \"SELF_SWITCH_NOT_ALLOWED\",\n    Error::ILLEGAL_EXIT_DURATION => \"ILLEGAL_EXIT_DURATION\",\n```\nThe output string therefore, is malformed.\n\n**Recommendations**\n\n```diff\n-   Error::SELF_SWITCH_NOT_ALLOWED => \"SELF_SWITCH_NOT_ALLOWED\",\n-   Error::ILLEGAL_EXIT_DURATION => \"ILLEGAL_EXIT_DURATION\",\n+   Error::SELF_SWITCH_NOT_ALLOWED => \"Switching in the same pool is no allowed\",\n+   Error::ILLEGAL_EXIT_DURATION => \"Exit window is incorrect\",\n```\n\n\n\n",
+    "summary": "",
+    "report_date": "2025-09-03T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/pashov/audits/blob/master/team/md/Starknet-security-review_2025-07-31.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "l-05-incorrect-custom-error-description-pashov-audit-group-none-starknet_2025-07-31-markdown",
+    "firm_name": "Pashov Audit Group",
+    "firm_logo_square": "Pashov_square.png",
+    "protocol_name": "Starknet_2025-07-31",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Pashov Audit Group"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Pashov Audit Group",
+        "logo_square": "Pashov_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Starknet_2025-07-31",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

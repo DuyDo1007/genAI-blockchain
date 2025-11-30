@@ -1,0 +1,45 @@
+{
+    "id": 62466,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 30,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3412,
+    "title": "[L-01] Use `Ownable2Step` Version Rather Than `Ownable` Version",
+    "content": "\n## Severity\n\nLow Risk\n\n## Description\n\nThe `Ownable2Step` prevents the contract ownership from mistakenly being transferred to an address that cannot handle it (e.g. due to a typo in the address), by requiring that the recipient of the owner's permissions actively accept via a contract call of its own.\n\nConsider using `Ownable2Step` from OpenZeppelin Contracts to enhance the security of your contract ownership management. This contract prevents the accidental transfer of ownership to an address that cannot handle it, such as due to a typo, by requiring the recipient of owner permissions to actively accept ownership via a contract call.\n\n## Location of Affected Code\n\nFile: [BlueBeraToken.sol](https://github.com/BeraRoot2025/bluebera-contracts/blob/5e2c5f14717718d7b4dc32729853f0c945ec3bb8/contracts/BlueBeraToken.sol)\nFile: [LinearVesting.sol](https://github.com/BeraRoot2025/bluebera-contracts/blob/5e2c5f14717718d7b4dc32729853f0c945ec3bb8/contracts/LinearVesting.sol)\nFile: [AirdropDistributor.sol](https://github.com/BeraRoot2025/bluebera-contracts/blob/5e2c5f14717718d7b4dc32729853f0c945ec3bb8/contracts/AirdropDistributor.sol)\nFile: [StakingRewards.sol](https://github.com/BeraRoot2025/bluebera-contracts/blob/5e2c5f14717718d7b4dc32729853f0c945ec3bb8/contracts/StakingRewards.sol)\n\n## Recommendation\n\nConsider using `Ownable2Step` from OpenZeppelin Contracts\n\n## Team Response\n\nAcknowledged.\n\n",
+    "summary": "",
+    "report_date": "2025-09-04T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/shieldify-security/audits-portfolio-md/blob/main/BeraRoot-Security-Review.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "l-01-use-ownable2step-version-rather-than-ownable-version-shieldify-none-beraroot-markdown",
+    "firm_name": "Shieldify",
+    "firm_logo_square": "Shieldify_square.png",
+    "protocol_name": "Beraroot",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Shieldify Security"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Shieldify",
+        "logo_square": "Shieldify_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Beraroot",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

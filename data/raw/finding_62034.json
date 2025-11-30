@@ -1,0 +1,55 @@
+{
+    "id": 62034,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 37,
+    "impact": "LOW",
+    "finders_count": 3,
+    "protocol_id": 3367,
+    "title": "Missing `_disableInitializers()` in `SapienVault`",
+    "content": "**Update**\nMarked as \"Fixed\" by the client. Addressed in: `6bc9fdf9cce877c7aea265a9fe56a2c0f4b45c05`.\n\n**File(s) affected:**`SapienVault.sol`\n\n**Description:** The `SapienVault` contract is missing a constructor to call `_disableInitializers()`. With the current implementation, although the access through a proxy is not exposed, the deployed contract can be initialized which could open up unexpected behavior.\n\n**Recommendation:** We recommend adding a constructor that calls `_disableInitializers()`.",
+    "summary": "",
+    "report_date": "2025-07-02T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://certificate.quantstamp.com/full/sapien-2/9f938662-5bf7-4dc3-8774-3e7a12204cc3/index.html",
+    "sponsor_name": "",
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://certificate.quantstamp.com/full/sapien-2/9f938662-5bf7-4dc3-8774-3e7a12204cc3/index.html",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "missing-_disableinitializers-in-sapienvault-quantstamp-sapien-2-markdown",
+    "firm_name": "Quantstamp",
+    "firm_logo_square": "quantstamp_square.png",
+    "protocol_name": "Sapien - 2",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Paul Clemson"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Julio Aguilar"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Tim Sigl"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Quantstamp",
+        "logo_square": "quantstamp_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Sapien - 2",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

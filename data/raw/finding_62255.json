@@ -1,0 +1,55 @@
+{
+    "id": 62255,
+    "kind": "PDF",
+    "auditfirm_id": 6,
+    "impact": "HIGH",
+    "finders_count": 3,
+    "protocol_id": 3395,
+    "title": "MinVotingPowerCondition logic can be bypassed via ﬂashloans",
+    "content": "## High Risk Vulnerability Report\n\n## Severity\n**High Risk**\n\n## Context\n*(No context files were provided by the reviewer)*\n\n## Description\nThe `MinVotingPowerCondition` contract allows any users who hold at least `plugin.minProposer-VotingPower()` amount of tokens (locked in the `LockManager` or in their token balance) to create a proposal and execute `LockToVote.createProposal`. This logic can be easily bypassed if the token allows flashloan or flashmint. Given that `isGranted` checks the user's token balance, the user does not even need to lock the flashloaned amount into the `LockManager` to be able to create and spam proposals.\n\nThe flashloan issue is even more problematic when combined with the voting mode `EarlyExecution` and the fact that proposals can (in that mode) be created and executed in the same block/timestamp. A user could simply:\n1. Flashloan the token.\n2. Create the proposal.\n3. Lock + vote the proposal and auto-execute it (EarlyExecution).\n4. Unlock the tokens.\n5. Repay the flashloan.\n\nAll in the very same transaction.\n\n## Recommendation\nThese are some ideas that could help the Aragon team to brainstorm a possible solution:\n- Avoid using the token's balance and require the user to only use the locked amount.\n- Store the proposal's creator in the proposal struct and require that the locked amount required to create the proposal won't be unlockable until the proposal ends. Keep in mind that with voting mode `EarlyExecution`, users would be able to anyway exploit this requirement via flashloan.\n- Avoid executing the transaction in the same block that the \"deciding\" vote has been made. This would require storing and tracking an additional flag in the proposal (at least for the `EarlyExecution` case). If the vote would have allowed an \"early execution\", that flag would be turned to true and any executor would be able to execute the proposal from the next block (since the vote). This new flag would need to be integrated across all the other functions that check the state of the proposal (open, succeeded, executed, can be voted, and so on).\n\nNote that these are suggestions that could lead to side effects and need to be further properly evaluated from a security standpoint.\n\n## Aragon\nFixed in PR 28.\n\n## Spearbit\nFix verified.",
+    "summary": "\nThis report highlights a high risk vulnerability in the `MinVotingPowerCondition` contract. The issue allows users to bypass the required amount of tokens needed to create a proposal and vote on it. This can be exploited by using flashloans, which allows users to temporarily borrow a large amount of tokens. This vulnerability becomes even more problematic when combined with the `EarlyExecution` voting mode, as it allows users to create and execute a proposal in the same block. The report suggests a few ways to address this issue, such as avoiding using the token's balance and requiring the locked amount to create a proposal, or avoiding executing the transaction in the same block as the deciding vote. The issue has been fixed in a recent pull request by the Aragon team, and has been verified by Spearbit. ",
+    "report_date": "2025-08-28T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Aragon-Spearbit-Security-Review-July-2025.pdf",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Aragon-Spearbit-Security-Review-July-2025.pdf",
+    "github_link": "",
+    "pdf_link": "https://solodit-bucket.s3.amazonaws.com/storage/reports/spearbit/Aragon-Spearbit-Security-Review-July-2025.pdf",
+    "pdf_page_from": 6,
+    "contest_id": "",
+    "slug": "minvotingpowercondition-logic-can-be-bypassed-via-flashloans-spearbit-none-aragon-dao-gov-plugin-pdf",
+    "firm_name": "Spearbit",
+    "firm_logo_square": "spearbit_square.png",
+    "protocol_name": "Aragon DAO Gov Plugin",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Om Parikh"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Emanuelle Ricci"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Patrick Drotleff"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Spearbit",
+        "logo_square": "spearbit_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Aragon DAO Gov Plugin",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

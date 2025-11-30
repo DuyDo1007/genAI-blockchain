@@ -1,0 +1,90 @@
+{
+    "id": 62113,
+    "kind": "GIT",
+    "auditfirm_id": 3,
+    "impact": "MEDIUM",
+    "finders_count": 9,
+    "protocol_id": 3135,
+    "title": "M-2: ETH redemptions via `SignatureRedeemQueue` are broken due to missing `receive` function",
+    "content": "\nSource: https://github.com/sherlock-audit/2025-07-mellow-flexible-vaults-judging/issues/140 \n\n## Found by \n0xShoonya, 7, HeckerTrieuTien, ZanyBonzy, bourdillion, dan\\_\\_vinci, edger, ke1caM, klaus\n\n## Summary\n\nThe `SignatureRedeemQueue` contract lacks a `receive()` function, causing ETH redemptions to fail. \n\n## Root Cause\n\nThis is the call flow of [SignatureRedeemQueue.redeem](https://github.com/sherlock-audit/2025-07-mellow-flexible-vaults/blob/main/flexible-vaults/src/queues/SignatureRedeemQueue.sol#L13-L27) when users attempt to redeem ETH:\n```js\nSignatureRedeemQueue.redeem(...)\n  └─ vault_.callHook(order.requested)\n       └─ ShareModule.callHook(...)\n            └─ TransferLibrary.sendAssets(asset, queue, assets)\n                   • if asset == ETH  →  Address.sendValue(queue, assets)\n```\n[ShareModule.callHook()](https://github.com/sherlock-audit/2025-07-mellow-flexible-vaults/blob/main/flexible-vaults/src/modules/ShareModule.sol#L264-L265) ends with\n```js\nif (!$.isDepositQueue[queue]) {\n    TransferLibrary.sendAssets(asset, queue, assets);  // ETH goes here\n}\n```\nIf `asset == ETH` the helper executes `Address.sendValue(payable(queue), assets)` – __an empty-data call__ to the\nqueue contract.\n\nNeither `SignatureRedeemQueue` nor `SignatureQueue` (base contract) implement either `receive()` or a `payable fallback`, so the ETH transfer would revert\n\n## Internal pre-conditions\n\nN/A\n\n## External pre-conditions\n\nN/A\n\n## Attack Scenario\n\nN/A\n\n## Impact\n\nETH users cannot redeem through Signature queues - the transaction always fails.\n\n## Mitigation\n\nAdd a  `receive()` function once in the shared base contract:\n```js\n// SignatureQueue.sol\nreceive() external payable {}\n```\n\n\n## Discussion\n\n**sherlock-admin2**\n\nThe protocol team fixed this issue in the following PRs/commits:\nhttps://github.com/mellow-finance/flexible-vaults/pull/12\n\n\n\n\n",
+    "summary": "\nThis bug report discusses an issue with the `SignatureRedeemQueue` contract in the Mellow Flexible Vaults protocol. The issue was discovered by several individuals and reported on GitHub. The problem is that the contract does not have a `receive()` function, causing ETH redemptions to fail. This is due to a call flow in the `SignatureRedeemQueue.redeem` function that does not properly handle ETH transfers. The lack of a `receive()` function in both the `SignatureRedeemQueue` and `SignatureQueue` contracts results in the ETH transfer reverting, preventing users from redeeming their funds. The report suggests adding a `receive()` function to the shared base contract as a mitigation for this issue. The protocol team has already addressed this issue in a recent PR/commit.",
+    "report_date": "2025-07-28T15:00:00.000Z",
+    "contest_prize_txt": "70000 USDC",
+    "contest_link": "https://app.sherlock.xyz/audits/contests/964",
+    "sponsor_name": "",
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "",
+    "github_link": "https://github.com/sherlock-audit/2025-07-mellow-flexible-vaults-judging/issues/140",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "964",
+    "slug": "m-2-eth-redemptions-via-signatureredeemqueue-are-broken-due-to-missing-receive-function-sherlock-mellow-flexible-vaults-git",
+    "firm_name": "Sherlock",
+    "firm_logo_square": "sherlock_square.png",
+    "protocol_name": "Mellow Flexible Vaults",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "ZanyBonzy"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "0xShoonya"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "HeckerTrieuTien"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "ke1caM"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "dan\\_\\_vinci"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "edger"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "bourdillion"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "klaus"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "dan\\_\\_vinci"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "7"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Sherlock",
+        "logo_square": "sherlock_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Mellow Flexible Vaults",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

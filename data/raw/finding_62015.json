@@ -1,0 +1,55 @@
+{
+    "id": 62015,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 37,
+    "impact": "LOW",
+    "finders_count": 3,
+    "protocol_id": 3363,
+    "title": "Missing Setter Function for `staker_impl`",
+    "content": "**Update**\nThe client fixed the issue in commit `d9b8eebf84b2bca4b761a86080fe381ffff6a0ba` and provided the following explanation:\n\n> Already fixed in this commit\n\n**File(s) affected:**`contracts/Factory.vy`\n\n**Description:** In the function `fill_staker_vpool()`, a `staker` contract is deployed for the given `market` if the `staker_impl` contract address is set and if the `staker` contract was not already deployed from executing `add_market()`. However, the `staker_impl` contract address is not updatable in the `Factory` contract. Therefore, if the `staker_impl` is not set during deployment, the `staker` contract will not be deployed when `fill_staker_vpool()` is called as the following code block will never execute:\n\n```\nif market.staker == empty(address) and self.staker_impl != empty(address):\n    market.staker = create_from_blueprint(\n        self.staker_impl,\n        market.lt)\n```\n\n**Recommendation:** Create a setter function for the `staker_impl` address.",
+    "summary": "",
+    "report_date": "2025-08-14T16:12:11.589Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://certificate.quantstamp.com/full/yield-basis/e07ecad3-524c-4609-b4f6-71ed7fdc3281/index.html",
+    "sponsor_name": "",
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://certificate.quantstamp.com/full/yield-basis/e07ecad3-524c-4609-b4f6-71ed7fdc3281/index.html",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "missing-setter-function-for-staker_impl-quantstamp-yield-basis-markdown",
+    "firm_name": "Quantstamp",
+    "firm_logo_square": "quantstamp_square.png",
+    "protocol_name": "Yield Basis",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Gereon Mendler"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Cameron Biniamow"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Jonathan Mevs"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Quantstamp",
+        "logo_square": "quantstamp_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Yield Basis",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

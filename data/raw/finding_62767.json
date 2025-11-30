@@ -1,0 +1,45 @@
+{
+    "id": 62767,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 16,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3443,
+    "title": "[L-07] `maxWithdraw()` return values exceed actual withdrawable amounts due to fee exclusion",
+    "content": "\n_Resolved_\n\nThe `YuzuIssuer.maxWithdraw()` returns the maximum amount of assets that can be withdrawn by a user without considering withdrawal fees.\n\n```solidity\nfunction maxWithdraw(address _owner) public view virtual returns (uint256) {\n    return Math.min(previewRedeem(_maxRedeem(_owner)), _maxWithdraw(_owner));\n}\n\nfunction _maxWithdraw(address) internal view virtual returns (uint256) {\n    return liquidityBufferSize();\n}\n\nfunction liquidityBufferSize() public view virtual override returns (uint256) {\n    return super.liquidityBufferSize() - totalUnfinalizedOrderValue();\n}\n```\n\nWhen a user attempts to withdraw assets:\n1. User has 100 shares in the vault.\n2. `previewRedeem(100)` returns ~90 assets (after 10% fee).\n3. `_maxWithdraw()` returns 50 assets as the current maximum withdrawable amount.\n4. User calls `withdraw(50, user, user)`.\n5. The withdrawal process calculates:\n   ```solidity\n   fee = _feeOnRaw(50, redeemFeePpm)\n   // fee = 50 * 0.1e6 / 1e6 = 5 assets\n   \n   tokens = previewWithdraw(50)\n   // tokens = 55 shares (equivalent to 50 assets + 5 assets fee)\n   ```\n6. The actual assets that should be left in the vault are 55 (50 + 5 fee), which exceeds the reported `_maxWithdraw()` value of 50 assets, yet the transaction is still allowed.\n\n**Recommendation**\n\nConsider updating `maxWithdraw()` to account for fees by calculating the net withdrawable amount after fees are applied.\n\n\n\n",
+    "summary": "",
+    "report_date": "2025-09-28T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/pashov/audits/blob/master/team/md/YuzuUSD-security-review_2025-08-28.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "l-07-maxwithdraw-return-values-exceed-actual-withdrawable-amounts-due-to-fee-exclusion-pashov-audit-group-none-yuzuusd_2025-08-28-markdown",
+    "firm_name": "Pashov Audit Group",
+    "firm_logo_square": "Pashov_square.png",
+    "protocol_name": "YuzuUSD_2025-08-28",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Pashov Audit Group"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Pashov Audit Group",
+        "logo_square": "Pashov_square.png"
+    },
+    "protocols_protocol": {
+        "name": "YuzuUSD_2025-08-28",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

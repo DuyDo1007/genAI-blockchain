@@ -1,0 +1,45 @@
+{
+    "id": 62682,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 23,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3435,
+    "title": "Missing Check for Matching `A` Parameter",
+    "content": "##### Description\nIn the `setRampAController()` function of the `SelfPeggingAsset` contract, there is no check ensuring that the `initialA` parameter in the designated `RampAController` matches the current `A` value in `SelfPeggingAsset`. If these values are not aligned, the internal `A` within the pool can abruptly jump to a new level.\n\nThis issue is classified as `low` severity because it does not directly lead to loss of funds under correct owner actions. However, if the owner accidentally or incorrectly configures this parameter, a sudden and unfavorable change in `A` could be exploited by arbitrageurs.\n##### Recommendation\nWe recommend checking that the controller’s `initialA` value matches the `A` stored in the `SelfPeggingAsset` contract, when setting a new `RampAController`.\n",
+    "summary": "",
+    "report_date": "2025-09-19T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/mixbytes/audits_public/blob/master/NUTS%20Finance/Tapio/README.md#12-missing-check-for-matching-a-parameter",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "missing-check-for-matching-a-parameter-mixbytes-none-nuts-finance-markdown",
+    "firm_name": "MixBytes",
+    "firm_logo_square": "mixbytes_square.png",
+    "protocol_name": "NUTS Finance",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "MixBytes"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "MixBytes",
+        "logo_square": "mixbytes_square.png"
+    },
+    "protocols_protocol": {
+        "name": "NUTS Finance",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

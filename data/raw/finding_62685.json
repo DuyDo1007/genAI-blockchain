@@ -1,0 +1,45 @@
+{
+    "id": 62685,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 23,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3435,
+    "title": "Inefficient and Overcomplicated `decimals()` Implementation",
+    "content": "##### Description\nThis issue has been identified within the `decimals` function of the `ChainlinkCompositeOracleProvider` contract.\n\nThe function iterates through all configured feeds, overwriting the `_decimals` value in each iteration and ultimately returning the value from the last feed. This logic is unnecessary, especially when multiple feeds are configured, and adds complexity without providing meaningful benefit. Additionally, calling `decimals()` on each feed increases gas usage and contract size unnecessarily.\n\n##### Recommendation\nWe recommend simplifying the implementation by setting the effective decimals once in the constructor and returning the value directly in the `decimals` function. ",
+    "summary": "",
+    "report_date": "2025-09-19T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/mixbytes/audits_public/blob/master/NUTS%20Finance/Tapio/README.md#15-inefficient-and-overcomplicated-decimals-implementation",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "inefficient-and-overcomplicated-decimals-implementation-mixbytes-none-nuts-finance-markdown",
+    "firm_name": "MixBytes",
+    "firm_logo_square": "mixbytes_square.png",
+    "protocol_name": "NUTS Finance",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "MixBytes"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "MixBytes",
+        "logo_square": "mixbytes_square.png"
+    },
+    "protocols_protocol": {
+        "name": "NUTS Finance",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

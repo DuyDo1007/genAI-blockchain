@@ -1,0 +1,45 @@
+{
+    "id": 62438,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 34,
+    "impact": "HIGH",
+    "finders_count": 1,
+    "protocol_id": 3408,
+    "title": "[UFARM1-1] The approve top-up role can replay the same deposit/withdrawal request",
+    "content": "**Severity:** High\n\n**Path:** contracts/main/contracts/pool/UFarmPool.sol#L404-L415\ncontracts/main/contracts/pool/UFarmPool.sol#L451-L461\n\n**Description:** The `UFarmPool::approveDeposits()` function allows the approve top-up role (`Permissions.Pool.ApprovePoolTopup` & `Permissions.Fund.ApprovePoolTopup`) to approve multiple deposit requests. It validates each request and pushes them to the `depositQueue`, then executes all requests in that queue using `sendQuexRequest()`.\n```\nfor (uint256 i; i < requestsLength; ++i) {\n    try this.validateDepositRequest(_depositRequests[i]) returns (\n        address investor,\n        uint256 amountToInvest,\n        bytes32 depositRequestHash,\n        address bearerToken\n    ) {\n        depositQueue.push(QueueItem(amountToInvest, depositRequestHash, investor, bearerToken));\n    } catch {\n        continue;\n    }\n}\nsendQuexRequest();\n```\nHowever, there is no check for duplicate requests in the loop, since the validation in the `validateDepositRequest()` function only verifies whether a request has been completed.\n```\nif (__usedDepositsRequests[depositRequestHash]) revert UFarmErrors.ActionAlreadyDone();\n```\nWhen all deposit requests in the `depositQueue` are executed in the `quexCallback()` function, there is no validation to prevent a completed request from being executed again. As a result, a deposit request may be executed multiple times, pulling more funds from the user than expected. The deposit top-up role could exploit this behavior to misuse user funds if the user has approved more than necessary.\n```\nwhile (requestsLength > 0) {\n    // Validate each deposit request\n    depositItem = depositQueue[requestsLength - 1];\n    amountToInvest = depositItem.amount;\n    investor = depositItem.investor;\n    depositRequestHash = depositItem.requestHash;\n\n    // Process the deposit\n    try this.safeTransferToPool(investor, amountToInvest, depositItem.bearerToken) {\n        sharesToMint = _mintSharesByQuote(investor, amountToInvest, _totalCost);\n\n        // Adjust the total cost and total deposit\n        _totalCost += amountToInvest;\n        totalDeposit += amountToInvest;\n\n        emit Deposit(investor, depositItem.bearerToken, amountToInvest, sharesToMint);\n\n        if (depositRequestHash != bytes32(0)) {\n            __usedDepositsRequests[depositRequestHash] = true;\n            emit DepositRequestExecuted(investor, depositRequestHash);\n        }\n    } catch {\n        depositQueue.pop();\n        requestsLength = depositQueue.length;\n        continue;\n    }\n\n    depositQueue.pop();\n    requestsLength = depositQueue.length;\n}\n```\nSimilarly, the withdrawal top-up role can approve the same withdrawal request multiple times using approveWithdrawals(), potentially withdrawing more of the user's shares than expected.\n\n**Remediation:**  There should be validation to prevent repeated requests in approveDeposits() and approveWithdrawals(), or a check for the completion status when executing requests in `quexCallback()`.\n\n**Status:**  Fixed\n\n- - -",
+    "summary": "\nThis bug report discusses a problem with the `UFarmPool::approveDeposits()` function in the `UFarmPool.sol` contract. This function allows certain roles to approve multiple deposit requests, but there is a bug where duplicate requests can be executed multiple times, potentially pulling more funds from users than expected. This can be exploited by the deposit top-up role to misuse user funds. The report suggests adding validation or a check for completion status to prevent this issue. The bug has been fixed.",
+    "report_date": "2025-06-10T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/solodit/solodit_content/blob/main/reports/Hexens/2025-06-10-Ufarm.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "ufarm1-1-the-approve-top-up-role-can-replay-the-same-depositwithdrawal-request-hexens-none-ufarm-markdown",
+    "firm_name": "Hexens",
+    "firm_logo_square": "Hexens_square.png",
+    "protocol_name": "Ufarm",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Hexens"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Hexens",
+        "logo_square": "Hexens_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Ufarm",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

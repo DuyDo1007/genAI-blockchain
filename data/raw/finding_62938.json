@@ -1,0 +1,50 @@
+{
+    "id": 62938,
+    "kind": "PDF",
+    "auditfirm_id": 6,
+    "impact": "LOW",
+    "finders_count": 2,
+    "protocol_id": 3463,
+    "title": "Allocation role",
+    "content": "## Severity: Low Risk\n\n## Context\n- VaultV2.sol#L166\n- VaultV2.sol#L324-L328\n- VaultV2.sol#L502-L503\n- VaultV2.sol#L529-L530\n- VaultV2.sol#L554-L555\n\n## Description\nCurrently, there is only one role identified by `isAllocator` that can call:\n- `allocate`\n- `setLiquidityAdapterAndData`\n- `deallocate`\n\nThe role is not fine-grained enough. It might make sense to define separate roles for each of these endpoints as some are more critical than the others. Perhaps even an **allocation role** and a **deallocation role**.\n\nMoreover, the `setIsAllocator` endpoint is time-locked. That means for both assigning and removing an entity from the allocation role, the curator and the vault might have to wait until the delegated executable timestamp after the intent of submitting to call `setIsAllocator` is reached. This can introduce potential problems when the curator wants to remove an allocation role from a potentially malicious entity.\n\nThere are other operations related to changes in configuration for the vault, where if the operation would potentially expose the vault to some risks, that operation is time-locked. However, there are also the anti-operations (the reverse operations) where performing those operations would remove some potential risks from the vault. These reverse operations are not time-locked currently and can be called/performed either by the curator or one of the sentinels.\n\nIn that light, it would make sense that removing an entity from the allocation role should, in theory, remove some unwanted risk from the vault and thus, perhaps, should not be behind a time lock.\n\n## Recommendation\n1. Assign more segregated roles for the allocation endpoints.\n2. Allow the curator or one of the sentinels to remove an allocator without going through a time-lock. Assigning an allocation role to an entity should still be time-locked.\n3. The curator should also be able to call `deallocate`.\n\nIf either of these recommendations are not applied, it might make sense to add documentation to expose these potential scenarios to the users and the devs.\n\n## Morpho\nAs allocators are only trusted for future yield, we don't think there is a use case to time-lock adding them, though there could be one for removing them (not that clear neither). Thus, we decided to acknowledge this feature. Added a comment in PR 730.\n\nAbout other comments, we acknowledge them as well. We think that this role is well-defined, and if someone needs separation, it's not too hard to do on top.\n\n## Spearbit\nAcknowledged.",
+    "summary": "",
+    "report_date": "2025-10-13T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Morpho-Vaults-v2-fixes-Spearbit-Security-Review-August-2025.pdf",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Morpho-Vaults-v2-fixes-Spearbit-Security-Review-August-2025.pdf",
+    "github_link": "",
+    "pdf_link": "https://solodit-bucket.s3.amazonaws.com/storage/reports/spearbit/Morpho-Vaults-v2-fixes-Spearbit-Security-Review-August-2025.pdf",
+    "pdf_page_from": 5,
+    "contest_id": "",
+    "slug": "allocation-role-spearbit-none-morpho-vaults-v2-fix-review-pdf",
+    "firm_name": "Spearbit",
+    "firm_logo_square": "spearbit_square.png",
+    "protocol_name": "Morpho Vaults v2 Fix Review",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Saw-mon and Natalie"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "MiloTruck"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Spearbit",
+        "logo_square": "spearbit_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Morpho Vaults v2 Fix Review",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

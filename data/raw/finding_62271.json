@@ -1,0 +1,55 @@
+{
+    "id": 62271,
+    "kind": "PDF",
+    "auditfirm_id": 6,
+    "impact": "LOW",
+    "finders_count": 3,
+    "protocol_id": 3395,
+    "title": "Unlocking and removing votes with voting mode VoteReplacement is not always coherent",
+    "content": "## Assessment Report\n\n## Severity: Low Risk\n\n### Context\n*No context files were provided by the reviewer.*\n\n### Description\nIf the user has cast a vote for only one proposal created with the voting mode `VoteReplacement`, he will be able to \"remove\" that vote and withdraw the tokens by calling `LockManager.unlock`, even if the proposal is still open for voting. \n\nIf instead, the user has also cast a vote on a still open proposal that has not been created with the voting mode `VoteReplacement`, he will not be able to execute `LockManager.unlock` to just remove the vote. The operation will revert with the error `VoteRemovalForbidden`. The user also won't be able to \"manually\" remove the vote by replacing it with a None vote.\n\nThe above behavior is inconsistent and goes against what is described by the team: a user should always be able to \"withdraw\" (remove) his vote when the voting mode is `VoteReplacement`.\n\n### Recommendation\nAragon should allow the user to \"manually\" remove and clean his vote if the proposal involved has the voting mode `VoteReplacement`. Allowing the user to \"remove\" the vote could bring side effects in case Aragon requires the user to use the locked token amount to enable the proposal creation. At that point, the user could just:\n\n1. Lock tokens.\n2. Create the proposal and vote (required to create it).\n3. Remove his vote.\n4. Unlock the locked tokens.\n\n### Response\n**Aragon:** We acknowledge the finding. We consider that \"vote replacement\" should allow you to replace the sense of your vote (Yes, No, Abstain) with another choice (Yes, No, Abstain), rather than giving the expectation to remove it proactively.\n\n- If you have active standard voting proposals, you cannot unlock. This affects regardless of how many vote replacement proposals you voted for.\n- If you only have vote replacement proposals, then you may unlock.\n- If you have no votes, you can also unlock.\n\n**Spearbit:** Acknowledged.",
+    "summary": "",
+    "report_date": "2025-08-28T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Aragon-Spearbit-Security-Review-July-2025.pdf",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Aragon-Spearbit-Security-Review-July-2025.pdf",
+    "github_link": "",
+    "pdf_link": "https://solodit-bucket.s3.amazonaws.com/storage/reports/spearbit/Aragon-Spearbit-Security-Review-July-2025.pdf",
+    "pdf_page_from": 21,
+    "contest_id": "",
+    "slug": "unlocking-and-removing-votes-with-voting-mode-votereplacement-is-not-always-coherent-spearbit-none-aragon-dao-gov-plugin-pdf",
+    "firm_name": "Spearbit",
+    "firm_logo_square": "spearbit_square.png",
+    "protocol_name": "Aragon DAO Gov Plugin",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Om Parikh"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Emanuelle Ricci"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Patrick Drotleff"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Spearbit",
+        "logo_square": "spearbit_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Aragon DAO Gov Plugin",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

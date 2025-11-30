@@ -1,0 +1,65 @@
+{
+    "id": 62511,
+    "kind": "GIT",
+    "auditfirm_id": 3,
+    "impact": "MEDIUM",
+    "finders_count": 4,
+    "protocol_id": 3104,
+    "title": "M-19: Unable to deposit to Convex in Arbitrum",
+    "content": "\nSource: https://github.com/sherlock-audit/2025-06-notional-exponent-judging/issues/678 \n\n## Found by \ndan\\_\\_vinci, elolpuer, khaye26, xiaoming90\n\n### Summary\n\n-\n\n### Root Cause\n\n-\n\n### Internal Pre-conditions\n\n-\n\n### External Pre-conditions\n\n-\n\n### Attack Path\n\nPer the contest's README, Base and Arbitrum are in-scope for this contest. Sherlock's Judge has further confirmed this in the Discord channel.\n\n> Q: On what chains are the smart contracts going to be deployed?\n> Ethereum, in the future we will consider Base or Arbitrum\n\nIt was found that the Curve LP token will be deposited to Convex via the `IConvexBooster(CONVEX_BOOSTER).deposit(CONVEX_POOL_ID, lpTokens, true)` interface/function.\n\nhttps://github.com/sherlock-audit/2025-06-notional-exponent/blob/main/notional-v4/src/single-sided-lp/CurveConvex2Token.sol#L291\n\n```solidity\nFile: CurveConvex2Token.sol\n291:     function _stakeLpTokens(uint256 lpTokens) internal {\n292:         if (CONVEX_BOOSTER != address(0)) {\n293:             bool success = IConvexBooster(CONVEX_BOOSTER).deposit(CONVEX_POOL_ID, lpTokens, true);\n294:             require(success);\n295:         } else {\n296:             ICurveGauge(CURVE_GAUGE).deposit(lpTokens);\n297:         }\n298:     }\n```\n\nThe following is that Booster contract address taken from the official documentation (https://docs.convexfinance.com/convexfinance/faq/contract-addresses):\n\nEthereum\n\n- Booster(main deposit contract): [0xF403C135812408BFbE8713b5A23a04b3D48AAE31](https://etherscan.io/address/0xF403C135812408BFbE8713b5A23a04b3D48AAE31)\n\n```python\n//deposit lp tokens and stake\nfunction deposit(uint256 _pid, uint256 _amount, bool _stake) public returns(bool){\n    require(!isShutdown,\"shutdown\");\n    PoolInfo storage pool = poolInfo[_pid];\n    require(pool.shutdown == false, \"pool is closed\");\n```\n\nArbitrum\n\n- Booster: [0xF403C135812408BFbE8713b5A23a04b3D48AAE31](https://arbiscan.io/address/0xF403C135812408BFbE8713b5A23a04b3D48AAE31)\n\n```python\n//deposit lp tokens and stake\nfunction deposit(uint256 _pid, uint256 _amount) public returns(bool){\n    require(!isShutdown,\"shutdown\");\n    PoolInfo storage pool = poolInfo[_pid];\n    require(pool.shutdown == false, \"pool is closed\");\n```\n\nNotice that the interface of the `deposit` function in Arbitrum is different from Ethereum. Arbitum's deposit function only accept two parameters while Ethereum's deposit function requires three parameters.\n\nThus, when attempting to deposit Curve LP tokens to Convex in Arbitrum, the transaction revert due to incorrect function interfaces.\n\n### Impact\n\nThe protocol will not work because staking the LP token will cause the entire transaction to revert, preventing anyone from entering the position.\n\n### PoC\n\n_No response_\n\n### Mitigation\n\n```diff\nfunction _stakeLpTokens(uint256 lpTokens) internal {\n    if (CONVEX_BOOSTER != address(0)) {\n+    \t\tbool success;\n+    \t\tif (Deployments.CHAIN_ID == Constants.CHAIN_ID_MAINNET) {\n-        \t\tbool success = IConvexBooster(CONVEX_BOOSTER).deposit(CONVEX_POOL_ID, lpTokens, true);\n+\t\t\t\t\t\tsuccess = IConvexBooster(CONVEX_BOOSTER).deposit(CONVEX_POOL_ID, lpTokens, true);\n        } else if (Deployments.CHAIN_ID == Constants.CHAIN_ID_ARBITRUM) {\n+\t        \tsuccess = IConvexBoosterArbitrum(CONVEX_BOOSTER).deposit(CONVEX_POOL_ID, lpTokens);\n+        }\n        require(success);\n    } else {\n        ICurveGauge(CURVE_GAUGE).deposit(lpTokens);\n    }\n}\n```\n\n",
+    "summary": "\nThis bug report is about a protocol that allows users to deposit Curve LP tokens to Convex via a function called `_stakeLpTokens()`. However, it was found that this function does not work on the Arbitrum chain due to a difference in the function interface. This means that users are unable to enter the position, rendering the protocol unusable. The report suggests a possible solution to mitigate this issue by adding a condition to check the chain ID and use the correct function interface accordingly.",
+    "report_date": "2025-07-18T15:00:00.000Z",
+    "contest_prize_txt": "75500 USDC",
+    "contest_link": "https://app.sherlock.xyz/audits/contests/1001",
+    "sponsor_name": "",
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "",
+    "github_link": "https://github.com/sherlock-audit/2025-06-notional-exponent-judging/issues/678",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "1001",
+    "slug": "m-19-unable-to-deposit-to-convex-in-arbitrum-sherlock-notional-exponent-git",
+    "firm_name": "Sherlock",
+    "firm_logo_square": "sherlock_square.png",
+    "protocol_name": "Notional Exponent",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "elolpuer"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "dan\\_\\_vinci"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "khaye26"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "xiaoming90"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "dan\\_\\_vinci"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Sherlock",
+        "logo_square": "sherlock_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Notional Exponent",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

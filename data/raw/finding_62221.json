@@ -1,0 +1,50 @@
+{
+    "id": 62221,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 11,
+    "impact": "LOW",
+    "finders_count": 2,
+    "protocol_id": 3392,
+    "title": "`ComplianceChecker::isCompliant` incorrectly returns `true` if compliance options have no required soul bound tokens",
+    "content": "**Description:** `ComplianceChecker::isCompliant` contains a logic flaw that allows universal bypass of all compliance requirements. When a compliance option exists with an empty `requiredSBTs` array (length = 0), the inner verification loop never executes, leaving the compliant variable as true by default\n\n```solidity\nfunction isCompliant(address user) public view returns (bool) {\n        // The user can be compliant with any option (KYC or KYB)\n        uint256 complianceOptionsLength = _complianceOptions.length;\n        for (\n            uint256 optionIndex;\n            optionIndex < complianceOptionsLength;\n            optionIndex++\n        ) {\n            // But the address must have all the required SBTs for that option (e.g. non-sanctioned and age>18)\n            bool compliant = true;\n            uint256 requiredSBTsLength = _complianceOptions[optionIndex]\n                .requiredSBTs\n                .length;\n            for (uint sbtIndex; sbtIndex < requiredSBTsLength; sbtIndex++) {\n                if (\n                    !_complianceOptions[optionIndex]\n                        .requiredSBTs[sbtIndex]\n                        .isVerificationSBTValid(user)\n                ) {\n                    compliant = false;\n                    break;\n                }\n            }\n            if (compliant) {\n                return true; <-----\n            }\n        }\n        return false;\n    }\n\n```\n\nMalicious users can exploit this  gaining unauthorized access to deposit addresses calling `registerDepositAddress` with different addressees.\n\n**Impact:** Any address can gain access to deposit addresses without verification.\n\n**Recommended Mitigation:** Add validation to prevent empty options in `setComplianceOptions`\n\n**Syntetika:**\nAcknowledged; in practice this is a non-issue as compliance options are set by the admin and always have at least one required Soul Bound Token (SBT).\n\n**Cyfrin:**",
+    "summary": "",
+    "report_date": "2025-08-01T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/solodit/solodit_content/blob/main/reports/Cyfrin/2025-08-01-cyfrin-syntetika-v2.0.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "compliancecheckeriscompliant-incorrectly-returns-true-if-compliance-options-have-no-required-soul-bound-tokens-cyfrin-none-syntetika-markdown",
+    "firm_name": "Cyfrin",
+    "firm_logo_square": "Cyfrin_square.jpg",
+    "protocol_name": "Syntetika",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Dacian"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Jorge"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Cyfrin",
+        "logo_square": "Cyfrin_square.jpg"
+    },
+    "protocols_protocol": {
+        "name": "Syntetika",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

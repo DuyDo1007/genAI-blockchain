@@ -1,0 +1,45 @@
+{
+    "id": 62392,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 34,
+    "impact": "HIGH",
+    "finders_count": 1,
+    "protocol_id": 3404,
+    "title": "[STAKE-7] Lack of slippage protection in deposit function",
+    "content": "**Severity:** Medium\n\n**Path:** src/leverage/LeverageStrategy.sol::deposit()#L125-L182\n\n**Description:** The `deposit()` function in the `LeverageStrategy.sol` contract executes several key operations involving token transfers, asset borrowing, and minting, including the potential use of flash loans. However, it lacks slippage protection, meaning that if token prices fluctuate between the time the transaction is submitted and executed, users could receive fewer tokens or face adverse outcomes without the ability to revert or mitigate the loss.\n\nIn particular, the function lacks checks to ensure that the actual number of `osTokenShares` minted matches expectations after asset borrowing.\n\nExample:\nA user submits a transaction to deposit 100 `osTokenShares`, expecting to leverage them to borrow additional assets. Between the time the transaction is broadcasted and mined, market conditions change (e.g., a large price movement), leading to less favorable borrowing conditions. Since there is no slippage check, the user could end up with fewer minted `osTokenShares` than expected, negatively impacting their strategy.\n```\n    function deposit(address vault, uint256 osTokenShares) external {\n        if (osTokenShares == 0) revert Errors.InvalidShares();\n\n        // fetch strategy proxy\n        (address proxy,) = _getOrCreateStrategyProxy(vault, msg.sender);\n        if (isStrategyProxyExiting[proxy]) revert Errors.ExitRequestNotProcessed();\n\n        // transfer osToken shares from user to the proxy\n        IStrategyProxy(proxy).execute(\n            address(_osToken), abi.encodeWithSelector(_osToken.transferFrom.selector, msg.sender, proxy, osTokenShares)\n        );\n\n        // fetch vault state and lending protocol state\n        (uint256 stakedAssets, uint256 mintedOsTokenShares) = _getVaultState(vault, proxy);\n        (uint256 borrowedAssets, uint256 suppliedOsTokenShares) = _getBorrowState(proxy);\n\n        // check whether any of the positions exist\n        uint256 leverageOsTokenShares = osTokenShares;\n        if (stakedAssets != 0 || mintedOsTokenShares != 0 || borrowedAssets != 0 || suppliedOsTokenShares != 0) {\n            // supply osToken shares to the lending protocol\n            _supplyOsTokenShares(proxy, osTokenShares);\n            suppliedOsTokenShares += osTokenShares;\n\n            // borrow max amount of assets from the lending protocol\n            uint256 maxBorrowAssets =\n                Math.mulDiv(_osTokenVaultController.convertToAssets(suppliedOsTokenShares), _getBorrowLtv(), _wad);\n            if (borrowedAssets >= maxBorrowAssets) {\n                // nothing to borrow\n                emit Deposited(vault, msg.sender, osTokenShares, 0);\n                return;\n            }\n            uint256 assetsToBorrow;\n            unchecked {\n                // cannot underflow because maxBorrowAssets > borrowedAssets\n                assetsToBorrow = maxBorrowAssets - borrowedAssets;\n            }\n            _borrowAssets(proxy, assetsToBorrow);\n\n            // mint max possible osToken shares\n            leverageOsTokenShares = _mintOsTokenShares(vault, proxy, assetsToBorrow, type(uint256).max);\n            if (leverageOsTokenShares == 0) {\n                // no osToken shares to leverage\n                emit Deposited(vault, msg.sender, osTokenShares, 0);\n                return;\n            }\n        }\n\n        // calculate flash loaned osToken shares\n        uint256 flashloanOsTokenShares = _getFlashloanOsTokenShares(vault, leverageOsTokenShares);\n\n        // execute flashloan\n        _osTokenFlashLoans.flashLoan(\n            address(this), flashloanOsTokenShares, abi.encode(FlashloanAction.Deposit, vault, proxy)\n        );\n\n        // emit event\n        emit Deposited(vault, msg.sender, osTokenShares, flashloanOsTokenShares);\n    }\n```\n\n**Remediation:**  Allow users to specify a minimum number of `osTokenShares` they are willing to accept after leverage calculations.\n\n**Status:**  Acknowledged\n\n- - -",
+    "summary": "\nThe `deposit()` function in the `LeverageStrategy.sol` contract has a bug that could result in users receiving fewer tokens than expected or facing losses without being able to fix it. This is because the function does not have a check for slippage, meaning that if token prices change between when the transaction is submitted and executed, the user may not receive the expected number of tokens. This could negatively impact their strategy. The bug has been acknowledged and the suggested solution is to allow users to specify a minimum number of `osTokenShares` they are willing to accept after leverage calculations.",
+    "report_date": "2024-09-19T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/solodit/solodit_content/blob/main/reports/Hexens/2024-09-19-StakeWise.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "stake-7-lack-of-slippage-protection-in-deposit-function-hexens-none-stakewise-markdown",
+    "firm_name": "Hexens",
+    "firm_logo_square": "Hexens_square.png",
+    "protocol_name": "Stakewise",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Hexens"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Hexens",
+        "logo_square": "Hexens_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Stakewise",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

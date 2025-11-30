@@ -1,0 +1,60 @@
+{
+    "id": 62043,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 37,
+    "impact": "LOW",
+    "finders_count": 4,
+    "protocol_id": 3368,
+    "title": "Vesting Can Be Updated in Any Way Desired by the Multisig",
+    "content": "**Update**\nMarked as \"Fixed\" by the client. Addressed in: `18f31d5`.\n\n![Image 58: Alert icon](https://certificate.quantstamp.com/full/sapien/ffb7e698-6178-46f0-8df8-52e537af70c0/static/media/success-icon-alert.4e26c8d3b65fdf9f4f0789a4086052ba.svg)\n\n**Update**\nMarked as \"Fixed\" by the client. Addressed in: `6693aad88cbf3c96c83d7dffcab138c4e770ad8a`. The client provided the following explanation:\n\n> The vulnerability was fixed by adding validation checks in the updateVestingSchedule() function.\n\n![Image 59: Alert icon](https://certificate.quantstamp.com/full/sapien/ffb7e698-6178-46f0-8df8-52e537af70c0/static/media/success-icon-alert.4e26c8d3b65fdf9f4f0789a4086052ba.svg)\n\n**Update**\nMarked as \"Fixed\" by the client. Addressed in: `6693aad88cbf3c96c83d7dffcab138c4e770ad8a`. The client provided the following explanation:\n\n> The vulnerability was fixed by adding validation checks in the updateVestingSchedule() function.\n\n**File(s) affected:**`SapTestToken.sol`\n\n**Description:** The`updateVestingSchedule()`function allows the Gnosis Safe to modify any parameter of a vesting schedule without restrictions. This includes:\n\n*   Setting`amount` to 0 even after tokens have been released or reducing it below what has already been released creates an inconsistent state.\n*   Setting the`duration` lower than the `cliff` period, which breaks the vesting logic. Users would have to wait for the cliff to be able to claim everything at once instead of periodically.\n*   Modifying start time to a future date even after vesting has begun also creates an inconsistent state.\n*   Changing the safe address mid-vesting could break integration with other contracts expecting specific safe addresses.\n\n**Recommendation:** Evaluate if it should be possible to update the vesting amount, start, duration, cliff and destination after the vesting has already begun, if it should be possible to update the amount to zero at any time or reduce the amount to a value lower than what has already been released. If not, we recommend adding the proper checks. Also, evaluate if the schedules should be updated at all.",
+    "summary": "",
+    "report_date": "2025-03-30T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://certificate.quantstamp.com/full/sapien/ffb7e698-6178-46f0-8df8-52e537af70c0/index.html",
+    "sponsor_name": "",
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://certificate.quantstamp.com/full/sapien/ffb7e698-6178-46f0-8df8-52e537af70c0/index.html",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "vesting-can-be-updated-in-any-way-desired-by-the-multisig-quantstamp-sapien-markdown",
+    "firm_name": "Quantstamp",
+    "firm_logo_square": "quantstamp_square.png",
+    "protocol_name": "Sapien",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Paul Clemson"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Julio Aguilar"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Mostafa Yassin"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Tim Sigl"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Quantstamp",
+        "logo_square": "quantstamp_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Sapien",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

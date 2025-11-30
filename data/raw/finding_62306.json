@@ -1,0 +1,55 @@
+{
+    "id": 62306,
+    "kind": "PDF",
+    "auditfirm_id": 6,
+    "impact": "LOW",
+    "finders_count": 3,
+    "protocol_id": 3396,
+    "title": "WadRayMath.rayPowerInt should return RAYint instead of 1 when exponent == 0",
+    "content": "## Vulnerability Report\n\n**Severity:** Low Risk  \n**Context:** WadRayMath.sol#L192-L194  \n\n**Description:**  \n`WadRayMath.rayPowerInt` is supposed to compute the number `base.pow(exponent)` in the RAY precision. The result should be 1 when `exponent == 0`; however, the function `rayPowerInt` returns 1 instead of `RAYint` (which is 1 in RAY precision).\n\n```solidity\n// WadRayMath.sol#L191-L194\nfunction rayPowerInt(int256 base, uint256 exponent) internal pure returns (int256) {\n    if (exponent == 0) {\n        return 1; // <<<\n    }\n    // ...\n}\n```\n\nPlease note that this function is nowhere used with an exponent value of 0, which is why the severity is marked as low for the current codebase.\n\n**Recommendation:**  \nReturn `RAYint` instead:\n\n```solidity\n// WadRayMath.sol#L191-L194\nfunction rayPowerInt(int256 base, uint256 exponent) internal pure returns (int256) {\n    if (exponent == 0) {\n        // - return 1;\n        + return RAYint;\n    }\n}\n```\n\n**Astera:** Fixed in commit 1eb7b435.  \n**Spearbit:** Fix verified.",
+    "summary": "",
+    "report_date": "2025-08-29T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Astera-Spearbit-Security-Review-December-2024.pdf",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Astera-Spearbit-Security-Review-December-2024.pdf",
+    "github_link": "",
+    "pdf_link": "https://solodit-bucket.s3.amazonaws.com/storage/reports/spearbit/Astera-Spearbit-Security-Review-December-2024.pdf",
+    "pdf_page_from": 35,
+    "contest_id": "",
+    "slug": "wadraymathraypowerint-should-return-rayint-instead-of-1-when-exponent-0-spearbit-none-astera-pdf",
+    "firm_name": "Spearbit",
+    "firm_logo_square": "spearbit_square.png",
+    "protocol_name": "Astera",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Saw-mon and Natalie"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Cergyk"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Jonatas Martins"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Spearbit",
+        "logo_square": "spearbit_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Astera",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

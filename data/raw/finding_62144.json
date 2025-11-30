@@ -1,0 +1,60 @@
+{
+    "id": 62144,
+    "kind": "PDF",
+    "auditfirm_id": 6,
+    "impact": "LOW",
+    "finders_count": 4,
+    "protocol_id": 3384,
+    "title": "mulDown and divDown for int256 rounds towards 0",
+    "content": "## Severity: Low Risk\n\n## Context\n- PMath.sol#L48-L58\n- PMath.sol#L71-L81\n- PMath.sol#L56\n- PMath.sol#L79\n\n## Description\n`mulDown` and `divDown` for `int256` round towards 0 when `sign(x) * sign(y) == -1`. This is due to the fact that for the final calculation, both of these functions use `div`, which rounds towards 0 for negative values and not towards -∞ as the \"Down\" keyword suggests.\n\nCurrently, these functions with negative signatures are used in:\n\n### mulDown(int256, int256):\n| Location                     | Safety Comment                                                                    |\n|------------------------------|----------------------------------------------------------------------------------|\n| _applyFee                    | As long as `_storage.feeRate` is non-negative                                   |\n| _calcLiqTrade                | Needs to be investigated, since `sizeToLiquidator` could be negative            |\n| _binSearchRemainingSize      | Either one of `addWithBook.toSignedSize(side)` or `bookRate` could be negative  |\n| _calculateTickCost           | `size.toSignedSize(side)` is negative for shorts                                 |\n| _placeOrderOnBookAndAMMs    | ???                                                                              |\n| calcSettlement               | ???                                                                              |\n| calcPositionValue            | `signedSize` could be negative                                                   |\n| fromSizeAndRate              | `_signedSize` could be negative                                                  |\n| from3                        | `_rate` could be negative ??                                                    |\n\n### divDown(int256, int256):\n| Location                     | Safety Comment                                                                    |\n|------------------------------|----------------------------------------------------------------------------------|\n| calcSwapOutput               | `normFixedIn` could be negative                                                   |\n| _settleProcessGetHealth      | ???                                                                              |\n| getUserInfo                  | ???                                                                              |\n\n## Recommendation\nIn all the above cases, the desired rounding direction needs to be carefully analyzed.\n\n## Pendle Finance\nAcknowledged.\n\n## Spearbit\nAcknowledged.",
+    "summary": "",
+    "report_date": "2025-08-22T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Pendle-Spearbit-Security-Review-August-2025.pdf",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Pendle-Spearbit-Security-Review-August-2025.pdf",
+    "github_link": "",
+    "pdf_link": "https://solodit-bucket.s3.amazonaws.com/storage/reports/spearbit/Pendle-Spearbit-Security-Review-August-2025.pdf",
+    "pdf_page_from": 11,
+    "contest_id": "",
+    "slug": "muldown-and-divdown-for-int256-rounds-towards-0-spearbit-none-pendle-core-v3-pdf",
+    "firm_name": "Spearbit",
+    "firm_logo_square": "spearbit_square.png",
+    "protocol_name": "Pendle Core v3",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Saw-mon and Natalie"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Ethan"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Desmond Ho"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "RustyRabbit"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Spearbit",
+        "logo_square": "spearbit_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Pendle Core v3",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

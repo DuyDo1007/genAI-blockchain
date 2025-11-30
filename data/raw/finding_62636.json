@@ -1,0 +1,55 @@
+{
+    "id": 62636,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 37,
+    "impact": "LOW",
+    "finders_count": 3,
+    "protocol_id": 3425,
+    "title": "`IPrimeV5` Still Relies on Old Solidity Version",
+    "content": "**Update**\nMarked as \"Acknowledged\" by the client. The client provided the following explanation:\n\n> We still need IPrimeV5 for XVSVault. Changing XVSVault implementation was out of the scope for this migration.\n\n**File(s) affected:**`contracts/Tokens/Prime/IPrimeV5.sol`\n\n**Description:**`IPrimeV5.sol` still targets Solidity ^0.5.16 and enables the experimental ABIEncoderV2, which is inconsistent with the PR’s goal to standardize on Solidity 0.8.25.\n\n**Recommendation:**\n\n*   Update the pragma to `pragma solidity 0.8.25`\n*   Remove `pragma experimental ABIEncoderV2;` (ABI encoder v2 is default in 0.8.x).",
+    "summary": "",
+    "report_date": "2025-09-13T17:22:40.823Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://certificate.quantstamp.com/full/migration-core-venus/08bc9b81-16b9-4e32-aa2a-7a0b6ce4db88/index.html",
+    "sponsor_name": "",
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://certificate.quantstamp.com/full/migration-core-venus/08bc9b81-16b9-4e32-aa2a-7a0b6ce4db88/index.html",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "iprimev5-still-relies-on-old-solidity-version-quantstamp-migration-core-venus-markdown",
+    "firm_name": "Quantstamp",
+    "firm_logo_square": "quantstamp_square.png",
+    "protocol_name": "Migration Core (Venus)",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Nikita Belenkov"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Mustafa Hasan"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Leonardo Passos"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Quantstamp",
+        "logo_square": "quantstamp_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Migration Core (Venus)",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

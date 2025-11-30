@@ -1,0 +1,70 @@
+{
+    "id": 62725,
+    "kind": "GIT",
+    "auditfirm_id": 3,
+    "impact": "MEDIUM",
+    "finders_count": 5,
+    "protocol_id": 3324,
+    "title": "M-2: First depositor can brick market by forcing very large borrow rate",
+    "content": "\nSource: https://github.com/sherlock-audit/2025-07-malda-judging/issues/86 \n\nThis issue has been acknowledged by the team but won't be fixed at this time.\n\n## Found by \nBobai23, Kvar, LeFy, cergyk, dan\\_\\_vinci\n\n### Description\n\nThe borrow rate is computed in `JumpRateModelV4` as a function of the utilisation:\n\n[JumpRateModelV4.sol#L140-L150](https://github.com/sherlock-audit/2025-07-malda/blob/main/malda-lending/src/interest/JumpRateModelV4.sol#L140-L150):\n```solidity\n    function getBorrowRate(uint256 cash, uint256 borrows, uint256 reserves) public view override returns (uint256) {\n        uint256 util = utilizationRate(cash, borrows, reserves);\n\n\n        if (util <= kink) {\n            return util * multiplierPerBlock / 1e18 + baseRatePerBlock;\n        } else {\n            uint256 normalRate = kink * multiplierPerBlock / 1e18 + baseRatePerBlock;\n            uint256 excessUtil = util - kink;\n            return excessUtil * jumpMultiplierPerBlock / 1e18 + normalRate;\n        }\n    }\n```\n\nUtilization rate being defined as:\n\n[JumpRateModelV4.sol#L127-L135](https://github.com/sherlock-audit/2025-07-malda/blob/main/malda-lending/src/interest/JumpRateModelV4.sol#L127-L135):\n```solidity\n    function utilizationRate(uint256 cash, uint256 borrows, uint256 reserves) public pure override returns (uint256) {\n        if (borrows == 0) {\n            return 0;\n        }\n        return borrows * 1e18 / (cash + borrows - reserves);\n    }\n```\n\nWe notice that utilizationRate can be greater than 1e18, when `cash + borrows - reserves` < `borrows`. In the following section, we will show a scenario where the ratio can become very big.\n\n#### First depositor manipulation\n\nAssuming a 18 decimals market:\n1. Alice the first depositor can mint for 1e18 tokens, and borrow it all (by having additional collateral in another market):\n    - cash = 0\n    - totalBorrows = 1e18\n    - reserves = 0\n\n2. Alice waits for a few blocks for some interest to accrue:\n    - cash = 0\n    - totalBorrows = 1e18 + 1e12\n    - reserves = 5e11 (assuming 50% reserve factor)\n\n3. Alice repays totalBorrows minus reserves minus 1:\n    - cash = 1e18 + 5e11 - 1\n    - totalBorrows = 5e11 + 1\n    - reserves = 5e11\n\n4. Alice redeems the total supply\n    - cash = 0\n    - totalBorrows = 5e11 + 1\n    - reserves = 5e11\n\nutilization rate is very big: `5e11`. As a result the `getBorrowRate` is bigger than `0.0005e16` (initial max borrow value):\n\n[mToken.sol#L36-L39](https://github.com/sherlock-audit/2025-07-malda/blob/main/malda-lending/src/mToken/mToken.sol#L36-L39):\n```solidity\n    constructor() {\n        borrowRateMaxMantissa = 0.0005e16;\n    }\n``` \n\nAs a result the market is completely bricked, because `_accrueInterest` always reverts:\n[mTokenStorage.sol#L351-L356](https://github.com/sherlock-audit/2025-07-malda/blob/main/malda-lending/src/mToken/mTokenStorage.sol#L351-L356):\n```solidity\n    //@audit in _accrueInterest():\n    /* Calculate the current borrow interest rate */\n    uint256 borrowRateMantissa =\n        IInterestRateModel(interestRateModel).getBorrowRate(cashPrior, borrowsPrior, reservesPrior);\n    if (borrowRateMaxMantissa > 0) {\n        require(borrowRateMantissa <= borrowRateMaxMantissa, mt_BorrowRateTooHigh());\n    }\n```\n\nIndeed `_accrueInterest` is called for all operations, even for updating the `interestRateModel`.\n\n### Recommendation\n\nConsider bounding the utilization to be at most 1e18 (100%), which would avoid having degenerate borrow rate values.\n\n",
+    "summary": "\nThis bug report discusses an issue with the borrow rate calculation in the `JumpRateModelV4` contract. The team has acknowledged the issue but will not be fixing it at this time. The report was found by multiple users. The issue arises when the utilization rate, which is calculated by dividing the total borrowed amount by the sum of the cash and borrowed amounts, becomes greater than 1e18. This can happen in certain scenarios, such as when the first depositor manipulates the market by borrowing and then repaying a large amount. This causes the borrow rate to become higher than the maximum allowed value, leading to the market becoming unresponsive. The recommendation is to limit the utilization rate to be no greater than 1e18 to prevent these issues. ",
+    "report_date": "2025-08-14T17:00:00.000Z",
+    "contest_prize_txt": "80000 USDC",
+    "contest_link": "https://app.sherlock.xyz/audits/contests/1029",
+    "sponsor_name": "",
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "",
+    "github_link": "https://github.com/sherlock-audit/2025-07-malda-judging/issues/86",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "1029",
+    "slug": "m-2-first-depositor-can-brick-market-by-forcing-very-large-borrow-rate-sherlock-malda-git",
+    "firm_name": "Sherlock",
+    "firm_logo_square": "sherlock_square.png",
+    "protocol_name": "Malda",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "cergyk"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "dan\\_\\_vinci"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "LeFy"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Kvar"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "dan\\_\\_vinci"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Bobai23"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Sherlock",
+        "logo_square": "sherlock_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Malda",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

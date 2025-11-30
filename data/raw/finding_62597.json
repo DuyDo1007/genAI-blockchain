@@ -1,0 +1,45 @@
+{
+    "id": 62597,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 16,
+    "impact": "MEDIUM",
+    "finders_count": 1,
+    "protocol_id": 3421,
+    "title": "[M-02] Missing nonce in `LISTING_TYPEHASH` affects EIP-712 and signatures",
+    "content": "\n_Resolved_\n\n## Severity\n\n**Impact:** Medium\n\n**Likelihood:** Medium\n\n## Description\n\nIn the `Marketplace.generateListingSignatureHash()` function, when the hash is generated for a listing request, it includes the `nonce` parameter, however, this nonce is not introduced in the `LISTING_TYPEHASH`, which breaks the `EIP-712` compliance, leading to the failure of the signature validation and causing the listing process to be non-compliant, thus; blocking listings from being correctly verified and processed:\n\n```solidity\n    /**\n     * @notice The EIP-712 type hash for listing requests.\n     */\n    bytes32 public constant LISTING_TYPEHASH = keccak256(\n        \"ListingRequest(address tokenContractAddress,uint256 tokenId,uint256 price,address acceptedCurrency,uint256 deadline,address owner,uint256 chainId)\"\n    );\n```\n\n```solidity\n function generateListingSignatureHash(ListingRequest calldata listing) public view returns (bytes32) {\n        return _hashTypedDataV4(\n            keccak256(\n                abi.encode(\n                    LISTING_TYPEHASH,\n                    listing.tokenContractAddress,\n                    listing.tokenId,\n                    listing.price,\n                    listing.nonce,// @audit : not introduced in LISTING_TYPEHASH\n                    acceptedCurrency,\n                    listing.deadline,\n                    listing.owner,\n                    listing.chainId\n                )\n            )\n        );\n    }\n```\n\n## Recommendations\n\nUpdate `LISTING_TYPEHASH` to include nonce:\n\n```diff\n-    bytes32 public constant LISTING_TYPEHASH = keccak256(\"ListingRequest(address tokenContractAddress,uint256 tokenId,uint256 price,address acceptedCurrency,uint256 deadline,address owner,uint256 chainId)\");\n+    bytes32 public constant LISTING_TYPEHASH = keccak256(\"ListingRequest(address tokenContractAddress,uint256 tokenId,uint256 price,uint256 nonce,address acceptedCurrency,uint256 deadline,address owner,uint256 chainId)\");\n\n```\n\n\n\n",
+    "summary": "\nThis bug report discusses a problem with the `Marketplace.generateListingSignatureHash()` function. The function is not compliant with the `EIP-712` standard, which can cause issues with the signature validation and listing process. The bug is caused by the `nonce` parameter not being included in the `LISTING_TYPEHASH` constant. The recommendation is to update the `LISTING_TYPEHASH` to include the `nonce` parameter.",
+    "report_date": "2025-09-11T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/pashov/audits/blob/master/team/md/RipIt-security-review_2025-05-10.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "m-02-missing-nonce-in-listing_typehash-affects-eip-712-and-signatures-pashov-audit-group-none-ripit_2025-05-10-markdown",
+    "firm_name": "Pashov Audit Group",
+    "firm_logo_square": "Pashov_square.png",
+    "protocol_name": "RipIt_2025-05-10",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Pashov Audit Group"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Pashov Audit Group",
+        "logo_square": "Pashov_square.png"
+    },
+    "protocols_protocol": {
+        "name": "RipIt_2025-05-10",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

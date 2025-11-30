@@ -1,0 +1,45 @@
+{
+    "id": 62583,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 16,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3420,
+    "title": "[L-25] Insufficient error handling",
+    "content": "\n_Acknowledged_\n\nIn the `SpinLottery` contract, if there are insufficient prizes available, the `_claimPrize` function will revert with the error `NoPrizesAvailable`.\n\n```solidity\n        PrizePool storage pool = prizePools[rarity];\n        if (pool.nextPrizeId <= pool.firstPrizeId) revert NoPrizesAvailable();        \n```\n\nThis error can be caught in the try-catch block during the prize distribution process, but it leads to a situation where the user is informed that they did not win.\n\n```solidity\n            // Step 3: Prize Selection\n            try this._distributePrize(req.player, requestId, rarity, prizeRandom) {\n                // Prize distributed successfully\n            } catch {\n                // If prize distribution fails, emit a no-win event\n                emit NoWin(req.player, requestId);\n            }\n```\n\n**This handling is illogical, as the user has fulfilled their obligation by paying, and any failure in the prize distribution should not be attributed to them.** This could result in user dissatisfaction and a perception that the protocol is unfair, as they are effectively penalized for a failure that is not their fault.\n\nRecommendations:\n\nTo improve the error handling, introduce a separate event for cases where there are no prizes available, allowing the contract to **differentiate between a successful spin with no win and a failure due to insufficient prizes.**\n\n\n\n",
+    "summary": "",
+    "report_date": "2025-09-11T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/pashov/audits/blob/master/team/md/RipIt-security-review_2025-04-25.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "l-25-insufficient-error-handling-pashov-audit-group-none-ripit_2025-04-25-markdown",
+    "firm_name": "Pashov Audit Group",
+    "firm_logo_square": "Pashov_square.png",
+    "protocol_name": "RipIt_2025-04-25",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Pashov Audit Group"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Pashov Audit Group",
+        "logo_square": "Pashov_square.png"
+    },
+    "protocols_protocol": {
+        "name": "RipIt_2025-04-25",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

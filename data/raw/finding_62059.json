@@ -1,0 +1,45 @@
+{
+    "id": 62059,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 7,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3377,
+    "title": "Problematic Whitelist Implementation",
+    "content": "The [`AddressWhitelist` contract](https://github.com/UMAprotocol/managed-oracle/blob/fc03083eca91c880efa8918c6d9532af9362f00d/src/common/implementation/AddressWhitelist.sol) provides functionality for managing lists of approved addresses. It uses a mapping to store the status of an address and a separate, dynamic array, `whitelistIndices`, to store every address ever added. The `getWhitelist` function iterates through this array to return a list of currently active members.\n\nThe current implementation of the whitelist has several drawbacks:\n\n* The [`removeFromWhitelist` function](https://github.com/UMAprotocol/managed-oracle/blob/fc03083eca91c880efa8918c6d9532af9362f00d/src/common/implementation/AddressWhitelist.sol#L55) only changes the status of an address to `Out` but does not remove it from the `whitelistIndices` array. This \"soft delete\" causes the array to grow indefinitely, leading to an increasing gas cost for enumeration.\n* The [`getWhitelist` function](https://github.com/UMAprotocol/managed-oracle/blob/fc03083eca91c880efa8918c6d9532af9362f00d/src/common/implementation/AddressWhitelist.sol#L79) iterates through this ever-growing array twice, making it highly inefficient and creating a potential out-of-gas condition if the list becomes too large, as [commented](https://github.com/UMAprotocol/managed-oracle/blob/fc03083eca91c880efa8918c6d9532af9362f00d/src/common/implementation/AddressWhitelist.sol#L73-L76).\n* The usage of the three statuses (`None`, `Out`, and `In`) is not only redundant compared to only two (`Out` and `In`), it also introduces an inconsistent state. First, if an address is removed from the whitelist despite having never been added, its [status is set](https://github.com/UMAprotocol/managed-oracle/blob/fc03083eca91c880efa8918c6d9532af9362f00d/src/common/implementation/AddressWhitelist.sol#L57) to `Out`. Second, if the address is then added to the whitelist, the address [is **not** added](https://github.com/UMAprotocol/managed-oracle/blob/fc03083eca91c880efa8918c6d9532af9362f00d/src/common/implementation/AddressWhitelist.sol#L41-L44) to `whitelistIndices` but still marked as `In` with an event emitted, although the address will not be included in `getWhitelist`.\n* Since the project already utilizes the OpenZeppelin Contracts library, this custom implementation also introduces redundant code, as a more robust and gas-efficient alternative is already available in the [`EnumerableSet`](https://github.com/OpenZeppelin/openzeppelin-contracts/blob/v5.4.0/contracts/utils/structs/EnumerableSet.sol) library.\n\nConsider refactoring the `AddressWhitelist` contract to use the [`EnumerableSet.AddressSet`](https://github.com/OpenZeppelin/openzeppelin-contracts/blob/v5.4.0/contracts/utils/structs/EnumerableSet.sol#L307) library provided by OpenZeppelin. Be aware that this adoption would shift the storage layout. As such, upgradeable contracts depending on `AddressWhitelist` should be handled with care.\n\n***Update:** Resolved in [pull request #24](https://github.com/UMAprotocol/managed-oracle/pull/24) at commit [81bd067](https://github.com/UMAprotocol/managed-oracle/pull/24/commits/81bd0679fae07e1da3d3dfa66afca31f428334ff).*",
+    "summary": "",
+    "report_date": "2025-08-26T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://blog.openzeppelin.com/managed-optimistic-oracle-audit",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "problematic-whitelist-implementation-openzeppelin-none-managed-optimistic-oracle-audit-markdown",
+    "firm_name": "OpenZeppelin",
+    "firm_logo_square": "openzeppelin_square.png",
+    "protocol_name": "Managed Optimistic Oracle Audit",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "OpenZeppelin"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "OpenZeppelin",
+        "logo_square": "openzeppelin_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Managed Optimistic Oracle Audit",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

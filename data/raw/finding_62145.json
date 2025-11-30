@@ -1,0 +1,60 @@
+{
+    "id": 62145,
+    "kind": "PDF",
+    "auditfirm_id": 6,
+    "impact": "LOW",
+    "finders_count": 4,
+    "protocol_id": 3384,
+    "title": "tryRemove may throw the wrong error when a cancellation reverts",
+    "content": "## Severity: Low Risk\n**Context:** Tick.sol#L84-L95\n\n## Summary\nUsers may receive the wrong error if their cancellation reverts due to the order of the guard clauses in `Tick.tryRemove`.\n\n## Finding Description\nThere are three reasons that a user's attempt to cancel an order may revert: \n1. The order has already been filled.\n2. The order has already been cancelled.\n3. The order has an invalid ID and cannot be found.\n\nTo handle each error case, the function `tryRemove` first checks if the `orderIndex` is less than the `headIndex`, and if it is, it determines that the order has already been filled. Later, it checks the position's size to determine whether it has already been cancelled:\n\n```solidity\nif (orderIndex < headIndex) {\n    require(!isStrictCancel, Err.MarketOrderFilled());\n    return (0, tickSum);\n} else if (orderIndex >= tailIndex) {\n    revert Err.MarketOrderNotFound();\n}\nuint128 removedSize = $.node[orderIndex].orderSize();\nif (removedSize == 0) {\n    require(!isStrictCancel, Err.MarketOrderCancelled());\n    return (0, tickSum);\n}\n```\n\nThe problem is that every `orderIndex`—be it filled or cancelled—will eventually be less than the `headIndex`, since the `headIndex` continues to increase with each new filled order. In the event that the `headIndex` has increased beyond an already-cancelled `orderIndex`, the first case will evaluate as true, which will incorrectly throw with `Err.MarketOrderFilled`.\n\n## Impact Explanation\nUsers may receive the wrong error message when their attempts to cancel orders fail, leading them to take improper subsequent steps that could waste money and time.\n\n## Likelihood Explanation\nThe likelihood depends on the volume of a given market. This is guaranteed to happen eventually for any market with sufficient remaining time before maturity, but since users would likely not expect a cancellation to work for long after the order was initially placed, the `headIndex` would need to increase past their order's index fairly rapidly in order for this to cause real problems for users.\n\n## Proof of Concept\nAdd this test to `orders.t.sol`:\n\n```solidity\nfunction test_cancelAlreadyCancelledOrderWithHeadIndexPastOrderId() public {\n    // 1. place 2 orders\n    vm.startPrank(alice);\n    router.placeOrderALO(true, market0Id, LONG, 0.5 ether, 500);\n    router.placeOrderALO(true, market0Id, LONG, 1 ether, 500);\n    vm.stopPrank();\n    // 2. cancel the order with smaller size\n    OrderId[] memory toRemoveIds = new OrderId[](1);\n    IMarketOff.Order[] memory orders = market0.getAllOpenOrders(toCrossAcc(alice));\n    assertEq(orders.length, 2);\n    assertEq(orders[0].size, 1 ether);\n    assertEq(orders[1].size, 0.5 ether);\n    toRemoveIds[0] = orders[1].id;\n    LongShort memory cancels = LongShortLib.createCancels(toRemoveIds, false, true);\n    vm.prank(address(router));\n    marketHub.orderAndOtc(market0Id, toCrossAcc(alice), cancels, new OTCTrade[](0));\n    // 3. fill the order of larger size\n    vm.prank(bob);\n    router.placeOrderFOK(true, market0Id, SHORT, 1 ether, 500);\n    // 4. try cancelling the smaller order again, should revert with MarketOrderCancelled\n    vm.prank(address(router));\n    vm.expectRevert(Err.MarketOrderCancelled.selector, address(market0));\n    marketHub.orderAndOtc(market0Id, toCrossAcc(alice), cancels, new OTCTrade[](0));\n}\n```\n\n## Recommendation\nTo preserve all three error states with minimal additional gas consumption, rearrange the order and implementation of the guard clauses:\n\n```solidity\nrequire(orderIndex < tailIndex, Err.MarketOrderNotFound());\nuint128 removedSize = $.node[orderIndex].orderSize();\nif (isStrictCancel) {\n    require(removedSize > 0, Err.MarketOrderCancelled());\n    require(headIndex <= orderIndex, Err.MarketOrderFilled());\n} else if (removedSize == 0 || orderIndex < headIndex) {\n    return (0, tickSum);\n}\n```\n\nAlternatively, if the additional gas cost is not deemed to be worth maintaining all three error conditions, this function could return a single error for both cases (e.g., `Err.MarketOrderFilledOrCancelled`). Since cancellations are expected to work properly in most cases, it is reasonable to pass the responsibility of checking the size of the order in question on to the affected user if they want to take further action.\n\n**Pendle Finance:** Fixed in commit 62018338.  \n**Spearbit:** Fix verified.",
+    "summary": "",
+    "report_date": "2025-08-22T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Pendle-Spearbit-Security-Review-August-2025.pdf",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Pendle-Spearbit-Security-Review-August-2025.pdf",
+    "github_link": "",
+    "pdf_link": "https://solodit-bucket.s3.amazonaws.com/storage/reports/spearbit/Pendle-Spearbit-Security-Review-August-2025.pdf",
+    "pdf_page_from": 12,
+    "contest_id": "",
+    "slug": "tryremove-may-throw-the-wrong-error-when-a-cancellation-reverts-spearbit-none-pendle-core-v3-pdf",
+    "firm_name": "Spearbit",
+    "firm_logo_square": "spearbit_square.png",
+    "protocol_name": "Pendle Core v3",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Saw-mon and Natalie"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Ethan"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Desmond Ho"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "RustyRabbit"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Spearbit",
+        "logo_square": "spearbit_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Pendle Core v3",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

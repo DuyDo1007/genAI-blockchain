@@ -1,0 +1,55 @@
+{
+    "id": 62277,
+    "kind": "PDF",
+    "auditfirm_id": 6,
+    "impact": "HIGH",
+    "finders_count": 3,
+    "protocol_id": 3396,
+    "title": "Index can reach type(uint104).max when asset totalSupply is dust and DoS aToken transfers in-",
+    "content": "## Security Issue: Reward Distribution Index Overflow\n\n**Severity:** High Risk  \n**Context:** `RewardsDistributor.sol#L501`  \n\n## Description\nThe reward formula in Reward Distributors (`RewardsDistributor.sol` and `RewardsDistributor6909.sol`) uses an index to track the accrual of rewards per unit of aToken held. The size for the index is set to be `uint104`, which should be sufficient for cases when `assetTotalSupply >= 10**assetDecimals` or when `decimals` is a low value. However, in the case of a total supply being dust, even for a short amount of time, the index can reach `type(uint104).max`, preventing any further reward accrual.\n\n### Relevant Code Snippet - RewardsDistributor.sol#L279\n```solidity\nif (newIndex != oldIndex) {\n    require(newIndex <= type(uint104).max, \"Index overflow\"); // <<<\n    // optimization: storing one after another saves one SSTORE\n    rewardConfig.index = uint104(newIndex);\n    rewardConfig.lastUpdateTimestamp = uint32(block.timestamp);\n    emit AssetIndexUpdated(asset, reward, newIndex);\n} else {\n    rewardConfig.lastUpdateTimestamp = uint32(block.timestamp);\n}\n```\n\n### Index Computation Formula - RewardsDistributor.sol#L501\n```solidity\nuint256 currentTimestamp = \n    block.timestamp > distributionEnd ? distributionEnd : block.timestamp;\nuint256 timeDelta = currentTimestamp - lastUpdateTimestamp;\nreturn (emissionPerSecond * timeDelta * (10 ** decimals)) / totalBalance + currentIndex;\n```\n- `emissionPerSecond`: The number of reward tokens to emit globally per second.\n- `decimals`: The decimal precision for the asset token considered.\n- `totalBalance`: The total supply of the asset token considered.\n\n## Scenario\n### Preconditions:\n| Parameter                       | Value                    |\n|----------------------------------|--------------------------|\n| Asset token                     | aWeth (decimals: 18)    |\n| Reward token                    | DAI (decimals: 18)      |\n| Total reward amount (A)        | 1000 DAI                 |\n| Total asset supply              | 1                        |\n| Time elapsed (t)               | 12 sec (~1 block)       |\n| Distribution duration (T)       | 1 month                 |\n\nVery reasonable values, except for total asset supply which may need some stars to align.\n\n### Index Calculation\nFirst, let's calculate `emissionPerSecond` denoted as `r`:\n```\nr = A / T = (1000 * 10**18) / 262800 = 3.8 * 10**14\n```\nWhich yields the index value:\n```\ni = r * t * 10**d = (3.8 * 10**14) * 12 * 10**18 = 4.56 * 10**34 / 2**104\n```\n\n## Recommendation\nMultiple recommendations can be considered:\n\n- **Increasing Index Size:** When `A = 1_000_000e18` and `d = 18`, the index would be safe from reverting using `uint140`.\n\n- **Do Not Accrue Index When Normalized Total Supply is Below a Threshold:** This should not happen in any reasonable case:\n```solidity\nif (\n    emissionPerSecond == 0 ||\n    totalBalance == 0 ||\n    (decimals == 18 && totalBalance <= UPDATE_THRESHOLD) || // @audit ok to be below threshold for low decimal tokens\n    lastUpdateTimestamp == block.timestamp || \n    lastUpdateTimestamp >= distributionEnd\n) {\n    return currentIndex;\n}\n```\n\nAdditionally, to avoid reverting at any cost during action handling, overflow could be allowed so that the index would naturally wrap around, which would be safe since only index differences are used when computing rewards.\n\n## Action Taken\n- **Astera:** Fixed in PR 34.\n- **Spearbit:** Fix verified.",
+    "summary": "\nThe report describes a security issue in the Rewards Distributor code. The code uses an index to track rewards for aToken. However, in certain cases, the index can reach its maximum value, causing the rewards to stop accruing. This can happen when the total supply of the asset token is very small. The report suggests increasing the size of the index or not accruing rewards when the total supply is below a certain threshold. The issue has been fixed in the code. ",
+    "report_date": "2025-08-29T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Astera-Spearbit-Security-Review-December-2024.pdf",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Astera-Spearbit-Security-Review-December-2024.pdf",
+    "github_link": "",
+    "pdf_link": "https://solodit-bucket.s3.amazonaws.com/storage/reports/spearbit/Astera-Spearbit-Security-Review-December-2024.pdf",
+    "pdf_page_from": 10,
+    "contest_id": "",
+    "slug": "index-can-reach-typeuint104max-when-asset-totalsupply-is-dust-and-dos-atoken-transfers-in-spearbit-none-astera-pdf",
+    "firm_name": "Spearbit",
+    "firm_logo_square": "spearbit_square.png",
+    "protocol_name": "Astera",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Saw-mon and Natalie"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Cergyk"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Jonatas Martins"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Spearbit",
+        "logo_square": "spearbit_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Astera",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

@@ -1,0 +1,55 @@
+{
+    "id": 62264,
+    "kind": "PDF",
+    "auditfirm_id": 6,
+    "impact": "LOW",
+    "finders_count": 3,
+    "protocol_id": 3395,
+    "title": "Avoid Asymmetry in clearVote() function",
+    "content": "## Severity: Low Risk\n\n## Context\n(No context files were provided by the reviewer)\n\n## Summary\nThe `clearVote()` function of the `LockToVotePlugin` contract resets the user's active voting power on the proposal to 0, but it does not reset the vote option back to None. Although this does not cause any immediate issue, code asymmetries such as this should be avoided.\n\n## Finding Description\nThe `vote()` function updates voting power and chosen voting option. The option for a new vote specifically is changed from `VoteOption.None` to `VoteOption.Yes`, `VoteOption.No`, or `VoteOption.Abstain`.\n\n```solidity\nproposal_.votes[_voter].voteOption = _voteOption;\nproposal_.votes[_voter].votingPower = _newVotingPower;\n```\n\nBut in the `clearVote()` function we find that only the voting power is reset to 0, and the voting option is left to its previous value. This is despite the function name implying that the vote would be cleared.\n\n```solidity\nproposal_.votes[_voter].votingPower = 0;\n```\n\n## Recommendation\nAlthough this has no apparent impact on the user's experience or on the system's security at this moment, we still strongly recommend avoiding asymmetries like these as they may lead to unexpected issues in the future.\n\n```solidity\nproposal_.votes[_voter].votingPower = 0;\n+ proposal_.votes[_voter].voteOption = VoteOption.None;\n```\n\n## Aragon\nFixed in PR 33.\n\n## Spearbit\nFix verified.",
+    "summary": "",
+    "report_date": "2025-08-28T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Aragon-Spearbit-Security-Review-July-2025.pdf",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Aragon-Spearbit-Security-Review-July-2025.pdf",
+    "github_link": "",
+    "pdf_link": "https://solodit-bucket.s3.amazonaws.com/storage/reports/spearbit/Aragon-Spearbit-Security-Review-July-2025.pdf",
+    "pdf_page_from": 16,
+    "contest_id": "",
+    "slug": "avoid-asymmetry-in-clearvote-function-spearbit-none-aragon-dao-gov-plugin-pdf",
+    "firm_name": "Spearbit",
+    "firm_logo_square": "spearbit_square.png",
+    "protocol_name": "Aragon DAO Gov Plugin",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Om Parikh"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Emanuelle Ricci"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Patrick Drotleff"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Spearbit",
+        "logo_square": "spearbit_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Aragon DAO Gov Plugin",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

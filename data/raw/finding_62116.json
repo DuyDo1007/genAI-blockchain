@@ -1,0 +1,180 @@
+{
+    "id": 62116,
+    "kind": "GIT",
+    "auditfirm_id": 3,
+    "impact": "MEDIUM",
+    "finders_count": 28,
+    "protocol_id": 3135,
+    "title": "M-5: cancelDepositRequest() always reverts due to modifying FenwickTree with wrong index",
+    "content": "\nSource: https://github.com/sherlock-audit/2025-07-mellow-flexible-vaults-judging/issues/246 \n\n## Found by \n0rpse, 0x23r0, 0xDLG, 0xRaz, 0xShoonya, 0xc0ffEE, 0xfocusNode, 8olidity, Arav, Cybrid, Pexy, Sabit97, algiz, blockace, boredpukar, ccvascocc, d4r3\\_w0lf, dimulski, freeking, hunt1, jah, kazan, komane007, lodelux, maigadoh, sheep, tedox, teoslaf1\n\n### Summary\n\nIn `DepositQueue:cancelDepositRequest()` , the code uses the latest `price` checkpoint instead of `index` when attempting to remove a user’s pending deposit from the Fenwick tree. \n\nBecause the timestamp-based request array has length < price, the index is out of bounds and the function always reverts, making it impossible for depositors to cancel their queued deposits.\n\n### Root Cause\n\nThe [`DepositQueue:cancelDepositRequest()`](https://github.com/sherlock-audit/2025-07-mellow-flexible-vaults/blob/eca8836d68d65bcbfc52c6f04cf6b4b1597555bf/flexible-vaults/src/queues/DepositQueue.sol#L98-L117)  calls:\n\n```solidity\n(bool exists, uint32 timestamp, uint256 index) = $.prices.latestCheckpoint(); //@audit index is actually the price\n..\n$.requests.modify(index, -int256(assets)); //@audit priceD18 instead of index will result in IndexOutOfBounds error\n```\n\nHere, `$.prices` is the oracle-price checkpoint trace, not the timestamp trace that indexes the `$.requests` Fenwick tree. As a result, the retrieved `index` does not corresponds to a valid slot in the `$.requests`, causing `modify()` to revert with [`IndexOutOfBounds`](https://github.com/sherlock-audit/2025-07-mellow-flexible-vaults/blob/eca8836d68d65bcbfc52c6f04cf6b4b1597555bf/flexible-vaults/src/libraries/FenwickTreeLibrary.sol#L70-L71).\n\n### Internal Pre-conditions\n\n- At least one price report has been processed\n- A user has a pending deposit and the request is still non-claimable\n\n### External Pre-conditions\n\nNone.\n\n### Attack Path\n\n1. User submits `deposit(..)` and their funds are locked and recorded in `$.requestOf` and Fenwick tree\n2. User calls `cancelDepositRequest()` , but the function reverts and the user cannot cancel their deposit\n\n### Impact\n\n**Medium severity**\n- Users can’t cancel their own pending deposits, undermining basic UX and expected behaviour. \n- Core cancellation functionality is broken, but funds aren’t stolen, just stuck until the queue processes.\n\n### PoC\n\n1. Add the following test to the `DepositQueue.t.sol`:\n ```solidity\nfunction testPoC_CancelDepositRequest_WrongIndex_Reverts() external {\n        Deployment memory deployment = createVault(vaultAdmin, vaultProxyAdmin, assetsDefault);\n        DepositQueue queue = DepositQueue(addDepositQueue(deployment, vaultProxyAdmin, asset));\n        IOracle.SecurityParams memory securityParams = deployment.oracle.securityParams();\n\n        /// @dev push a report to set the initial price\n        // Just pushing a price is not enough, since the report can't be accepted. We need to warp the time to set a valid initial price.\n        vm.warp(block.timestamp + Math.max(securityParams.timeout, securityParams.redeemInterval));\n        pushReport(deployment.oracle, IOracle.Report({asset: asset, priceD18: 1e18}));\n        \n        address user1 = vm.createWallet(\"user\").addr;\n        uint256 amount1 = 5 ether;\n\n        makeDeposit(user1, amount1, queue);\n        assertEq(queue.claimableOf(user1), 0, \"Claimable amount should be zero before deposit\");\n        (, uint256 assets1) = queue.requestOf(user1);\n        assertEq(assets1, amount1, \"Assets should match the deposited amount\");\n\n        vm.prank(user1);\n        vm.expectRevert(\"IndexOutOfBounds()\");\n        queue.cancelDepositRequest();\n    }\n```\n\n2. Execute with:\n```bash\nforge test --mt testPoC_CancelDepositRequest_WrongIndex_Reverts --fork-url https://eth-mainnet.g.alchemy.com/public --gas-limit 10000000000000000 --fork-block-number 22730425 -vvv\n```\n\n### Mitigation\n\nInstead of using the index returned from the prices.latestCheckpoint(), use the index that corresponds to the user's request timestamp.\nThis could be achieved by modifying the [`cancelDepositRequest()`](https://github.com/sherlock-audit/2025-07-mellow-flexible-vaults/blob/eca8836d68d65bcbfc52c6f04cf6b4b1597555bf/flexible-vaults/src/queues/DepositQueue.sol#L98-L117):\n\n```diff\nfunction cancelDepositRequest() external nonReentrant {\n    address caller = _msgSender();\n    DepositQueueStorage storage $ = _depositQueueStorage();\n    Checkpoints.Checkpoint224 memory request = $.requestOf[caller];\n    uint256 assets = request._value;\n    if (assets == 0) {\n        revert NoPendingRequest();\n    }\n    address asset_ = asset();\n-   (bool exists, uint32 timestamp, uint256 index) = $.pric- es.latestCheckpoint();\n+   (bool exists, uint32 timestamp, ) = $.prices.lates+ tCheckpoint(); \n\n    if (exists && timestamp >= request._key) {\n        revert ClaimableRequestExists();\n    }\n\n    delete $.requestOf[caller];\n    IVaultModule(vault()).riskManager().modifyPendingAssets(asset_, -int256(uint256(assets)));\n+ uint256 index = _timestamps().lowerLookup(reque+ st._key);\n    $.requests.modify(index, -int256(assets));\n    TransferLibrary.sendAssets(asset_, caller, assets);\n    emit DepositRequestCanceled(caller, assets, request._key);\n}\n```\n\n## Discussion\n\n**sherlock-admin2**\n\nThe protocol team fixed this issue in the following PRs/commits:\nhttps://github.com/mellow-finance/flexible-vaults/pull/7/files\n\n\n\n\n",
+    "summary": "\nThe bug report discusses an issue found in the Mellow Flexible Vaults project. The bug was discovered by several individuals and was caused by a coding error in the `DepositQueue:cancelDepositRequest()` function. The code used the latest `price` checkpoint instead of the correct `index`, causing the function to always revert and making it impossible for depositors to cancel their queued deposits. This issue was classified as medium severity and could potentially impact user experience. The report also includes a proof of concept and suggests a solution to mitigate the issue. The project team has since fixed the issue in their code.",
+    "report_date": "2025-07-28T15:00:00.000Z",
+    "contest_prize_txt": "70000 USDC",
+    "contest_link": "https://app.sherlock.xyz/audits/contests/964",
+    "sponsor_name": "",
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "",
+    "github_link": "https://github.com/sherlock-audit/2025-07-mellow-flexible-vaults-judging/issues/246",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "964",
+    "slug": "m-5-canceldepositrequest-always-reverts-due-to-modifying-fenwicktree-with-wrong-index-sherlock-mellow-flexible-vaults-git",
+    "firm_name": "Sherlock",
+    "firm_logo_square": "sherlock_square.png",
+    "protocol_name": "Mellow Flexible Vaults",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "0xfocusNode"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Arav"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "0xShoonya"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "0x23r0"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "0xRaz"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "d4r3\\_w0lf"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "hunt1"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "jah"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "blockace"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "sheep"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Pexy"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "kazan"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "maigadoh"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "boredpukar"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "0rpse"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Sabit97"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "tedox"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "ccvascocc"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "0xDLG"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "komane007"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "8olidity"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "dimulski"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "lodelux"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Cybrid"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "teoslaf1"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "0xc0ffEE"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "freeking"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "algiz"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Sherlock",
+        "logo_square": "sherlock_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Mellow Flexible Vaults",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

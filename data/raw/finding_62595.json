@@ -1,0 +1,45 @@
+{
+    "id": 62595,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 16,
+    "impact": "HIGH",
+    "finders_count": 1,
+    "protocol_id": 3421,
+    "title": "[H-02] Packet burn state not reset in `finalizeOpen()` causes failure",
+    "content": "\n_Resolved_\n\n## Severity\n\n**Impact:** Medium\n\n**Likelihood:** High\n\n## Description\n\nIn the `Packet.sol` contract, when a user initiates a burn with **INSTANT_OPEN_PACKET** type, an issue occurs in the execution flow that leads to transaction failures.\nThe sequence occurs as follows:\n- User calls `initiateBurn()` with **INSTANT_OPEN_PACKET** burn type in `Packet.sol`.\n- This sets the packet's burn state to **INSTANT_OPEN_PACKET** and calls `instantOpenPacket()` in `CardAllocationPool.sol`.\n- When only one card bundle is available, `CardAllocationPool` directly transfers NFTs and calls `finalizeOpen()` (the issue still exist if the contract request randomness from Chainlink VRF).\n- The `finalizeOpen()` function in `Packet.sol` attempts to transfer the packet to the contract sing directly the `_transfer()` function and then call `addPacketsToInventory()` on PacketStore.sol.\n- The `addPacketsToInventory()` function tries to transfer the packet using `safeTransferFrom()`.\n- However, this transfer fails because the packet's burn type is still **INSTANT_OPEN_PACKET**.\nThe key issue is in the `transferFrom()` function which has a check:\n```solidity\nfunction transferFrom(address from, address to, uint256 tokenId) public virtual override {\n    if (_packetBurnType[tokenId] != BurnType.NONE) revert PacketFrozen();\n    super.transferFrom(from, to, tokenId);\n}\n```\nThis function reverts with `PacketFrozen()` error when the burn type is not **NONE,** but the burn type is never reset to **NONE** during the `finalizeOpen()` process for **INSTANT_OPEN_PACKET** burn type.\n\n## Recommendations\n\nModify the `finalizeOpen()` function in  `Packet.sol` contract to reset the burn state to **NONE** before transferring the packet:\n```solidity\nif (burnType == BurnType.INSTANT_OPEN_PACKET) {\n        // Reset burn state to NONE before transfer\n        _packetBurnType[packetId] = BurnType.NONE;\n        \n        _transfer(ownerOf(packetId), address(this), packetId);\n        this.approve(address(packetStore), packetId);\n\n        uint256[] memory packetIds = new uint256[](1);\n        packetStore.addPacketsToInventory(packetIds);\n    } else {\n```\n\n\n\n",
+    "summary": "\nThis bug report is about an issue in the `Packet.sol` contract that results in transaction failures when a user initiates a burn with the **INSTANT_OPEN_PACKET** type. The sequence of events that lead to this issue are described, and the key problem is identified in the `transferFrom()` function which checks for a specific burn type and reverts the transaction if it is not present. The recommendation is to modify the `finalizeOpen()` function in the `Packet.sol` contract to reset the burn state before transferring the packet.",
+    "report_date": "2025-09-11T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/pashov/audits/blob/master/team/md/RipIt-security-review_2025-05-10.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "h-02-packet-burn-state-not-reset-in-finalizeopen-causes-failure-pashov-audit-group-none-ripit_2025-05-10-markdown",
+    "firm_name": "Pashov Audit Group",
+    "firm_logo_square": "Pashov_square.png",
+    "protocol_name": "RipIt_2025-05-10",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Pashov Audit Group"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Pashov Audit Group",
+        "logo_square": "Pashov_square.png"
+    },
+    "protocols_protocol": {
+        "name": "RipIt_2025-05-10",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

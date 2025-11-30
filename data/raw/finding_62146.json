@@ -1,0 +1,60 @@
+{
+    "id": 62146,
+    "kind": "PDF",
+    "auditfirm_id": 6,
+    "impact": "LOW",
+    "finders_count": 4,
+    "protocol_id": 3384,
+    "title": "PRNG seed is constant on Arbitrum",
+    "content": "## Severity: Low Risk\n\n## Context\nSweepProcessUtils.sol#L60\n\n## Description\nAccording to Arbitrum's docs, `block.prevrandao` returns a constant 1. This is verified in the proof of concept below. This means that the seed is a constant, so the pivot position sequence doesn't change.\n\n## Proof of Concept\n```solidity\ncontract CheckPrevrandao {\n    error PrevRandaoIsOne();\n    \n    constructor() {\n        uint256 prevrandao = block.prevrandao;\n        if (prevrandao == 1) {\n            revert PrevRandaoIsOne();\n        }\n    }\n}\n```\n\nRunning the following command:\n```\nforge create src/CheckPrevrandao.sol:CheckPrevrandao --private-key <PRIVATE_KEY> --rpc-url <ARBITRUM_RPC_URL>\n```\nwill result in the following response:\n```\nError: server returned an error response: error code 3: execution reverted, data: \"0x084d9915\"\n```\nwhich corresponds to the custom error `PrevRandaoIsOne()`.\n\n## Recommendation\nGiven the use-case, pseudo-randomness is sufficient. Hence, consider using `blockhash` of a previous block number.\n\n## Additional Notes\n- **Pendle Finance**: Fixed in commit `4f769483` by changing the seed to `block.number`.\n- **Spearbit**: Fix verified.",
+    "summary": "",
+    "report_date": "2025-08-22T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Pendle-Spearbit-Security-Review-August-2025.pdf",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Pendle-Spearbit-Security-Review-August-2025.pdf",
+    "github_link": "",
+    "pdf_link": "https://solodit-bucket.s3.amazonaws.com/storage/reports/spearbit/Pendle-Spearbit-Security-Review-August-2025.pdf",
+    "pdf_page_from": 13,
+    "contest_id": "",
+    "slug": "prng-seed-is-constant-on-arbitrum-spearbit-none-pendle-core-v3-pdf",
+    "firm_name": "Spearbit",
+    "firm_logo_square": "spearbit_square.png",
+    "protocol_name": "Pendle Core v3",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Saw-mon and Natalie"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Ethan"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Desmond Ho"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "RustyRabbit"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Spearbit",
+        "logo_square": "spearbit_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Pendle Core v3",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

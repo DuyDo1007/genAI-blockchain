@@ -1,0 +1,60 @@
+{
+    "id": 62909,
+    "kind": "PDF",
+    "auditfirm_id": 6,
+    "impact": "LOW",
+    "finders_count": 4,
+    "protocol_id": 3419,
+    "title": "Validator deactivation / reactivation does not consider next_delta_stake during the boundary pe-",
+    "content": "## Risk Assessment\n\n**Severity:** Low Risk\n\n**Context:** No context files were provided by the reviewer.\n\n## Description\n\nIssue found in commit hash `4cbb1742cd31ee30a0d2c6edb698400d9d70f9d8`. When the validator's auth address next epoch stake falls below the `MIN_VALIDATE_STAKE`, the validator is deactivated in delegate:\n\n```cpp\nif (val.auth_address() == address &&\n    (val.get_flags() & ValidatorFlagWithdrawn) &&\n    del.get_next_epoch_stake() >= MIN_VALIDATE_STAKE) {\n    val.clear_flag(ValidatorFlagWithdrawn);\n    emit_validator_status_changed_event(val_id, val.get_flags());\n}\n```\n\nWhen the validator's auth address is deactivated but its next epoch stake is increased in `precompile_undelegate`, the validator is then reactivated again:\n\n```cpp\nif (msg_sender == val.auth_address() &&\n    del.get_next_epoch_stake() < MIN_VALIDATE_STAKE) {\n    val.set_flag(ValidatorFlagWithdrawn);\n    emit_validator_status_changed_event(val_id, val.get_flags());\n}\n```\n\nThe next epoch stake is defined to be the sum of the current stake and delta stake:\n\n```cpp\nuint256_t DelInfo::get_next_epoch_stake() const noexcept {\n    return stake().load().native() + delta_stake().load().native();\n}\n```\n\nIn both cases, the next epoch stake is checked whether it is more than or equal to the `MIN_VALIDATE_STAKE`. However, this calculation does not include the fact that next delta stake can be promoted when an epoch progresses, which occurs when delegating during the boundary block. \n\n**Example:**\n\nIf `MIN_VALIDATE_STAKE` is 100 and we have the following validator:\n\n- `stake = 100`\n- `delta_stake = 0`\n- `next_delta_stake = 100`\n\nIf the validator undelegates:\n\n- `stake = 100` becomes `stake = 0`\n- `delta_stake = 0` becomes `delta_stake = 0`\n- `next_delta_stake = 100` remains `next_delta_stake = 100`\n\nThen the next epoch stake will be 0, and this validator will be marked with `ValidatorFlagWithdrawn`. However, this does not include the fact that `next_delta_stake` will eventually be promoted, and the auth address next epoch stake will reach `MIN_VALIDATE_STAKE` again. Since validator deactivation and reactivation only occurs during delegate or `precompile_undelegate`, the flag will incorrectly persist until the auth address calls either of the two precompile functions.\n\n## Recommendation\n\n`get_next_epoch_stake` should be changed to:\n\n`stake().load().native() + delta_stake().load().native() + next_delta_stake().load().native()`\n\n### Proof:\n\n- **Case 1:** Suppose we are not in a boundary period. Since `touch_delegator` is called before `get_next_epoch_stake`, that means `next_delta_stake = 0` as `next_delta_stake` must have been promoted and cannot have been set in a non-boundary period. Therefore, `get_next_epoch_stake` is functionally equivalent in a non-boundary period.\n\n- **Case 2:** Suppose we are in a boundary period. As the snapshot of the current epoch has already been taken at the start of the boundary period, changing `get_next_epoch_stake` to `stake().load().native() + delta_stake().load().native() + next_delta_stake().load().native()` will ensure delegating during the boundary period is equivalent to delegating in a non-boundary period in the next epoch before the next epoch snapshot. As with the `delta_stake` and `next_delta_stake` promotion, `get_next_epoch_stake` will be equal for the current epoch and the next epoch.\n\nTherefore, the recommended change fixes the issue.\n\n**Category:** Labs  \n**Fixed in commit:** 5aacb95d  \n**Spearbit:** Fix verified.",
+    "summary": "",
+    "report_date": "2025-09-19T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Monad-Spearbit-Security-Review-September-2025.pdf",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Monad-Spearbit-Security-Review-September-2025.pdf",
+    "github_link": "",
+    "pdf_link": "https://solodit-bucket.s3.amazonaws.com/storage/reports/spearbit/Monad-Spearbit-Security-Review-September-2025.pdf",
+    "pdf_page_from": 41,
+    "contest_id": "",
+    "slug": "validator-deactivation-reactivation-does-not-consider-next_delta_stake-during-the-boundary-pe-spearbit-none-monad-pdf",
+    "firm_name": "Spearbit",
+    "firm_logo_square": "spearbit_square.png",
+    "protocol_name": "Monad",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Haxatron"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Dtheo"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Guido Vranken"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Rikard Hjort"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Spearbit",
+        "logo_square": "spearbit_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Monad",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

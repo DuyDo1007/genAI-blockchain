@@ -1,0 +1,45 @@
+{
+    "id": 62714,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 32,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3437,
+    "title": "[I-01] Redundant Balance Check and Math.min in deployFunds",
+    "content": "\n## Severity\n\nInformational\n\n## Description\n\nA user calls deposit()\nThis function is defined in TokenizedStrategy and is executed via delegatecall from the Forwarder (which inherits BaseStrategy).\nAs a result, storage updates happen in the Forwarder, msg.sender remains the user, and address(this) refers to the Forwarder.\n\nInside TokenizedStrategy.deposit:\nAssets are transferred from the user to the Forwarder (_asset.safeTransferFrom(msg.sender, address(this), assets)).\nthen\n IBaseStrategy(address(this)).deployFunds(\n            _asset.balanceOf(address(this))\n        );\nWe call deployFunds with the balance of the forwarder = BaseStrategy  where then inside Forwarder it gets uint256 deployAmount = Math.min(_amount, balance);\nWhich both values  are same since _amount is address this balance of asset   and balance is address(this) balance  of the asset in the contract.\n\nMath.min and getting the balance of the contract in _deployFunds is redudant.\n\n## Team Response\n\nFixed.\n",
+    "summary": "",
+    "report_date": "2025-09-20T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/Kann-Audits/Kann-Audits/blob/main/reports/md-format/private-audits-reports/Gluon-security-review_2025-09-20.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "i-01-redundant-balance-check-and-mathmin-in-deployfunds-kann-none-gluon-security-review_2025-09-20-markdown",
+    "firm_name": "Kann",
+    "firm_logo_square": "Kann_Audits_square.png",
+    "protocol_name": "Gluon-security-review_2025-09-20",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Kann"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Kann",
+        "logo_square": "Kann_Audits_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Gluon-security-review_2025-09-20",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

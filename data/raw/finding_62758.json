@@ -1,0 +1,45 @@
+{
+    "id": 62758,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 16,
+    "impact": "HIGH",
+    "finders_count": 1,
+    "protocol_id": 3443,
+    "title": "[H-03] Fee avoidance possible by uncollected fees in pool accounting",
+    "content": "\n_Resolved_\n\n## Severity\n\n**Impact:** Medium\n\n**Likelihood:** High\n\n## Description\n\nBoth `YuzuILP` and `StakedYuzuUSD` contracts have an accounting issue where fees collected during withdrawals and redemptions are not properly separated from the pool's available assets. This creates an opportunity to minimize fees as the remaining shares benefit from the fees collected by previous redemptions.\n\n- In `YuzuILP._withdraw()`, when a user redeems shares, the fee is deducted from the assets they receive, but the fee amount remains in the `poolSize`.\n\n- Similarly, in `StakedYuzuUSD._initiateRedeem()`, when shares are burned during redeem order initiation, the `totalSupply` decreases, but the underlying assets (including any fees) remain in the contract.\n\nThis means the fee stays as part of the pool's available assets, benefiting remaining shareholders rather than being collected by the protocol.\n\n**Consider the following scenario**:\n0. User A and User B deposit assets into the vault and receive shares.\n    - User A deposit 100 `yzUSD` and receive 100 `st-yzUSD`.\n    - User B deposit 100 `yzUSD` and receive 100 `st-yzUSD`.\n    - **Redeem fee is 10%**.\n\n1. User A initiate a full redemption of 100 st-yzUSD`.\n    - Applying fee as `(100) - (100*0.1/1.1) = 90.9090909 yzUSD`\n    - `totalPendingOrderValue` += 90.9 `yzUSD`\n    - `totalSupply` -= 100 `st-yzUSD` = 100 `st-yzUSD`\n    - `totalAssets` = 200 `yzUSD` - 90.9 `yzUSD` = 109.1 `yzUSD`\n    \n2. User B initiate a full redemption of 100 `st-yzUSD`.\n    - Now 100 `st-yzUSD` worth `totalAssets() = 109.1 `yzUSD`\n    - Applying fee as `(109.1) - (109.1*0.1/1.1) = 99.1090909 `yzUSD`\n    - `totalPendingOrderValue` += 99.1090909 `yzUSD` = 90.9 + 99.1090909 `yzUSD` = 190 `yzUSD`\n    - `totalSupply` -= 100 `st-yzUSD` = 0 `st-yzUSD`\n    - `totalAssets` = 200 `yzUSD` - 190 `yzUSD` = 10 `yzUSD`\n\n3. **Result**: \n    - Net User A paid 10% fee: `((100 - 90.9090909) / 100) * 100`\n    - Net User B paid 0.8909091% fee: `((100 - 99.1090909) / 100) * 100`\n\n**Proof of Concept**: \n- [test_audit_feeHasNotBeenCollected_StateProof](https://gist.github.com/merlinboii/b125979b081266de2491e883712713fc#file-yuzuilp-t-sol-L24)\n- [test_audit_feeHasNotBeenCollected_MinimizeRedeemFee](https://gist.github.com/merlinboii/b125979b081266de2491e883712713fc#file-yuzuilp-t-sol-L71)\n\n## Recommendation\n\n- Properly collect fees from the pool's available assets. When fees are collected during withdrawals or redemptions, the fees should be transferred to a separate fee vault or treasury address rather than remaining in the pool.\n\n- Modify the accounting to track collected fees separately and exclude them from the `totalAssets()` and all vault's calculations.\n\n\n\n",
+    "summary": "\nThis bug report is about an issue with two contracts, YuzuILP and StakedYuzuUSD, where fees collected during withdrawals and redemptions are not being properly separated from the pool's available assets. This means that fees collected by previous redemptions are benefiting remaining shareholders instead of being collected by the protocol. The report includes a scenario where this bug can be exploited and offers recommendations for fixing the issue, including properly collecting fees and modifying the accounting to track them separately.",
+    "report_date": "2025-09-28T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/pashov/audits/blob/master/team/md/YuzuUSD-security-review_2025-08-28.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "h-03-fee-avoidance-possible-by-uncollected-fees-in-pool-accounting-pashov-audit-group-none-yuzuusd_2025-08-28-markdown",
+    "firm_name": "Pashov Audit Group",
+    "firm_logo_square": "Pashov_square.png",
+    "protocol_name": "YuzuUSD_2025-08-28",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Pashov Audit Group"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Pashov Audit Group",
+        "logo_square": "Pashov_square.png"
+    },
+    "protocols_protocol": {
+        "name": "YuzuUSD_2025-08-28",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

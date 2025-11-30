@@ -1,0 +1,55 @@
+{
+    "id": 62786,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 37,
+    "impact": "LOW",
+    "finders_count": 3,
+    "protocol_id": 3426,
+    "title": "`WrappedCAMP` Accounting for `totalSupply` Is Impacted by `selfdestruct` Opcode",
+    "content": "**Update**\nMarked as \"Acknowledged\" by the client. The client provided the following explanation:\n\n> we have forked the official WETH9 contract and don't plan to change it\n\n**File(s) affected:**`WrappedCAMP.sol`\n\n**Description:** This contract mints wrapped tokens in a 1:1 ratio for native token deposits. The `totalSupply()` of this token contract is determined by querying `address(this).balance`. However, the balance of the contract can differ from the total sum of deposits if another contract forces a native token transfer using `selfdestruct`, which circumvents the otherwise correctly implemented `receive()` function. This opcode is deprecated, but currently still supported and can be used in this manner.\n\n**Exploit Scenario:**\n\n1.   Alice deposits 10 CAMP for 10wCAMP, `totalSupply` is 10.\n2.   Mallory creates a malicious contract and uses `selfdestruct` to force 10 tokens into the token contract, `totalSupply` is now 20.\n3.   Ted observes the contract, it appears as if wCAMP may have depegged from CAMP since the sum of balances does not equal `totalSupply`.\n\n**Recommendation:** Manage accounting of `totalSupply` in a seperate contract variable that is inreased on deposits and decreased on withdraws. Optionally add a `recoverExtraTokens()` access controlled function that allows the recovery of the difference between the contract balance and the `totalSupply`.",
+    "summary": "",
+    "report_date": "2025-09-15T14:22:57.388Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://certificate.quantstamp.com/full/camp/ae830654-5f2b-4d21-aba2-1de572092da6/index.html",
+    "sponsor_name": "",
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://certificate.quantstamp.com/full/camp/ae830654-5f2b-4d21-aba2-1de572092da6/index.html",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "wrappedcamp-accounting-for-totalsupply-is-impacted-by-selfdestruct-opcode-quantstamp-camp-markdown",
+    "firm_name": "Quantstamp",
+    "firm_logo_square": "quantstamp_square.png",
+    "protocol_name": "Camp",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Paul Clemson"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Gereon Mendler"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Andy Lin"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Quantstamp",
+        "logo_square": "quantstamp_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Camp",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

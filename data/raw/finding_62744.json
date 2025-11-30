@@ -1,0 +1,45 @@
+{
+    "id": 62744,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 30,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3440,
+    "title": "[L-01] Payout Rounding Dust Leaks Value Every Round (Player Underpayment)",
+    "content": "\n## Severity\n\nLow Risk\n\n## Description\n\nLet's take a look at the following:\n\n- **Single-cell finish** (`distributePayout()` → `_distributeWinnerPayouts()`)\n\n  ```solidity\n  uint256 playerPayout = (stakeInCell * payoutPool) / winning.totalStake;\n  prizeBalance[p] += playerPayout; // remainder ignored\n  ```\n\n- **Proportional finish** (`finishGameProportional()` → `_distributeProportionalPayouts()`)\n\n  ```solidity\n  uint256 playerPayout = (playerStake * payoutPool) / totalActiveStake;\n  prizeBalance[player] += playerPayout; // remainder ignored\n  ```\n\nIn both paths, per-winner payouts use integer division. The sum of floors is strictly ≤ `payoutPool` and is < `payoutPool` whenever there’s a remainder. The leftover remainder is not assigned to any winner and is not added to `accumulatedCommission`.\n\n- **Commission is fixed up-front**:\n\n  ```solidity\n  uint256 commission = (round.pool * commissionPercent) / 10000;\n  accumulatedCommission += commission;\n  uint256 payoutPool = round.pool - commission;\n  ```\n\n  The remainder from the per-winner division is not included in `commission`.\n\n- **No path to recover the remainder**:\n\n  - Only winners’ `prizeBalance` can be claimed (`claimAllPrizes()`), and it is credited solely by the floored shares above.\n  - `withdrawCommission()` can only withdraw `accumulatedCommission`.\n  - There is **no function** that sweeps/distributes the arithmetic remainder.\n\n- Result: **systematic underpayment** of winners; wei accumulates in the contract at each settlement.\n\n### Concrete example\n\nPool = 15 wei, commission = 0% (for simplicity), three winners with equal stake.\n\n- `payoutPool = 15`.\n- Each `playerPayout = 15 / 3 = 5` ⇒ sum = 15, **no remainder** (OK).\n\nNow change to `payoutPool = 14` (e.g., due to 5% commission on 15).\n\n- Each `playerPayout = 14 / 3 = 4` (floor).\n- Sum credited = `4 + 4 + 4 = 12` **< 14** → **2 wei stranded** in the contract balance.\n- This wei is **not** part of `accumulatedCommission` and **not** claimable by winners.\n\nThis occurs for most non-even splits and **compounds every round**.\n\n## Location of Affected Code\n\nFile: [contracts/Revolver.sol#L586](https://github.com/xgrisha666x/revolver-contract/blob/b9c318f97f10a4f496bda8959aeb90696402e114/contracts/Revolver.sol#L586)\n\n```solidity\nfunction distributePayout(uint256 roundId) internal {\n    Round storage round = rounds[roundId];\n    uint256 commission = (round.pool * commissionPercent) / 10000;\n    accumulatedCommission += commission;\n\n    uint256 payoutPool = round.pool - commission;              // ← payoutPool fixed here\n\n    address[] memory winners = _distributeWinnerPayouts(round, payoutPool, roundId);\n    emit GameFinished(roundId, winners, payoutPool, commission);\n    advanceRound();\n}\n```\n\nFile: [contracts/Revolver.sol#L807](https://github.com/xgrisha666x/revolver-contract/blob/b9c318f97f10a4f496bda8959aeb90696402e114/contracts/Revolver.sol#L807)\n\n```solidity\nfunction _distributeWinnerPayouts(\n    Round storage round,\n    uint256 payoutPool,\n    uint256 roundId\n) private returns (address[] memory) {\n    // code\n    unchecked {\n        for (uint256 j = 0; j < winnersCount; ++j) {\n            address p = winning.players[j];\n            // code\n            uint256 playerPayout = (stakeInCell * payoutPool) / winning.totalStake;  // ← floor division\n            round.playerInfo[p].payout = playerPayout;\n            prizeBalance[p] += playerPayout;                                         // ← remainder never assigned\n        }\n    }\n    // code\n}\n```\n\nFile: [contracts/Revolver.sol#L605](https://github.com/xgrisha666x/revolver-contract/blob/b9c318f97f10a4f496bda8959aeb90696402e114/contracts/Revolver.sol#L605)\n\n```solidity\nfunction finishGameProportional(uint256 roundId) internal {\n    Round storage round = rounds[roundId];\n    uint256 commission = (round.pool * commissionPercent) / 10000;\n    accumulatedCommission += commission;\n\n    uint256 payoutPool = round.pool - commission;              // ← payoutPool fixed here\n\n    address[] memory winners = _distributeProportionalPayouts(round, payoutPool, roundId);\n    emit GameFinished(roundId, winners, payoutPool, commission);\n    advanceRound();\n}\n```\n\nFile: [contracts/Revolver.sol#848](https://github.com/xgrisha666x/revolver-contract/blob/b9c318f97f10a4f496bda8959aeb90696402e114/contracts/Revolver.sol#L848)\n\n```solidity\nfunction _distributeProportionalPayouts( Round storage round, uint256 payoutPool, uint256 roundId ) private returns (address[] memory) {\n    // code\n    unchecked {\n        // code\n        for (uint256 i = 0; i < uniquePlayerCount; ++i) {\n            address player = uniquePlayers[i];\n            uint256 playerStake = playerTotalStakes[i];\n            uint256 playerPayout = (playerStake * payoutPool) / totalActiveStake;     // ← floor division\n            round.playerInfo[player].payout = playerPayout;\n            prizeBalance[player] += playerPayout;                                     // ← remainder never assigned\n            // code\n        }\n    }\n    // code\n}\n```\n\n## Recommendation\n\nTrack `remaining = payoutPool`, subtract each assigned amount and give the last recipient the remainder (or add remainder to `accumulatedCommission`).\n\n```solidity\nuint256 remaining = payoutPool;\nfor (uint256 i=0; i<winnersCount-1; ++i) {\n    uint256 amt = stakeInCell[i] * payoutPool / winning.totalStake;\n    remaining -= amt;\n    prizeBalance[winners[i]] += amt;\n}\nprizeBalance[winners[winnersCount-1]] += remaining;\n```\n\n## Team Response\n\nAcknowledged.\n\n",
+    "summary": "",
+    "report_date": "2025-09-24T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/shieldify-security/audits-portfolio-md/blob/main/SoulsClub-Revolver-Security-Review.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "l-01-payout-rounding-dust-leaks-value-every-round-player-underpayment-shieldify-none-soulsclub-revolver-markdown",
+    "firm_name": "Shieldify",
+    "firm_logo_square": "Shieldify_square.png",
+    "protocol_name": "Soulsclub Revolver",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Shieldify Security"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Shieldify",
+        "logo_square": "Shieldify_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Soulsclub Revolver",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

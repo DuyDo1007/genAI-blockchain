@@ -1,0 +1,50 @@
+{
+    "id": 62215,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 11,
+    "impact": "LOW",
+    "finders_count": 2,
+    "protocol_id": 3392,
+    "title": "Missing call to `_setGlobalWhitelist` in `Minter.sol`",
+    "content": "**Description:** The `Minter.sol` contract inherits the `Whitelist.sol` abstract contract, which manages access control for the `mint ` and `redeem` functions through the `onlyWhitelisted` modifier:\n\n```solidity\n  modifier onlyWhitelisted(address addr) {\n        require(isAddressWhitelisted(addr), AddressNotWhitelisted());\n        _;\n    }\n\n    /// @notice Checks if an address is whitelisted.\n    /// @param user The address to check.\n    /// @return bool True if the address is whitelisted, false otherwise.\n    function isAddressWhitelisted(address user) public view returns (bool) {\n        if (manualWhitelist[user] || globalWhitelist) { <-------\n            return true;\n        }\n\n        return complianceChecker.isCompliant(user);\n    }\n\n```\n\nThe `onlyWhitelisted` modifier checks the `globalWhitelist` flag. The` StakingVault.sol` contract implements the `setGlobalWhitelist ` function, which is crucial because the `StakingVault.sol` contract expects to use it. However, the `Minter.sol` contract, which mints `HilBTC` (the asset for `StakingVault.sol`), does not implement `setGlobalWhitelist`.\n\n**Impact:** The `StakingVault.sol` contract will not work as expected when `setGlobalWhitelist` is enabled because `setGlobalWhitelist` is not implemented in `Minter.sol`.\n\n**Recommended Mitigation:** Consider implementing `setGlobalWhitelist`  in `minter.sol`:\n\n```solidity\n function setGlobalWhitelist(bool enable) external onlyOwner {\n        _setGlobalWhitelist(enable);\n    }\n```\n\n**Syntetika:**\nFixed in commits [1796e5e](https://github.com/SyntetikaLabs/monorepo/commit/1796e5ec7f50e73e5fc4af32365b936244811217), [86c7b2e](https://github.com/SyntetikaLabs/monorepo/commit/86c7b2e30666f4c6522d48b4f4ed05f5d52238b0) by removing the global whitelist functionality as it was not required by the `Minter` contract, and after the fix for L-4 it is not required at all.\n\n**Cyfrin:** Verified.",
+    "summary": "",
+    "report_date": "2025-08-01T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/solodit/solodit_content/blob/main/reports/Cyfrin/2025-08-01-cyfrin-syntetika-v2.0.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "missing-call-to-_setglobalwhitelist-in-mintersol-cyfrin-none-syntetika-markdown",
+    "firm_name": "Cyfrin",
+    "firm_logo_square": "Cyfrin_square.jpg",
+    "protocol_name": "Syntetika",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Dacian"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Jorge"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Cyfrin",
+        "logo_square": "Cyfrin_square.jpg"
+    },
+    "protocols_protocol": {
+        "name": "Syntetika",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

@@ -1,0 +1,55 @@
+{
+    "id": 62319,
+    "kind": "PDF",
+    "auditfirm_id": 6,
+    "impact": "MEDIUM",
+    "finders_count": 3,
+    "protocol_id": 2863,
+    "title": "QUOTE_TYPEHASH is incorrectly defined",
+    "content": "## Severity: Medium Risk\n\n## Context\n- GMTokenManager.sol#L69 \n- IGMTokenManager.sol#L48-L58 \n\n## Description\nThe typehash is incorrect for enum `QuoteSide`, as it is converted to `uint8`. By running `forge eip712 ./contracts/globalMarkets/tokenManager/IGMTokenManager.sol`, we see that the expectant struct encoding is:\n\n```plaintext\nQuote(uint256 attestationId, uint256 chainId, bytes32 userId, uint8 side, address asset, uint256 price, uint256 quantity, uint256 expiration, bytes32 additionalData)\n```\n\nAs a result, signature verification will fail when the typehash is derived implicitly, for example, when signing using libraries like **viem** or **ethers**.\n\n## Proof of Concept\nGo to the signTypedData example on Viem (see signing typed-data), then replace `index.tsx` with:\n\n```javascript\nimport React, { useState } from 'react';\nimport ReactDOM from 'react-dom/client';\nimport { type Address, type Hash, createWalletClient, custom } from 'viem';\nimport { goerli } from 'viem/chains';\nimport 'viem/window';\n\nconst walletClient = createWalletClient({\n    chain: goerli,\n    transport: custom(window.ethereum!),\n});\n\nfunction Example() {\n    const [account, setAccount] = useState<Address>();\n    const [signature, setSignature] = useState<Hash>();\n    \n    const connect = async () => {\n        const [address] = await walletClient.requestAddresses();\n        setAccount(address);\n    };\n    \n    const signTypedData = async () => {\n        if (!account) return;\n\n        const signature = await walletClient.signTypedData({\n            account,\n            domain: {\n                name: 'OndoGMTokenManager',\n                version: '1',\n                chainId: 1,\n                verifyingContract: '0xB565E44FA22A2497E38a70ee453B1be73a3d8Fc9',\n            },\n            types: {\n                Quote: [\n                    { name: 'chainId', type: 'uint256' },\n                    { name: 'attestationId', type: 'uint256' },\n                    { name: 'userId', type: 'bytes32' },\n                    { name: 'asset', type: 'address' },\n                    { name: 'price', type: 'uint256' },\n                    { name: 'quantity', type: 'uint256' },\n                    { name: 'expiration', type: 'uint256' },\n                    { name: 'side', type: 'uint8' },\n                    { name: 'additionalData', type: 'bytes32' },\n                ],\n            },\n            primaryType: 'Quote',\n            message: {\n                chainId: BigInt(1),\n                attestationId: BigInt(1),\n                userId: '0x48656c6c6f20576f726c64210000000000000000000000000000000000000000',\n                side: 0,\n                asset: '0xCD2a3d9F938E13CD947Ec05AbC7FE734Df8DD826',\n                price: BigInt(1000000000),\n                quantity: BigInt(1000000000),\n                expiration: BigInt(1717000000),\n                additionalData: '0x48656c6c6f20576f726c64210000000000000000000000000000000000000000',\n            },\n        });\n        \n        setSignature(signature);\n    };\n\n    if (account)\n        return (\n            <>\n                <div>Connected: {account}</div>\n                <button onClick={signTypedData}>Sign Typed Data</button>\n                {signature && <div>Receipt: {signature}</div>}\n            </>\n        );\n    return <button onClick={connect}>Connect Wallet</button>;\n}\n\nReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(\n    <Example />\n);\n```\n\nThen we verify the signature created with Foundry. 2 test files:\n\n### 1. SimpleVerifier.sol\nInserted in `globalMarkets/mock` folder.\n\n```solidity\n// SPDX-License-Identifier: MIT\npragma solidity 0.8.16;\n\nimport \"contracts/external/openzeppelin/contracts/utils/cryptography/ECDSA.sol\";\nimport \"contracts/globalMarkets/tokenManager/IGMTokenManager.sol\";\nimport \"contracts/external/openzeppelin/contracts/utils/cryptography/EIP712.sol\";\n\ncontract SimpleVerifier is EIP712 {\n    bytes32 private constant QUOTE_TYPEHASH = keccak256(\n        \"Quote(uint256 chainId,uint256 attestationId,bytes32 userId,address asset,uint256 price,uint256 quantity,uint256 expiration,uint8 side,bytes32 additionalData)\"\n    );\n\n    constructor() EIP712(\"OndoGMTokenManager\", \"1\") {}\n\n    function verify(bytes calldata signature) public view returns (address signer) {\n        IGMTokenManager.Quote memory quote = IGMTokenManager.Quote({\n            chainId: 1,\n            attestationId: 1,\n            userId: 0x48656c6c6f20576f726c64210000000000000000000000000000000000000000,\n            asset: address(0xCD2a3d9F938E13CD947Ec05AbC7FE734Df8DD826),\n            price: 1000000000,\n            quantity: 1000000000,\n            expiration: 1717000000,\n            side: IGMTokenManager.QuoteSide.BUY,\n            additionalData: 0x48656c6c6f20576f726c64210000000000000000000000000000000000000000\n        });\n        \n        bytes32 digest = _hashTypedDataV4(\n            keccak256(\n                abi.encode(\n                    QUOTE_TYPEHASH,\n                    quote.chainId,\n                    quote.attestationId,\n                    quote.userId,\n                    quote.asset,\n                    quote.price,\n                    quote.quantity,\n                    quote.expiration,\n                    quote.side,\n                    quote.additionalData\n                )\n            )\n        );\n        signer = ECDSA.recover(digest, signature);\n    }\n}\n```\n\n### 2. Test Verification SimpleVerifier.t.sol\n```solidity\n// SPDX-License-Identifier: MIT\npragma solidity 0.8.16;\n\nimport \"contracts/globalMarkets/mock/SimpleVerifier.sol\";\nimport \"forge-std/Test.sol\";\n\ncontract VerifierTest is Test {\n    SimpleVerifier verifier;\n\n    function setUp() public {\n        vm.chainId(1);\n        verifier = new SimpleVerifier{salt: \"test\"}();\n    }\n\n    function test_verifySig() public {\n        assertEq(address(verifier), 0xB565E44FA22A2497E38a70ee453B1be73a3d8Fc9, \"incorrect verifier address derivation\");\n        bytes memory signature = hex\"07a310b16b4071b1fbadc5fbda528f4eb3df7d00ce3a3ff015be0c35fdaa81c12ecc6ceb814ebaf29bf60c0d447a9bb5323043eac62151f859142286e3cc7c901b\";\n        address signer = 0x91105527DCA5afBFc9A6c11260CE048C24c2078d;\n        address recoveredSigner = verifier.verify(signature);\n\n        assertEq(recoveredSigner, signer);\n    }\n}\n```\n\n## Recommendation\n- Modify `QUOTE_TYPEHASH`:\n    - `Quote(uint256 chainId,uint256 attestationId,bytes32 userId,address asset,uint256 price,uint256 quantity,uint256 expiration,QuoteSide side,bytes32 additionalData)`\n    \n- Modify the `Quote` struct param order to match `QUOTE_TYPEHASH`:\n\n```solidity\nstruct Quote {\n    uint256 chainId;\n    uint256 attestationId;\n    bytes32 userId;\n    address asset;\n    uint256 price;\n    uint256 quantity;\n    uint256 expiration;\n    QuoteSide side;\n    bytes32 additionalData;\n}\n```\n\n**Ondo Finance**: Fixed in PR 433.  \n**Spearbit**: Fix verified.",
+    "summary": "\nThe bug report discusses an issue with the typehash in the GMTokenManager contract. This issue can cause signature verification to fail when using certain libraries. A proof of concept is provided to demonstrate the issue and a recommendation is made to modify the typehash and struct parameters to resolve the issue. The bug has been fixed in the Ondo Finance and Spearbit projects.",
+    "report_date": "2025-06-17T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Ondo-Spearbit-Security-Review-May-2025.pdf",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Ondo-Spearbit-Security-Review-May-2025.pdf",
+    "github_link": "",
+    "pdf_link": "https://solodit-bucket.s3.amazonaws.com/storage/reports/spearbit/Ondo-Spearbit-Security-Review-May-2025.pdf",
+    "pdf_page_from": 6,
+    "contest_id": "",
+    "slug": "quote_typehash-is-incorrectly-defined-spearbit-none-ondo-rwa-internal-pdf",
+    "firm_name": "Spearbit",
+    "firm_logo_square": "spearbit_square.png",
+    "protocol_name": "Ondo RWA Internal",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "CarrotSmuggler"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Anurag Jain"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Desmond Ho"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Spearbit",
+        "logo_square": "spearbit_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Ondo RWA Internal",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

@@ -1,0 +1,45 @@
+{
+    "id": 62671,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 23,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3435,
+    "title": "Unbounded Fee Parameters",
+    "content": "##### Description\nThis issue has been identified within the `initialize()`, `setMintFee`, `setRedeemFee`, and `setSwapFee` functions of the `SelfPeggingAsset` contract, and in the `bufferPercent` parameter of the `LPToken` contract.\n\nAlthough each fee is capped individually, the owner can still set all fees close to their maximum, resulting in very high cumulative fees.\n\nThe issue is classified as **low** severity because it does not present an immediate exploit but may create unfavorable conditions for liquidity providers and traders.\n\n##### Recommendation\nWe recommend implementing a combined check so that total fees never exceed a reasonable threshold (for example, 10% for mint/swap/redeem fees and 50% for `bufferPercent`), ensuring fair usage of the protocol.\n",
+    "summary": "",
+    "report_date": "2025-09-19T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/mixbytes/audits_public/blob/master/NUTS%20Finance/Tapio/README.md#1-unbounded-fee-parameters",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "unbounded-fee-parameters-mixbytes-none-nuts-finance-markdown",
+    "firm_name": "MixBytes",
+    "firm_logo_square": "mixbytes_square.png",
+    "protocol_name": "NUTS Finance",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "MixBytes"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "MixBytes",
+        "logo_square": "mixbytes_square.png"
+    },
+    "protocols_protocol": {
+        "name": "NUTS Finance",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

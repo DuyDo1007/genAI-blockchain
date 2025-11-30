@@ -1,0 +1,60 @@
+{
+    "id": 62037,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 37,
+    "impact": "MEDIUM",
+    "finders_count": 4,
+    "protocol_id": 3368,
+    "title": "Bloom Filter Implementation Can Lead to False Positives Preventing Valid Reward Claims",
+    "content": "**Update**\nMarked as \"Fixed\" by the client. Addressed in: `73264fb`.\n\n![Image 34: Alert icon](https://certificate.quantstamp.com/full/sapien/ffb7e698-6178-46f0-8df8-52e537af70c0/static/media/success-icon-alert.4e26c8d3b65fdf9f4f0789a4086052ba.svg)\n\n**Update**\nMarked as \"Fixed\" by the client. Addressed in: `34c39e3637c09d1d5d850bae1897d1200c23cfef`. The client provided the following explanation:\n\n> The Bloom filter implementation for tracking redeemed orders was replaced with a simple double mapping structure (mapping(address => mapping(bytes32 => bool)) private redeemedOrders).\n\n![Image 35: Alert icon](https://certificate.quantstamp.com/full/sapien/ffb7e698-6178-46f0-8df8-52e537af70c0/static/media/success-icon-alert.4e26c8d3b65fdf9f4f0789a4086052ba.svg)\n\n**Update**\nMarked as \"Fixed\" by the client. Addressed in: `34c39e3637c09d1d5d850bae1897d1200c23cfef`. The client provided the following explanation:\n\n> The Bloom filter implementation for tracking redeemed orders was replaced with a simple double mapping structure (mapping(address => mapping(bytes32 => bool)) private redeemedOrders).\n\n**File(s) affected:**`Rewards.sol`\n\n**Description:** The `Rewards` contract uses a Bloom filter to track redeemed order IDs, but this implementation can lead to false positives that prevent users from claiming legitimate rewards. The issue arises from the limited size of the filter (256 bits) combined with multiple hash insertions per order.\n\nEach order sets 3 bits in the 256-bit filter. With users expected to claim up to 1000 rewards, this results in up to 3000 bits being set in a 256-bit space, leading to a high probability of collisions.\n\n**Impact**\n\n*   As users claim more rewards, the Bloom filter becomes increasingly saturated\n*   This increases the probability of hash collisions causing false positives\n*   Valid orders may be incorrectly identified as already redeemed\n*   Users will be unable to claim legitimate rewards once collisions occur\n\n**Exploit Scenario:**\n\n1.   After claiming ~300 rewards:\n\n    *   Each claim triggered 3 hash operations\n    *   Many bits were hit multiple times\n    *   The majority of the 256 bits in Alice's filter are now set to 1\n\n2.   Alice attempts to claim a new legitimate reward: `claimReward(amount, \"REWARD_1000\", signature)`\n\n3.   The transaction reverts because:\n\n    *   The 3 hash positions for this orderId happen to map to bits that were already set by previous claims\n    *   `isOrderRedeemed()` returns `true` (false positive)\n    *   The legitimate claim is blocked\n\n**Recommendation:** Replace the complex Bloom filter implementation with a simple mapping to track redeemed orders. Even high-volume contracts like USDC rely on simple mappings for state tracking such as user balances due to their reliability and reasonable gas costs. An example could be the following:\n\n```\nmapping(address => mapping(bytes32 => bool)) private redeemedOrders;\n\nfunction isOrderRedeemed(address user, string calldata orderId) internal view returns (bool) {\nreturn redeemedOrders[user][keccak256(abi.encodePacked(orderId))];\n}\n\nfunction addOrderToRedeemed(address user, string calldata orderId) internal {\nredeemedOrders[user][keccak256(abi.encodePacked(orderId))] = true;\n}\n```",
+    "summary": "\nThe client reported a bug in the Rewards contract, where a Bloom filter is used to track redeemed order IDs. However, this implementation can lead to false positives, preventing users from claiming legitimate rewards. The issue arises from the limited size of the filter (256 bits) and multiple hash insertions per order. This can result in collisions, causing valid orders to be incorrectly identified as already redeemed. The client recommended replacing the Bloom filter with a simple mapping to track redeemed orders.",
+    "report_date": "2025-03-30T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://certificate.quantstamp.com/full/sapien/ffb7e698-6178-46f0-8df8-52e537af70c0/index.html",
+    "sponsor_name": "",
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://certificate.quantstamp.com/full/sapien/ffb7e698-6178-46f0-8df8-52e537af70c0/index.html",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "bloom-filter-implementation-can-lead-to-false-positives-preventing-valid-reward-claims-quantstamp-sapien-markdown",
+    "firm_name": "Quantstamp",
+    "firm_logo_square": "quantstamp_square.png",
+    "protocol_name": "Sapien",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Paul Clemson"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Julio Aguilar"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Mostafa Yassin"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Tim Sigl"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Quantstamp",
+        "logo_square": "quantstamp_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Sapien",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

@@ -1,0 +1,60 @@
+{
+    "id": 62140,
+    "kind": "PDF",
+    "auditfirm_id": 6,
+    "impact": "LOW",
+    "finders_count": 4,
+    "protocol_id": 3380,
+    "title": "Upgradeability pattern inconsistency in KeystoreAccount contract",
+    "content": "## Severity: Low Risk\n\n## Context\nKeystoreAccount.sol#L15\n\n## Description\nThe `KeystoreAccount` contract implements an inconsistent upgradeability pattern. The `KeystoreAccountFactory` deploys all account instances behind ERC1967 proxies, which indicates an intention for these contracts to be upgradeable. However, the `KeystoreAccount` implementation does not implement functions to handle upgradeability (for example, it does not inherit from OpenZeppelin's `UUPSUpgradeable` contract), which means the deployed proxies lack the necessary functions to perform upgrades.\n\nIt's worth noting that the ERC-4337 explicitly states that \"most of ERC-4337 Smart Contract Account will be upgradeable.\" So, this mismatch creates unnecessary ambiguity that may result in unexpected behaviors or missing intended functionality.\n\n## Recommendation\nConsider documenting the intended upgradeability behavior clearly in the system specification to prevent future confusion, and implement the missing upgradeability features (with the necessary access controls) if `KeystoreAccount` contracts are intended to be upgradeable.\n\n## Stackup\nFor maximum simplicity, the `KeystoreAccount` does NOT have a built-in path for upgradeability. Fixed in PR 49.\n\n## Spearbit\nFix verified.",
+    "summary": "",
+    "report_date": "2025-08-18T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Stackup-Spearbit-Security-Review-July-2025.pdf",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Stackup-Spearbit-Security-Review-July-2025.pdf",
+    "github_link": "",
+    "pdf_link": "https://solodit-bucket.s3.amazonaws.com/storage/reports/spearbit/Stackup-Spearbit-Security-Review-July-2025.pdf",
+    "pdf_page_from": 10,
+    "contest_id": "",
+    "slug": "upgradeability-pattern-inconsistency-in-keystoreaccount-contract-spearbit-none-stackup-keystore-pdf",
+    "firm_name": "Spearbit",
+    "firm_logo_square": "spearbit_square.png",
+    "protocol_name": "Stackup Keystore",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Tnch"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Kaden"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Hake"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Gerard Persoon"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Spearbit",
+        "logo_square": "spearbit_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Stackup Keystore",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

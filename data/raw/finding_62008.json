@@ -1,0 +1,55 @@
+{
+    "id": 62008,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 37,
+    "impact": "LOW",
+    "finders_count": 3,
+    "protocol_id": 3365,
+    "title": "Unreachable Code",
+    "content": "**Update**\nMarked as \"Fixed\" by the client. Addressed in: `4f527a29b7d13f9748c7ab9d390a29e05d4cadba`. The client provided the following explanation:\n\n> Fix unreachable code warnings in stake amount selection and route utilities\n\n**File(s) affected:**`app/(auth)/(tabs)/stake/select-amount.tsx`, `utils/saucerswap/base/sdk-v3/entities/route.ts`\n\n**Description:** There are portions of the code which are unreachable, or the developers have made wrong assumptions. These are:\n\n*   `/utils/saucerswap/base/sdk-v3/entities/route.ts`, function `constructor`: In line 37, the property `output.wrapped` is accessed, implying that output is not `null` or `undefined`. In line 62, output has the applied nullish coalescing operator, which means that `tokenPath[tokenPath.length - 1]` will never be assigned to `this.output` there.\n\n*   `./app/(auth)/(tabs)/stake/select-amount.tsx`, line 198: `tokenBalance` fields were previously accessed and on this line there is the nullish coalescing operator applied to the field. By that logic, the value `Number.POSITIVE_INFINITY` would never be assigned.\n\n**Recommendation:** Use static code analyzers or linters to detect dead code areas, and check the assumptions on the two outlined above.",
+    "summary": "",
+    "report_date": "2025-08-26T12:12:16.438Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://certificate.quantstamp.com/full/saucer-swap-wallet/d30efab8-8abd-46b1-bba5-6360b87e3aa3/index.html",
+    "sponsor_name": "",
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://certificate.quantstamp.com/full/saucer-swap-wallet/d30efab8-8abd-46b1-bba5-6360b87e3aa3/index.html",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "unreachable-code-quantstamp-saucerswap-wallet-markdown",
+    "firm_name": "Quantstamp",
+    "firm_logo_square": "quantstamp_square.png",
+    "protocol_name": "SaucerSwap Wallet",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Albert Heinle"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Darren Jensen"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Jonathan Mevs"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Quantstamp",
+        "logo_square": "quantstamp_square.png"
+    },
+    "protocols_protocol": {
+        "name": "SaucerSwap Wallet",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

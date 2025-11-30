@@ -1,0 +1,45 @@
+{
+    "id": 62411,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 34,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3405,
+    "title": "[LOGLAB-2] Constant variables should be marked as private",
+    "content": "**Severity:** Informational\n\n**Path:** src/vault/ManagedVault.sol#L27-L30, src/oracle/LogarithmOracle.sol#L18\n\n**Description:** In the following locations, there are constant variables that are declared `public`. However, setting these constants to `private` will save deployment gas. This is because the compiler won't have to create non-payable getter functions for deployment calldata, won't need to store the bytes of the value outside of where it's used, and won't add another entry to the method ID table. If necessary, the values can still be read from the verified contract source code:\n```\n    /// @notice The maximum value of management fee that can be configured.\n    uint256 public constant MAX_MANAGEMENT_FEE = 5e16; // 5%\n    /// @notice The maximum value of performance fee that can be configured.\n    uint256 public constant MAX_PERFORMANCE_FEE = 5e17; // 50%\n```\n```\n    uint256 public constant FLOAT_PRECISION = 1e30;\n```\n\n**Remediation:**  The mentioned variables should be marked as `private` instead of `public`.\n\n**Status:** Fixed\n\n- - -",
+    "summary": "",
+    "report_date": "2024-11-25T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/solodit/solodit_content/blob/main/reports/Hexens/2024-11-25-BasisOS.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "loglab-2-constant-variables-should-be-marked-as-private-hexens-none-basisos-markdown",
+    "firm_name": "Hexens",
+    "firm_logo_square": "Hexens_square.png",
+    "protocol_name": "Basisos",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Hexens"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Hexens",
+        "logo_square": "Hexens_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Basisos",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

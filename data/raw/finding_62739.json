@@ -1,0 +1,50 @@
+{
+    "id": 62739,
+    "kind": "GIT",
+    "auditfirm_id": 3,
+    "impact": "MEDIUM",
+    "finders_count": 2,
+    "protocol_id": 3324,
+    "title": "M-16: Bridges don't support all of the listed assets",
+    "content": "\nSource: https://github.com/sherlock-audit/2025-07-malda-judging/issues/1477 \n\n## Found by \n10ap17, holtzzx\n\n### Summary\n\n/\n\n### Root Cause\n\nAcross and Everclear,  don't support all of the assets that are listed as supported. That will result in inability to rebalance markets for that specific tokens\n\n### Internal Pre-conditions\n\n/\n\n### External Pre-conditions\n\n/\n\n### Attack Path\n\nNo specific attack path, since the bridge don't support these assets\n\n### Impact\n\nRebalancing will be impossible for those markets.\n\n### PoC\n\n_No response_\n\n### Mitigation\n\n_No response_\n\n## Discussion\n\n**sherlock-admin2**\n\nThe protocol team fixed this issue in the following PRs/commits:\nhttps://github.com/malda-protocol/malda-lending/pull/100\n\n\n\n\n\n",
+    "summary": "\nThis bug report discusses an issue with the Malda Protocol, specifically with the support for certain assets. The report was found by two users, 10ap17 and holtzzx. The root cause of the issue is that two platforms, Across and Everclear, do not fully support all of the assets that are listed as supported. This results in the inability to rebalance markets for those specific tokens. There are no specific attack paths identified, but the impact is that rebalancing will be impossible for those markets. The report does not include a Proof of Concept or any suggested mitigation strategies. However, the protocol team has fixed the issue in a recent pull request on GitHub. ",
+    "report_date": "2025-08-14T17:00:00.000Z",
+    "contest_prize_txt": "80000 USDC",
+    "contest_link": "https://app.sherlock.xyz/audits/contests/1029",
+    "sponsor_name": "",
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "",
+    "github_link": "https://github.com/sherlock-audit/2025-07-malda-judging/issues/1477",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "1029",
+    "slug": "m-16-bridges-dont-support-all-of-the-listed-assets-sherlock-malda-git",
+    "firm_name": "Sherlock",
+    "firm_logo_square": "sherlock_square.png",
+    "protocol_name": "Malda",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "10ap17"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "holtzzx"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Sherlock",
+        "logo_square": "sherlock_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Malda",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

@@ -1,0 +1,45 @@
+{
+    "id": 62417,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 34,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 1826,
+    "title": "[EIGEN2-15] Ejection timestamp is not updated when operator is kicked out in update loop",
+    "content": "**Severity:** Low\n\n**Description:** An operator could be kicked by ejection, which invokes the kick functions in `SlashingRegistryCoordinator.sol` It sets a `lastEjectionTimestamp` to the current block.timestamp, which disallows the same operator to register immediately again.\n```\nfunction ejectOperator(\n    address operator,\n    bytes memory quorumNumbers\n) public virtual onlyEjector {\n    lastEjectionTimestamp[operator] = block.timestamp;\n    _kickOperator(operator, quorumNumbers);\n}\n```\nHowever `_kickOperator` is also called when a operator gets kicked by someone registering with churn and during `updateOperators` that kicks operators that don't meet the minimum threshold.\n```\nfunction _updateOperatorsStakes(... ) internal virtual {\n      -- snip\n      if (doesNotMeetStakeThreshold[j]) {\n          _kickOperator(operators[j], singleQuorumNumber);\n      }\n  }\n}\n```\nIt doesn’t update the `lastEjectionTimestamp`, although they are kicked out by not having enough threshold. \n```\nfunction ejectOperator(\n    address operator,\n    bytes memory quorumNumbers\n) public virtual onlyEjector {\n    lastEjectionTimestamp[operator] = block.timestamp;\n    _kickOperator(operator, quorumNumbers);\n}\n```\n\n\n**Remediation:**  Consider updating the operator’s `lastEjectionTimestamp` when they are kicked out for not having a minimum threshold, so they can’t register immediately again.\n\n**Status:** Acknowledged\n\n\n- - -",
+    "summary": "",
+    "report_date": "2025-04-22T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/solodit/solodit_content/blob/main/reports/Hexens/2025-04-22-EigenLayer.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "eigen2-15-ejection-timestamp-is-not-updated-when-operator-is-kicked-out-in-update-loop-hexens-none-eigenlayer-markdown",
+    "firm_name": "Hexens",
+    "firm_logo_square": "Hexens_square.png",
+    "protocol_name": "Eigenlayer",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Hexens"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Hexens",
+        "logo_square": "Hexens_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Eigenlayer",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

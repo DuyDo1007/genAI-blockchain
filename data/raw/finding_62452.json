@@ -1,0 +1,50 @@
+{
+    "id": 62452,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 8,
+    "impact": "LOW",
+    "finders_count": 2,
+    "protocol_id": 3410,
+    "title": "Can Claim for Other Users Without Their Consent ✓ Fixed",
+    "content": "...\n\nExport to GitHub ...\n\nSet external GitHub Repo ...\n\nExport to Clipboard (json)\n\nExport to Clipboard (text)\n\n#### Resolution\n\nThis has been fixed in [PR 14](https://github.com/Consensys/linea-tokens/pull/14) (last commit on the branch: [40f5d75](https://github.com/Consensys/linea-tokens/tree/40f5d753aa35a5e53098564f22314ec46d3ad16f)).\n\n#### Description\n\nThe `TokenAirdrop` contract allows users to claim tokens based on their available calculation. This is done by executing the claim function with an address to claim for:\n\n**src/airdrops/TokenAirdrop.sol:L120-L138**\n\n```\n/**\n * @notice Claims tokens for an account while the claiming is active.\n * @dev Claiming sets claim status pre-transferring avoiding reentry, and all multiplier tokens are soulbound avoiding\n * transfer manipulation.\n * @param _account Account being claimed for.\n */\nfunction claim(address _account) external {\n  require(block.timestamp < CLAIM_END, ClaimFinished());\n  require(!hasClaimed[_account], AlreadyClaimed());\n\n  uint256 tokenAmount = calculateAllocation(_account);\n\n  require(tokenAmount != 0, ClaimAmountIsZero());\n\n  hasClaimed[_account] = true;\n  emit Claimed(_account, tokenAmount);\n\n  TOKEN.safeTransfer(_account, tokenAmount);\n}\n```\n\nAs it can be seen above, anyone can initiate the claim for any `account`, and the tokens will indeed be transferred to the appropriate recipient. However, this is done without any explicit consent of the account. This may have two impacts.\n\nFirst, this has personal implications for the `account` owner, such as tax implications. In many jurisdictions a person is taxed upon receipt of a valuable asset, whether they wanted it or not. While anyone indeed can send anything to anyone, such as stablecoins to a known ENS, in this case the user who initiated the `claim()` call does not actually spend any of their own funds. They simply claim the airdrop for the `account` and trigger a potential taxable event, which the recipient potentially wanted to delay until the next tax year, for example.\n\nSecond, not all eligible accounts may be owned by their owners securely. For example, the private keys could have been lost. In that case, claiming and sending tokens to that account could either effectively burn these tokens. Instead, these tokens could have been used by the foundation or for other needs after `CLAIM_END`.\n\nTo sum it up, the explicit consent of the owners of eligible `account` addresses would go a long way in such an airdrop contract. This is something that has also been considered in other large airdrops in the cryptocurrency industry.\n\n#### Recommendation\n\nConsider requiring explicit consent of the `account` address owners, such as providing a signed message from the `account` or initiating the claim transaction from the `account` address and claiming on `msg.sender`.",
+    "summary": "",
+    "report_date": "2025-07-01T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://diligence.consensys.io/audits/2025/07/linea-token-and-airdrop-contracts/",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "can-claim-for-other-users-without-their-consent-fixed-consensys-none-linea-token-and-airdrop-contracts-markdown",
+    "firm_name": "ConsenSys",
+    "firm_logo_square": "consensys_square.png",
+    "protocol_name": "Linea Token and Airdrop Contracts",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "George Kobakhidze"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": " Heiko Fisch\n                        "
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "ConsenSys",
+        "logo_square": "consensys_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Linea Token and Airdrop Contracts",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

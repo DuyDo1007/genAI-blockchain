@@ -1,0 +1,45 @@
+{
+    "id": 62694,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 23,
+    "impact": "HIGH",
+    "finders_count": 1,
+    "protocol_id": 3435,
+    "title": "Arithmetic Overflow in `getPrice` When Feeds Return Large Values",
+    "content": "##### Description\nThis issue has been identified within the `getPrice` function of the `ChainlinkOracleComposite` contract. \n\n`getPrice` normalises each feed answer and then multiplies the current composite price by that rate:\n\n```solidity\nrate = uint256(price) \n     * 10**(SCALING_DECIMALS - feed.decimals());\ncompositePrice = (compositePrice * rate) \n               / SCALING_FACTOR; // 36-dec fixed-point\n```\n\nIf a feed reports `price > 1.16 * 10^(5 + feed.decimals)` (≈ $100 000 when denominated in wei), the term  \n\n```\ncompositePrice * rate * 10^36\n```\n\nexceeds the 256‑bit limit. The call reverts with arithmetic overflow, freezing every contract that depends on this oracle for lending, liquidation, or pricing logic.\n\nThe issue is classified as **high** severity because a single inflated data point bricks the entire oracle and all protocols integrated with it. \n\n##### Recommendation\nWe recommend either replacing the simple `* /` pair with a 512‑bit safe‑math library such as OpenZeppelin’s `mulDiv` or reducing `SCALING_DECIMALS`.\n",
+    "summary": "\nThe `ChainlinkOracleComposite` contract has a bug in its `getPrice` function. This causes the contract to freeze if a feed reports a price higher than $100,000, resulting in all contracts that depend on this oracle to also freeze. To fix this, it is recommended to either use a 512-bit safe-math library or reduce the `SCALING_DECIMALS` value. This issue is classified as high severity as it can affect multiple protocols that use this oracle.",
+    "report_date": "2025-09-18T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/mixbytes/audits_public/blob/master/NUTS%20Finance/Pike/README.md#1-arithmetic-overflow-in-getprice-when-feeds-return-large-values",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "arithmetic-overflow-in-getprice-when-feeds-return-large-values-mixbytes-none-nuts-finance-markdown",
+    "firm_name": "MixBytes",
+    "firm_logo_square": "mixbytes_square.png",
+    "protocol_name": "NUTS Finance",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "MixBytes"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "MixBytes",
+        "logo_square": "mixbytes_square.png"
+    },
+    "protocols_protocol": {
+        "name": "NUTS Finance",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

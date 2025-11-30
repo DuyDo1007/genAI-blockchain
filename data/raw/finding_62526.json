@@ -1,0 +1,45 @@
+{
+    "id": 62526,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 7,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3418,
+    "title": "Missing Docstrings",
+    "content": "Throughout the codebase, multiple instances of missing docstrings were identified:\n\n* In `BaseHook.sol`, the [`poolManager` state variable](https://github.com/OpenZeppelin/uniswap-hooks/blob/3e9fa228ec0f7fe05a95e09e25442466b459a712/./src/base/BaseHook.sol#L30)\n* In `LiquidityPenaltyHook.sol`, all state variables\n\nConsider thoroughly documenting all functions (and their parameters) that are part of any contract's public API. Functions implementing sensitive functionality, even if not public, should be clearly documented as well. When writing docstrings, consider following the [Ethereum Natural Specification Format](https://solidity.readthedocs.io/en/latest/natspec-format.html) (NatSpec).\n\n***Update:** Resolved in [pull request #85](https://github.com/OpenZeppelin/uniswap-hooks/pull/85) at commit [933feb7](https://github.com/OpenZeppelin/uniswap-hooks/commit/933feb7471bbb1a7ec838bfac46da1feb30a7b78).*",
+    "summary": "",
+    "report_date": "2025-07-16T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://blog.openzeppelin.com/openzeppelin-uniswap-hooks-v1.1.0-rc-2-audit",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "missing-docstrings-openzeppelin-none-openzeppelin-uniswap-hooks-v110-rc-2-audit-markdown",
+    "firm_name": "OpenZeppelin",
+    "firm_logo_square": "openzeppelin_square.png",
+    "protocol_name": "OpenZeppelin Uniswap Hooks v1.1.0 RC 2 Audit",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "OpenZeppelin"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "OpenZeppelin",
+        "logo_square": "openzeppelin_square.png"
+    },
+    "protocols_protocol": {
+        "name": "OpenZeppelin Uniswap Hooks v1.1.0 RC 2 Audit",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

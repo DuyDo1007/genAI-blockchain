@@ -1,0 +1,45 @@
+{
+    "id": 62355,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 34,
+    "impact": "HIGH",
+    "finders_count": 1,
+    "protocol_id": 967,
+    "title": "[BAB-2] Anyone can create a listing for another user's approved/listed ERC721",
+    "content": "**Severity:** High\n\n**Path:** TokensController.sol:checkApproval (L47-61)\n\n**Description:** A user can create a listing for an ERC721 or ERC1155 in the BabylonCore contract. This contract checks whether through `TokensController.sol:checkApproval` whether the controller is approved for the specified asset and if so, will create the listing. \n\nHowever, in case of an ERC721 the approval check fails to check whether the listing creator (`msg.sender`) is the owner, it only checks whether the controller is approved for the NFT ID.\n\nAs a result, anyone can create a listing for other users' NFTs that have been approved for the TokensController contract. Any ongoing listing for an NFT can therefore be recreated by any user because the NFT would be approved during the listing. \n\nThis would create fake listings where users might buy tickets but the listing can never succeed because the NFT cannot be transferred from the malicious user.\n```\nfunction checkApproval(\n    address creator,\n    IBabylonCore.ListingItem calldata item\n) external view returns (bool) {\n    if (item.itemType == IBabylonCore.ItemType.ERC721) {\n        address operator = IERC721(item.token).getApproved(item.identifier);\n        return address(this) == operator;\n    } else if (item.itemType == IBabylonCore.ItemType.ERC1155) {\n        bool approved = IERC1155(item.token).isApprovedForAll(creator, address(this));\n        uint256 amount = IERC1155(item.token).balanceOf(creator, item.identifier);\n        return (approved && (amount >= item.amount));\n    }\n\n    return false;\n}\n```\n\n**Remediation:**  The approval check for ERC721 should check whether the `creator` parameter is the owner of the asset. \n\nFor example:\n```\nif (item.itemType == IBabylonCore.ItemType.ERC721) {\n    address operator = IERC721(item.token).getApproved(item.identifier);\n    address owner = IERC721(item.token).ownerOf(item.identifier);\n    return creator == owner && address(this) == operator;\n}\n```\n\n**Status:**  Fixed\n\n- - -",
+    "summary": "\nThis bug report discusses a problem in the TokensController contract, where a user can create a fake listing for someone else's NFT that has been approved for the contract. This is because the contract does not properly check if the creator of the listing is also the owner of the NFT. This can lead to users buying fake listings and not being able to transfer the NFT. The suggested solution is to add a check to ensure that the creator is also the owner of the NFT. The bug has been fixed.",
+    "report_date": "2023-01-17T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/solodit/solodit_content/blob/main/reports/Hexens/2023-01-17-Babylon.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "bab-2-anyone-can-create-a-listing-for-another-users-approvedlisted-erc721-hexens-none-babylon-markdown",
+    "firm_name": "Hexens",
+    "firm_logo_square": "Hexens_square.png",
+    "protocol_name": "Babylon",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Hexens"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Hexens",
+        "logo_square": "Hexens_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Babylon",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

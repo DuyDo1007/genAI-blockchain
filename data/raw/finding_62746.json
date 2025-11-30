@@ -1,0 +1,45 @@
+{
+    "id": 62746,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 30,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3440,
+    "title": "[L-03] Packed String Collision in Signed Payload Lets UUID Spoofing in `UtilityVault`",
+    "content": "\n## Severity\n\nLow Risk\n\n## Description\n\nIn `UtilityVault.sol`:\n\n```solidity\n// taskConfirmationFee\nbytes32 messageHash = keccak256(abi.encodePacked(\n    block.chainid,\n    address(this),\n    \"task\",\n    taskUuid,        // string (dynamic)\n    authUserUuid,    // string (dynamic)\n    msg.sender,\n    msg.value\n));\n\n// paymentConfirmation (same pattern; \"payment\", itemUuid, authUserUuid)\nbytes32 messageHash = keccak256(abi.encodePacked(\n    block.chainid,\n    address(this),\n    \"payment\",\n    itemUuid,        // string (dynamic)\n    authUserUuid,    // string (dynamic)\n    msg.sender,\n    msg.value\n));\n```\n\n`abi.encodePacked` concatenates dynamic arguments **without length delimiters**. With **adjacent dynamic strings** (`taskUuid` and `authUserUuid` / `itemUuid` and `authUserUuid`), **different pairs** can yield the **same concatenated bytes** → the **same `messageHash`**.\nExample: `(\"ab\",\"c\")` and `(\"a\",\"bc\")` both produce the bytes `\"abc\"` for that section.\n\n- The backend signs a hash for `(taskUuid_A, authUserUuid_A)`.\n- A user can submit `(taskUuid_B, authUserUuid_B)` whose concatenation matches, so the contract recomputes the **same** hash; the signature **verifies**; events log the **attacker-chosen strings**.\n- This **spoofs/misattributes** which UUIDs were “paid” and breaks off-chain accounting/audit trails.\n\n**Secondary effect**\n`usedSignatures[messageHash]` is keyed by the **ambiguous** hash. Two logically different requests that collide will cause **`SignatureAlreadyUsed()`** after the first is consumed → **grief** legitimate follow-ups.\n\nThis will lead to on-chain evidence that can claim payment for \\*different UUIDs\\*\\* than the backend intended. Also, a crafted collision can preempt a later legitimate payment by tripping `SignatureAlreadyUsed`.\n\n## Location of Affected Code:\n\nFile: [contracts/UtilityVault.sol#L94](https://github.com/xgrisha666x/revolver-contract/blob/b9c318f97f10a4f496bda8959aeb90696402e114/contracts/UtilityVault.sol#L94)\n\n```solidity\nfunction taskConfirmationFee(\n    string calldata taskUuid,\n    string calldata authUserUuid,\n    bytes calldata signature\n) external payable nonReentrant {\n    if (msg.value == 0) revert InvalidAmount();\n\n    bytes32 messageHash = keccak256(\n        abi.encodePacked( // <-- uses packed encoding\n                block.chainid,\n                address(this),\n                \"task\",\n                taskUuid, // <-- dynamic string\n                authUserUuid, // <-- dynamic string, adjacent to taskUuid\n                msg.sender,\n                msg.value\n            )\n    ); // <-- vulnerable to (\"ab\",\"c\") vs (\"a\",\"bc\") collision\n\n    _consumeSignature(messageHash, signature);\n\n    totalDeposits += msg.value;\n    emit TaskConfirmationFee(msg.sender, taskUuid, authUserUuid, msg.value);\n}\n```\n\nFile: [contracts/UtilityVault.sol#L123](https://github.com/xgrisha666x/revolver-contract/blob/b9c318f97f10a4f496bda8959aeb90696402e114/contracts/UtilityVault.sol#L123)\n\n```solidity\nfunction paymentConfirmation(\n    string calldata itemUuid,\n    string calldata authUserUuid,\n    bytes calldata signature\n) external payable nonReentrant {\n    if (msg.value == 0) revert InvalidAmount();\n\n    bytes32 messageHash = keccak256(\n        abi.encodePacked( // <-- uses packed encoding\n                block.chainid,\n                address(this),\n                \"payment\",\n                itemUuid, // <-- dynamic string\n                authUserUuid, // <-- dynamic string, adjacent to itemUuid\n                msg.sender,\n                msg.value\n            )\n    ); // <-- same packed-collision issue\n\n    _consumeSignature(messageHash, signature);\n\n    totalDeposits += msg.value;\n    emit PaymentConfirmation(msg.sender, itemUuid, authUserUuid, msg.value);\n}\n```\n\n## Recommendation\n\nUse **`abi.encode`** (not packed) so lengths are encoded:\n\n```solidity\nbytes32 messageHash = keccak256(abi.encode(\n    block.chainid,\n    address(this),\n    keccak256(\"task\"),           // or a typehash/enum\n    taskUuid,\n    authUserUuid,\n    msg.sender,\n    msg.value\n));\n```\n\n- Or hash each string separately when packing:\n\n```solidity\nbytes32 messageHash = keccak256(abi.encodePacked(\n    block.chainid,\n    address(this),\n    \"task\",\n    keccak256(bytes(taskUuid)),\n    keccak256(bytes(authUserUuid)),\n    msg.sender,\n    msg.value\n));\n```\n\nAlso, you can move to **EIP-712** typed data with explicit fields (best solution).\n\n## Team Response\n\nFixed.\n\n",
+    "summary": "",
+    "report_date": "2025-09-24T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/shieldify-security/audits-portfolio-md/blob/main/SoulsClub-Revolver-Security-Review.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "l-03-packed-string-collision-in-signed-payload-lets-uuid-spoofing-in-utilityvault-shieldify-none-soulsclub-revolver-markdown",
+    "firm_name": "Shieldify",
+    "firm_logo_square": "Shieldify_square.png",
+    "protocol_name": "Soulsclub Revolver",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Shieldify Security"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Shieldify",
+        "logo_square": "Shieldify_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Soulsclub Revolver",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

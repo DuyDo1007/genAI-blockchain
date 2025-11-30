@@ -1,0 +1,45 @@
+{
+    "id": 62857,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 30,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3449,
+    "title": "[L-01] The `isInvoiceSettleable()` Function in `InvoiceManager` Is Not Checking the Credit Balance",
+    "content": "\n## Severity\n\nLow Risk\n\n## Description\n\nThe `InvoiceManager::isInvoiceSettleable()` is a view function that is designed to know whether the Invoice is settleable or not.\n\nIn order for the Invoice to be successfully settled, we call `settleInvoice()` and the Invoice should have all its Locked Tokens credited with the full amount in order for it to be settled.\n\nFile: [InvoiceManager.sol#L159-L165](https://github.com/etherspot/etherspot-modular-accounts/blob/9019f2a78c36e74bdb1df4029672998cb4631162/src/invoice_manager/InvoiceManager.sol#L159-L165)\n\n```solidity\nfunction settleInvoice(address _sessionKey) external onlySettlerOrLinkedWallet(_sessionKey) nonReentrant {\n    // code\n\n    for (uint256 i; i < tokensLength; ++i) {\n>>.  if (tokens[i].creditedAmount != tokens[i].amount) {\n            revert IM_InvoiceNotFullyCredited(\n                _sessionKey, tokens[i].token, tokens[i].amount, tokens[i].creditedAmount\n            );\n       }\n    }\n    // code\n}\n```\n\nOur function is not making this check, it is only checking whether the Solver is active or not and whether there is enough balance for paying or not, without checking the state or the credited balance in the Invoice. So it can return that an Invoice can be successfully settled, although it will not when calling `settleInvoice()`\n\n## Location of Affected Code\n\nFile: [InvoiceManager.sol#L364-L378](https://github.com/etherspot/etherspot-modular-accounts/blob/9019f2a78c36e74bdb1df4029672998cb4631162/src/invoice_manager/InvoiceManager.sol#L364-L378)\n\n```solidity\nfunction isInvoiceSettleable(address _sessionKey) external view returns (bool) {\n    Invoice storage invoice = invoices[_sessionKey];\n    if (invoice.createdAt == 0) return false;\n    if (!_isSolverActive(invoice.data.solver)) return false;\n\n    InvoiceTokenData[] storage tokenData = invoiceTokenData[_sessionKey];\n    uint256 tokenDataLength = tokenData.length;\n\n    for (uint256 i; i < tokenDataLength; ++i) {\n        if (IERC20(tokenData[i].token).balanceOf(address(this)) < tokenData[i].amount) {\n            return false;\n        }\n    }\n    return true;\n}\n```\n\n## Impact\n\nIncorrect return values from the view function will affect off-chain systems integrating with the contract\n\n## Recommendation\n\nWe should make another check to make sure that all tokens have been credited, by checking that `creditedAmount` equals `amount` for all tokens\n\n## Team Response\n\nFixed.\n\n",
+    "summary": "",
+    "report_date": "2025-10-03T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/shieldify-security/audits-portfolio-md/blob/main/Etherspot-GasTankPaymasterModule-Extended-Security-Review.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "l-01-the-isinvoicesettleable-function-in-invoicemanager-is-not-checking-the-credit-balance-shieldify-none-etherspot-gastankpaymastermodule-extended-markdown",
+    "firm_name": "Shieldify",
+    "firm_logo_square": "Shieldify_square.png",
+    "protocol_name": "Etherspot Gastankpaymastermodule Extended",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Shieldify Security"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Shieldify",
+        "logo_square": "Shieldify_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Etherspot Gastankpaymastermodule Extended",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

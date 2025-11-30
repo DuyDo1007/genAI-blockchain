@@ -1,0 +1,45 @@
+{
+    "id": 62688,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 23,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3435,
+    "title": "First Trader After Idle Period Pays Accumulated Volatility Fees",
+    "content": "##### Description\nThis issue has been identified within the `_updateMultiplierForToken` function of the `SelfPeggingAsset` contract.\n\nCurrently, the volatility multiplier increases only when the `_updateMultiplierForToken` function is triggered by user interaction. If no interaction occurs for an extended period while the external token price significantly changes, the first subsequent trade triggers a multiplier spike. This first trader unfairly incurs the entire accumulated volatility fee due to historical price changes, rather than just the volatility arising from their specific trade.\n\nAs an illustrative scenario:\n\n1. The pool remains inactive for several days (e.g. due to admin's pause), during which the token price doubles.\n2. The first swap executed after this inactive period experiences an unusually high volatility fee, even if the price remains stable around the new value at the trade time.\n\nThis results in a poor user experience and creates a potential denial-of-service vector, as users may avoid trading after prolonged inactivity periods.\n\n##### Recommendation\nWe recommend applying a continuous linear decay mechanism to the `candidateMultiplier` as well, ensuring new multipliers decay proportionally over time in the same way as current multipliers.\n",
+    "summary": "",
+    "report_date": "2025-09-19T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/mixbytes/audits_public/blob/master/NUTS%20Finance/Tapio/README.md#18-first-trader-after-idle-period-pays-accumulated-volatility-fees",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "first-trader-after-idle-period-pays-accumulated-volatility-fees-mixbytes-none-nuts-finance-markdown",
+    "firm_name": "MixBytes",
+    "firm_logo_square": "mixbytes_square.png",
+    "protocol_name": "NUTS Finance",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "MixBytes"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "MixBytes",
+        "logo_square": "mixbytes_square.png"
+    },
+    "protocols_protocol": {
+        "name": "NUTS Finance",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

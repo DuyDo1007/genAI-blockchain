@@ -1,0 +1,45 @@
+{
+    "id": 62850,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 30,
+    "impact": "HIGH",
+    "finders_count": 1,
+    "protocol_id": 3449,
+    "title": "[H-03] Users Can Escape Paying for the TX Gas",
+    "content": "\n## Severity\n\nHigh Risk\n\n## Description\n\nThe current implementation of Paymaster is not taking the amount of gas paid by the paymaster for the tx execution within the same user tx, or before it. It is collected after the execution of the tx.\n\n- `GasTankPaymaster::_validatePaymasterUserOp()` is checking that the verified signer accepts paying for that user\n- `GasTankPaymaster::_postOp()` calculates the amount of gas used and emits an event for this\n\nNo taking of funds occurs after `_postOp()`, it is designed that Admins will claim the funds by processing `GasTankPaymaster_UserOperationSponsored` event, where they will call `GasTank::repaySponsoredTransaction()` to take ERC20 from the user.\n\n[GasTankPaymaster.sol#L361-L368](https://github.com/etherspot/etherspot-modular-accounts/blob/audit/GTP-CAM-RLV-IM/src/paymaster/GasTankPaymaster.sol#L361-L368)\n\n```solidity\nfunction repaySponsoredTransaction(address _from, uint256 _amount) external onlyOwner {\n    if (_from == address(0)) revert GasTankPaymaster_InvalidAddress();\n    if (_amount == 0) revert GasTankPaymaster_InvalidAmount();\n    if (balances[_from] < _amount) revert GasTankPaymaster_InsufficientBalance(_from, _amount);\n    balances[_from] -= _amount;\n    balances[feeReceiver] += _amount;\n    emit GasTankPaymaster_RepaySponsoredTransaction(_from, _amount);\n}\n```\n\nBut the problem is that the user can simply withdraw all his balance from the `GasTank` and escape paying for the tx gas. where anyUser can call `gasTankWithdraw()` at any time and withdraw all their balance.\n\n## Location of Affected Code\n\nFile: [GasTankPaymaster.sol#L347-L353](https://github.com/etherspot/etherspot-modular-accounts/blob/audit/GTP-CAM-RLV-IM/src/paymaster/GasTankPaymaster.sol#L347-L353)\n\n```solidity\nfunction gasTankWithdraw(uint256 _amount) external {\n    uint256 currentBalance = balances[msg.sender];\n    if (currentBalance < _amount) revert GasTankPaymaster_InsufficientBalance(msg.sender, _amount);\n    SafeERC20.safeTransfer(token, msg.sender, _amount);\n    balances[msg.sender] = currentBalance - _amount; // Safe due to check above\n    emit GasTankPaymaster_Withdrawn(msg.sender, _amount);\n}\n```\n\n## Impact\n\n- Users can escape paying for the gas paid by the GasTank\n\n## Proof of Concept\n\n- UserA has deposited an amount of tokens into the GasTank\n- UserA has submitted an ERC4337 transaction\n- off-chain system caught the tx, and will execute it\n- Tx has been executed successfully, and GasTank paid for it\n- User immediately call `GasTank::gasTankWithdraw()` and withdraw all his tokens\n- Admins can't repay the fees to the feeReceiver\n\n## Recommendation\n\nTo mitigate the risk, we should prevent the user from withdrawing his balance in case he has some transactions that have not been paid for. It should be like this.\n\n- Add a mapping (user -> isWithdrawPaused)\n- `_validatePaymasterUserOp()` will check that `isWithdrawPaused` is false\n- `_postOp()` will pause the user (making isWithdrawPaused true)\n- `repaySponsoredTransaction()` will reset the user pausing (making isWithdrawPaused false)\n- and `gasTankWithdraw()` should prevent withdrawing if user->isWithdrawPaused is true.\n\nThis will ensure the user does not withdraw his balance and escape from paying, but this will only work if it is intended for the user to pay for the tx from the same chain. If cross-chain gas is intended to be used where the user can pay from GasTank on Polygon and execute on Arbitrum, for example, then the gas should be taken before executing, or having a system that prevents this can be complex.\n\n## Team Response\n\nFixed.\n\n",
+    "summary": "\nThe current implementation of Paymaster is not taking the amount of gas paid by the paymaster for the transaction execution within the same user transaction. This means that users can withdraw their balance from the GasTank and avoid paying for the gas. To fix this, the team recommends adding a mapping to prevent users from withdrawing their balance if they have unpaid transactions. This will ensure that users cannot escape paying for the gas. The team has fixed this issue.",
+    "report_date": "2025-10-03T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/shieldify-security/audits-portfolio-md/blob/main/Etherspot-GasTankPaymasterModule-Extended-Security-Review.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "h-03-users-can-escape-paying-for-the-tx-gas-shieldify-none-etherspot-gastankpaymastermodule-extended-markdown",
+    "firm_name": "Shieldify",
+    "firm_logo_square": "Shieldify_square.png",
+    "protocol_name": "Etherspot Gastankpaymastermodule Extended",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Shieldify Security"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Shieldify",
+        "logo_square": "Shieldify_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Etherspot Gastankpaymastermodule Extended",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

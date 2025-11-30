@@ -1,0 +1,45 @@
+{
+    "id": 62689,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 23,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3435,
+    "title": "`decimals()` Can Be a Constant Value",
+    "content": "##### Description\nThis issue has been identified within the `decimals()` function of the `ChainlinkCompositeOracleProvider` contract.\n\nThe function returns the decimal count of the last entry in the `configs` array. If the final config has a few decimals (e.g., 8), this can lead to precision loss. Using a fixed value for `decimals()` improves performance and makes the contract logic more clear.\n\n##### Recommendation\nWe recommend defining a fixed decimal value for the composite oracle in the constructor (for example, 18 or `36 - assetDecimals`) and returning this constant from `decimals()`.\n",
+    "summary": "",
+    "report_date": "2025-09-19T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/mixbytes/audits_public/blob/master/NUTS%20Finance/Tapio/README.md#19-decimals-can-be-a-constant-value",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "decimals-can-be-a-constant-value-mixbytes-none-nuts-finance-markdown",
+    "firm_name": "MixBytes",
+    "firm_logo_square": "mixbytes_square.png",
+    "protocol_name": "NUTS Finance",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "MixBytes"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "MixBytes",
+        "logo_square": "mixbytes_square.png"
+    },
+    "protocols_protocol": {
+        "name": "NUTS Finance",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

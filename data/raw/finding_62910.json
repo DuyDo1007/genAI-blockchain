@@ -1,0 +1,60 @@
+{
+    "id": 62910,
+    "kind": "PDF",
+    "auditfirm_id": 6,
+    "impact": "LOW",
+    "finders_count": 4,
+    "protocol_id": 3419,
+    "title": "Broken Input Validation in precompile_get_withdrawal_request",
+    "content": "## Severity: Low Risk\n\n## Context\n(No context files were provided by the reviewer)\n\n## Description\nThe `precompile_get_withdrawal_request()` function contains contradictory input validation logic that renders it unusable. The function first rejects any non-empty input, then immediately requires exactly 29 bytes of input data. These mutually exclusive conditions cause the function to fail for all possible inputs, preventing users from querying withdrawal request information through this interface.\n\n### Affected Code\n```cpp\n// staking_contract.cpp:400-411\nif (MONAD_UNLIKELY(!input.empty())) { // Rejects ANY non-empty input\n    return StakeError::InvalidInput;\n}\nconstexpr size_t MESSAGE_SIZE = sizeof(u64_be) + sizeof(Address) + sizeof(uint8_t);\nif (MONAD_UNLIKELY(input.size() != MESSAGE_SIZE)) { // Requires exactly 29 bytes\n    return StakeError::InvalidInput;\n}\n```\n\nThe logical error is in the first condition: `!input.empty()` evaluates to true for any input containing data, causing rejection of all non-empty inputs despite the function requiring data to operate.\n\n## Proof of Concept: Function Failure Demonstration\n\n### Test Case 1: Empty input\n```cpp\nbyte_string empty_input = {};\nauto result = precompile_get_withdrawal_request(empty_input, user_addr, 0);\n// Result: StakeError::InvalidInput\n// Reason: Passes first check, fails second check (0 29 bytes)\n```\n\n### Test Case 2: Correct format (29 bytes total)\n```cpp\nbyte_string correct_input;\ncorrect_input.append(to_bytes(validator_id)); // 8 bytes (u64_be)\ncorrect_input.append(delegator_address.bytes); // 20 bytes (Address)\ncorrect_input.append(withdrawal_id); // 1 byte (uint8_t)\nauto result2 = precompile_get_withdrawal_request(correct_input, user_addr, 0);\n// Result: StakeError::InvalidInput\n// Reason: Fails first check (!correct_input.empty() == true)\n```\n\n### Test Case 3: Any other input length\n```cpp\nbyte_string invalid_input = {0x01, 0x02, 0x03};\nauto result3 = precompile_get_withdrawal_request(invalid_input, user_addr, 0);\n// Result: StakeError::InvalidInput\n// Reason: Fails first check immediately\n// Conclusion: 100% failure rate regardless of input\n```\n\n## Recommendation\nChange `!input.empty()` to `input.empty()` (remove negation operator).\n\n## Category Labs\nFixed in commit 7dc5df89.\n\n## Spearbit\nFix verified.",
+    "summary": "",
+    "report_date": "2025-09-19T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Monad-Spearbit-Security-Review-September-2025.pdf",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Monad-Spearbit-Security-Review-September-2025.pdf",
+    "github_link": "",
+    "pdf_link": "https://solodit-bucket.s3.amazonaws.com/storage/reports/spearbit/Monad-Spearbit-Security-Review-September-2025.pdf",
+    "pdf_page_from": 43,
+    "contest_id": "",
+    "slug": "broken-input-validation-in-precompile_get_withdrawal_request-spearbit-none-monad-pdf",
+    "firm_name": "Spearbit",
+    "firm_logo_square": "spearbit_square.png",
+    "protocol_name": "Monad",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Haxatron"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Dtheo"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Guido Vranken"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Rikard Hjort"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Spearbit",
+        "logo_square": "spearbit_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Monad",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

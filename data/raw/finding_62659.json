@@ -1,0 +1,45 @@
+{
+    "id": 62659,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 23,
+    "impact": "HIGH",
+    "finders_count": 1,
+    "protocol_id": 3435,
+    "title": "Initial Mint Front-Run Inflation Attack",
+    "content": "##### Description\nThis issue has been identified within the `mint()` function of the `SelfPeggingAsset` contract.\n\nAn attacker can front-run the initial liquidity provider by depositing a minimal amount (for example, 1 wei) before the first legitimate mint, bypassing the `_minMintAmount` protection. As a result, the legitimate provider may receive substantially fewer LP tokens than expected, effectively suffering a loss of deposited assets.\n\n**Attack Scenario**\n* The attacker front-runs the initial mint operation by first transferring 1 wei of each token. They then mint themselves 1 wei of shares by depositing 1 wei of either token and subsequently transfer the same amounts of tokens that the legitimate minter intended to deposit, thereby inflating the exchange rate.\n* The transaction of the initial minter bypasses the `minMintAmount` check because it involves passing the amounts of tokens (not shares) to `poolToken.mintShares`. Inside `poolToken.mintShares`, the amount of tokens is rounded down, resulting in 0 shares being minted.\n* As a result, the legitimate provider, attempting to mint even with a slippage `minMintAmount` parameter being set, is effectively undercut and receives no newly minted shares, while the attacker ends up with nearly all of them.\n\nThe issue is classified as **critical** severity because it enables the theft of the entire initial liquidity deposit, causing significant financial loss and severely damaging user confidence.\n\n##### Recommendation\n\nWe recommend minting a small “dead share” (e.g., `1000 wei`) as part of the initial LPToken mint to ensure that a strict minimum number of shares is always created in the first deposit. Alternatively, consider initializing the pool in a paused state, allowing only the admin to perform the initial mint. Additionally, consider minting shares equal to the sum of the `totalSupply` and `_tokenAmount` if the current `totalShares` value of the LPToken is zero. This approach ensures that the exchange rate cannot be unfairly inflated during the first deposit, effectively preventing this front-running attack.\n",
+    "summary": "\nThis report discusses a bug found in the `mint()` function of the `SelfPeggingAsset` contract. The bug allows an attacker to front-run the initial liquidity provider by depositing a minimal amount before the legitimate provider, resulting in the legitimate provider receiving fewer LP tokens than expected and suffering a loss of assets. The bug is classified as critical because it can cause significant financial loss and damage user confidence. The report recommends minting a small \"dead share\" or initializing the pool in a paused state to prevent this attack.",
+    "report_date": "2025-09-19T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 5,
+    "general_score": 5,
+    "source_link": "https://github.com/mixbytes/audits_public/blob/master/NUTS%20Finance/Tapio/README.md#1-initial-mint-front-run-inflation-attack",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "initial-mint-front-run-inflation-attack-mixbytes-none-nuts-finance-markdown",
+    "firm_name": "MixBytes",
+    "firm_logo_square": "mixbytes_square.png",
+    "protocol_name": "NUTS Finance",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "MixBytes"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "MixBytes",
+        "logo_square": "mixbytes_square.png"
+    },
+    "protocols_protocol": {
+        "name": "NUTS Finance",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

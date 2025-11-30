@@ -1,0 +1,50 @@
+{
+    "id": 62455,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 8,
+    "impact": "LOW",
+    "finders_count": 2,
+    "protocol_id": 3410,
+    "title": "TokenAirdrop: Questionable Use of selfdestruct ✓ Fixed",
+    "content": "...\n\nExport to GitHub ...\n\nSet external GitHub Repo ...\n\nExport to Clipboard (json)\n\nExport to Clipboard (text)\n\n#### Resolution\n\nThis has been fixed in [PR 12](https://github.com/Consensys/linea-tokens/pull/12) (last commit on the branch: [4e0391d](https://github.com/Consensys/linea-tokens/tree/4e0391d83e869fd51a4d14814b966634cbe2130d)).\n\n#### Description\n\nWhen the claim window for an airdrop has closed, the owner of the contract can withdraw all unclaimed tokens. At the end of the `withdraw` function, `selfdestruct` is called:\n\n**src/airdrops/TokenAirdrop.sol:L140-L153**\n\n```\n/**\n * @notice Owner withdraws unclaimed tokens from the contract post claim end and self destructs.\n * @dev The selfdestruct only applies for pre EIP-6780 forks.\n */\nfunction withdraw() external onlyOwner {\n  require(CLAIM_END <= block.timestamp, ClaimNotFinished());\n\n  uint256 balance = TOKEN.balanceOf(address(this));\n\n  emit TokenBalanceWithdrawn(msg.sender, balance);\n  TOKEN.safeTransfer(msg.sender, balance);\n\n  selfdestruct(payable(msg.sender));\n}\n```\n\nSince the contract has no payable function, this is not about collecting ETH stored in the contract. Instead, Linea runs on the London EVM, so `selfdestruct` actually removes the code, which is not true for chains that have included [EIP-6780](https://eips.ethereum.org/EIPS/eip-6780).\n\nWhile this would have once counted as exemplary smart contract programming, these days using `selfdestruct` is strongly discouraged. The Solidity documentation is very explicit in this regard:\n\n> Also, note that the selfdestruct opcode has been deprecated in Solidity version 0.8.18, as recommended by [EIP-6049](https://eips.ethereum.org/EIPS/eip-6049). The deprecation is still in effect and the compiler will still emit warnings on its use. Any use in newly deployed contracts is strongly discouraged even if the new behavior is taken into account. Future changes to the EVM might further reduce the functionality of the opcode.\n\nEven though the point of using `selfdestruct` in this situation on Linea (or a pre [EIP-6780](https://eips.ethereum.org/EIPS/eip-6780) chain in general) can be seen, `selfdestruct` is widely regarded as anti-pattern these days and even frowned upon, so that we side with the Solidity documentation and recommend not using it anymore in newly deployed contracts.\n\n#### Recommendation\n\nConsider removing the `selfdestruct(payable(msg.sender));`.",
+    "summary": "",
+    "report_date": "2025-07-01T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://diligence.consensys.io/audits/2025/07/linea-token-and-airdrop-contracts/",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "tokenairdrop-questionable-use-of-selfdestruct-fixed-consensys-none-linea-token-and-airdrop-contracts-markdown",
+    "firm_name": "ConsenSys",
+    "firm_logo_square": "consensys_square.png",
+    "protocol_name": "Linea Token and Airdrop Contracts",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "George Kobakhidze"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": " Heiko Fisch\n                        "
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "ConsenSys",
+        "logo_square": "consensys_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Linea Token and Airdrop Contracts",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

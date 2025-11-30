@@ -1,0 +1,45 @@
+{
+    "id": 62867,
+    "kind": "PDF",
+    "auditfirm_id": 9,
+    "impact": "HIGH",
+    "finders_count": 1,
+    "protocol_id": 3450,
+    "title": "Missing debt validation in group transfer function",
+    "content": "## Difficulty: Medium\n\n## Type: Data Validation\n\n## Description\n\nThe `_transferGroups` function fails to complete group transfers when expired tokens are present, creating an inconsistency between the ERC1155 balance tracking and the group array tracking. The function skips over expired token groups during transfer but does not verify that the transfer was completed successfully.\n\nThe `_transferGroups` function iterates through the sender’s token groups in the FIFO order to transfer the requested amount. However, it skips over expired token groups without accounting for them in the transfer calculation. When the loop completes, there is no verification that the debt variable has reached zero, meaning that the transfer may be incomplete. This creates a mismatch where the ERC1155 balance tracking correctly reflects the transfer, but the group arrays contain inconsistent data.\n\n```solidity\nfunction _transferGroups(address from, address to, uint256 id, uint256 amount)\ninternal {\n    // Exit early if the transfer is to the same account or if the amount is zero\n    if (from == to || amount == 0) return;\n    Group[] storage groups = _group[from][id];\n    uint256 _now = block.timestamp;\n    uint256 debt = amount;\n\n    // First pass: Reduce balances from sender's groups (FIFO order)\n    for (uint256 i = 0; i < groups.length && debt > 0; i++) {\n        // Skip token groups that are expired or have no balance\n        if (groups[i].expiresAt <= _now || groups[i].balance == 0) {\n            continue;\n        }\n        if (groups[i].balance > debt) {\n            // Transfer partial token group\n            _upsertGroup(to, id, debt, groups[i].expiresAt);\n            groups[i].balance -= debt;\n            debt = 0;\n        } else {\n            // Transfer entire token group\n            _upsertGroup(to, id, groups[i].balance, groups[i].expiresAt);\n            debt -= groups[i].balance;\n            groups[i].balance = 0;\n        }\n    }\n\n    // Clean up from account token groups that are expired or have zero balance\n    _pruneGroups(from, id);\n}\n```\n\n**Figure 3.1:** Missing debt validation in the `_transferGroups` function\n\n## Exploit Scenario\n\nAlice has five authentication tokens, including two expired tokens and three tokens that have not expired yet. Alice attempts to transfer four tokens to Bob. The ERC1155 balance tracking correctly updates to show Alice has one token and Bob has four tokens. However, the group transfer moves only three non-expired token groups from Alice to Bob, leaving the transfer incomplete. The group arrays now contain inconsistent data, where Alice’s group array shows fewer tokens than her ERC1155 balance, and Bob’s group array shows fewer tokens than his ERC1155 balance.\n\n## Recommendations\n\n- **Short term:** Add a check at the end of the `_transferGroups` function to verify that debt equals zero, ensuring that the transfer was completed successfully.\n- **Long term:** Implement comprehensive unit tests that cover transfer scenarios with mixed valid and expired tokens, and consider redesigning the transfer logic to properly account for expired tokens during the transfer process.",
+    "summary": "\nThis bug report describes an issue with the `_transferGroups` function in an ERC1155 token contract. The function fails to properly account for expired tokens during transfers, leading to an inconsistency between the ERC1155 balance and the group array tracking. This means that a transfer may appear successful in the ERC1155 balance, but the group array will show incorrect data. The report suggests short-term and long-term solutions, including adding a check to verify the transfer was completed successfully and implementing comprehensive unit tests.",
+    "report_date": "2025-10-03T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://github.com/trailofbits/publications/blob/master/reviews/2025-10-radiustechnology-evmauth-securityreview.pdf",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/trailofbits/publications/blob/master/reviews/2025-10-radiustechnology-evmauth-securityreview.pdf",
+    "github_link": "",
+    "pdf_link": "https://solodit-bucket.s3.amazonaws.com/storage/reports/trailofbits/2025-10-radiustechnology-evmauth-securityreview.pdf",
+    "pdf_page_from": 17,
+    "contest_id": "",
+    "slug": "missing-debt-validation-in-group-transfer-function-trailofbits-none-radius-technology-evmauth-pdf",
+    "firm_name": "TrailOfBits",
+    "firm_logo_square": "trailofbits_square.png",
+    "protocol_name": "Radius Technology EVMAuth",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Quan Nguyen Trail of Bits PUBLIC"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "TrailOfBits",
+        "logo_square": "trailofbits_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Radius Technology EVMAuth",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

@@ -1,0 +1,38 @@
+{
+    "id": 62084,
+    "kind": "GIT",
+    "auditfirm_id": 2,
+    "impact": "LOW",
+    "finders_count": 0,
+    "protocol_id": 2159,
+    "title": "[05] Users with 1 to 1 liability and collateral ratio can still be liquidated",
+    "content": "\n<https://github.com/code-423n4/2025-02-blend/blob/f23b3260763488f365ef6a95bfb139c95b0ed0f9/blend-contracts-v2/pool/src/auctions/user_liquidation_auction.rs# L50-L53>\n\n### Finding description and impact\n\nIn `create_user_liq_auction_data`, it’s intended that a user has less collateral than liabilities before he can be liquidated. However, due to incorrect check, a user could have same liability as collateral (technically not being at a loss), but still be liquidated. This is because the function reverts only if `liability_base` is < `collateral_base`. If they’re equal, a user can unfairly liquidated.\n```\n\n    // ensure the user has less collateral than liabilities\n>   if position_data.liability_base < position_data.collateral_base {\n        panic_with_error!(e, PoolError::InvalidLiquidation);\n    }\n```\n\n### Recommended mitigation steps\n\nUpdate the function to use `<=` operator instead.\n\n**Comments from the Script3 team:**\n\n> This was addressed [here](https://github.com/blend-capital/blend-contracts-v2/commit/96fac37e96b11dc76f005a5053236c89e30acb29) to block user liquidations when liabilities equal collateral.\n\n---\n\n",
+    "summary": "",
+    "report_date": "2025-08-13T00:00:00.000Z",
+    "contest_prize_txt": "125000",
+    "contest_link": "https://code4rena.com/reports/2025-02-blend-v2-audit-certora-formal-verification",
+    "sponsor_name": "Blend",
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://code4rena.com/reports/2025-02-blend-v2-audit-certora-formal-verification",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "492",
+    "slug": "05-users-with-1-to-1-liability-and-collateral-ratio-can-still-be-liquidated-code4rena-blend-blend-git",
+    "firm_name": "Code4rena",
+    "firm_logo_square": "code4rena_square.png",
+    "protocol_name": "Blend",
+    "bookmarked": false,
+    "read": false,
+    "auditfirms_auditfirm": {
+        "name": "Code4rena",
+        "logo_square": "code4rena_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Blend",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

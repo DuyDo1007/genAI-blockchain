@@ -1,0 +1,85 @@
+{
+    "id": 62172,
+    "kind": "GIT",
+    "auditfirm_id": 3,
+    "impact": "MEDIUM",
+    "finders_count": 9,
+    "protocol_id": 3130,
+    "title": "M-10: `ViewLogic::maxLiquidatable()` doesn't take the bonus into account, making the agent liquidatable again",
+    "content": "\nSource: https://github.com/sherlock-audit/2025-07-cap-judging/issues/638 \n\n## Found by \n0x73696d616f, 0xzey, Albert\\_Mei, Drynooo, KrisRenZo, anirruth\\_, maxim371, montecristo, ustas\n\n### Summary\n\n[ViewLogic::maxLiquidatable()](https://github.com/sherlock-audit/2025-07-cap/blob/main/cap-contracts/contracts/lendingPool/libraries/ViewLogic.sol#L91-L93) computes the maximum debt to liquidate such that the resulting target health is exactly the desired:\n```solidity\nmaxLiquidatableAmount = (($.targetHealth * totalDebt) - (totalDelegation * liquidationThreshold)) * decPow\n    / (($.targetHealth - liquidationThreshold) * assetPrice);\n```\nHowever, this is inaccurate due to the [bonus](https://github.com/sherlock-audit/2025-07-cap/blob/main/cap-contracts/contracts/lendingPool/libraries/ViewLogic.sol#L192), which affects the final health as it slashes more than the debt is repays.\n\nThus, it will trigger more than 1 liquidations in certain conditions and lead to heavy losses for the agent.\n\n### Root Cause\n\nIn `ViewLogic.sol:91`, it doesn't include the bonus.\n\n### Internal Pre-conditions\n\nNone\n\n### External Pre-conditions\n\nNone\n\n### Attack Path\n\n1. Agent is liquidated twice in a row due to the `ViewLogic::maxLiquidatable()` calculation not taking into account the bonus.\n\n### Impact\n\nAgent suffers more losses than supposed.\n\n### PoC\n\n_No response_\n\n### Mitigation\n\nInclude the bonus in the debt to repay so the health factor equals the target.\n\n\n",
+    "summary": "\nThe bug report talks about a problem found in a code called \"ViewLogic::maxLiquidatable()\" which is used to calculate the maximum amount of debt that can be liquidated. This calculation is not accurate because it does not take into account a bonus that affects the final health of the system. This can lead to multiple liquidations and heavy losses for the agent. The bug report suggests including the bonus in the calculation to avoid this issue. ",
+    "report_date": "2025-07-24T15:00:00.000Z",
+    "contest_prize_txt": "126000 USDC",
+    "contest_link": "https://app.sherlock.xyz/audits/contests/990",
+    "sponsor_name": "",
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "",
+    "github_link": "https://github.com/sherlock-audit/2025-07-cap-judging/issues/638",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "990",
+    "slug": "m-10-viewlogicmaxliquidatable-doesnt-take-the-bonus-into-account-making-the-agent-liquidatable-again-sherlock-cap-git",
+    "firm_name": "Sherlock",
+    "firm_logo_square": "sherlock_square.png",
+    "protocol_name": "Cap",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "ustas"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "montecristo"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "0xzey"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "KrisRenZo"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Drynooo"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "0x73696d616f"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Albert\\_Mei"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "anirruth\\_"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "maxim371"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Sherlock",
+        "logo_square": "sherlock_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Cap",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

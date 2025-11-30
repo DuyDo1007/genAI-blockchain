@@ -1,0 +1,50 @@
+{
+    "id": 62237,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 11,
+    "impact": "LOW",
+    "finders_count": 2,
+    "protocol_id": 3393,
+    "title": "Use named mapping parameters to make explicit the purpose of keys and values",
+    "content": "**Description:** Named mapping parameters are already being used in almost all of the codebase, the one exception is:\n```solidity\nSimpleToken.sol\n13:  mapping(bytes32 => bool) private mintIds;\n14:  mapping(bytes32 => bool) private burnIds;\n```\n\n**Avant:**\nFixed in commit [1cc43e3](https://github.com/Avant-Protocol/Avant-Contracts-Max/commit/1cc43e3c59baa16b5b529ad06fee637bd6131ec1).\n\n**Cyfrin:** Verified.",
+    "summary": "",
+    "report_date": "2025-08-28T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/solodit/solodit_content/blob/main/reports/Cyfrin/2025-08-28-cyfrin-avant-max-v2.0.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "use-named-mapping-parameters-to-make-explicit-the-purpose-of-keys-and-values-cyfrin-none-avant-max-markdown",
+    "firm_name": "Cyfrin",
+    "firm_logo_square": "Cyfrin_square.jpg",
+    "protocol_name": "Avant Max",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Dacian"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Jorge"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Cyfrin",
+        "logo_square": "Cyfrin_square.jpg"
+    },
+    "protocols_protocol": {
+        "name": "Avant Max",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

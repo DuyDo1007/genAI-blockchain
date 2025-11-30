@@ -1,0 +1,45 @@
+{
+    "id": 62878,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 30,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3455,
+    "title": "[L-01] `ContractURIUpdated` Event Does Not Follow EIP-7572 Standard",
+    "content": "\n## Severity\n\nLow Risk\n\n## Description\n\nThe `ContractURIUpdated` event in the `MonsterNFT` contract does not follow the standard defined in [eip-7572](https://eips.ethereum.org/EIPS/eip-7572). The current implementation uses `event ContractURIUpdated(string uri);` while the EIP-7572 standard expects `event ContractURIUpdated();` without parameters. This non-standard event signature will cause marketplaces like [OpenSea](https://docs.opensea.io/docs/contract-level-metadata) to miss contract URI update events, leading to outdated metadata display.\n\n## Location of Affected Code\n\nFile: [src/MonsterNFT.sol#L50](https://github.com/SlothFi/nft-contract/blob/94226da94ef06ceeec906844e5b261b7934ee34a/src/MonsterNFT.sol#L50)\n\n```solidity\nevent ContractURIUpdated(string uri);\n```\n\n## Impact\n\nThe non-standard event signature causes marketplaces to miss contract URI update events, resulting in outdated metadata display, inconsistent information, reduced marketplace compatibility with OpenSea and other platforms, and a poor user experience where contract metadata updates are not reflected in marketplace listings.\n\n## Recommendation\n\nModify the event definition to follow the EIP-7572 standard:\n\n```solidity\nevent ContractURIUpdated();\n```\n\nUpdate the `setContractURI()` function to emit the event without parameters:\n\n```solidity\nfunction setContractURI(string calldata uri) external onlyRole(MANAGER_ROLE) {\n    _contractURIValue = uri;\n    emit ContractURIUpdated();\n}\n```\n\n## Team Response\n\nFixed.\n\n",
+    "summary": "",
+    "report_date": "2025-10-09T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/shieldify-security/audits-portfolio-md/blob/main/Spellborne-Security-Review.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "l-01-contracturiupdated-event-does-not-follow-eip-7572-standard-shieldify-none-spellborne-markdown",
+    "firm_name": "Shieldify",
+    "firm_logo_square": "Shieldify_square.png",
+    "protocol_name": "Spellborne",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Shieldify Security"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Shieldify",
+        "logo_square": "Shieldify_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Spellborne",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

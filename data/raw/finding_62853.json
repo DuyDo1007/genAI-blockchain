@@ -1,0 +1,45 @@
+{
+    "id": 62853,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 30,
+    "impact": "MEDIUM",
+    "finders_count": 1,
+    "protocol_id": 3449,
+    "title": "[M-03] Solver Offboarding Can Block Invoice Settlement",
+    "content": "\n## Severity\n\nMedium Risk\n\n## Description\n\nThe `settleInvoice()` function requires that the solver linked to the invoice is still active by calling `_isSolverActive(solver)`. If the solver has been offboarded after the invoice was created, settlement reverts with `SM_SolverInactive()`. This creates a situation where invoices tied to previously active solvers can no longer be settled, even though work was completed and funds were credited. The vulnerability arises because solver activity is checked at settlement time instead of at invoice creation time.\n\n## Location of Affected Code\n\nFile: [InvoiceManager.sol](https://github.com/etherspot/etherspot-modular-accounts/blob/9019f2a78c36e74bdb1df4029672998cb4631162/src/invoice_manager/InvoiceManager.sol#L153)\n\n```solidity\n function settleInvoice(address _sessionKey) external onlySettlerOrLinkedWallet(_sessionKey) nonReentrant {\n      Invoice storage invoice = invoices[_sessionKey];\n      if (invoice.createdAt == 0) revert IM_InvoiceNotFound();\n\n      bytes32 bidHash = invoice.data.bidHash;\n      address solver = invoice.data.solver;\n      if (!_isSolverActive(solver)) revert SM_SolverInactive(); //@audit\n\n      InvoiceTokenData[] storage tokens = invoiceTokenData[_sessionKey];\n      uint256 tokensLength = tokens.length;\n      uint256 invoicePulseFee = invoice.pulseFee;\n\n      // code\n}\n```\n\n## Impact\n\nInvoices belonging to solvers who were offboarded after invoice creation become permanently unclaimable. This can freeze funds within the contract, preventing both solvers and fee receivers from being paid.\n\n## Recommendation\n\nWhen offboarding solvers, check if they have pending invoices in `solverInvoices`. If pending invoices exist, block new invoice assignments but allow settlement of existing ones. Once all outstanding invoices are settled, remove the solver completely.\n\n## Team Response\n\nFixed.\n\n",
+    "summary": "\nThis bug report discusses a medium risk issue in the `settleInvoice()` function of the InvoiceManager contract. The function requires that the solver linked to the invoice is still active, but if the solver has been offboarded after the invoice was created, the settlement fails and the funds become frozen. This is because the solver's activity is only checked at settlement time, instead of at invoice creation time. The affected code can be found in the InvoiceManager.sol file. The impact of this bug is that invoices belonging to offboarded solvers become unclaimable, freezing funds within the contract. The recommendation is to check for pending invoices before offboarding a solver and to allow settlement of existing invoices before removing the solver completely. The team has responded that the bug has been fixed.",
+    "report_date": "2025-10-03T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/shieldify-security/audits-portfolio-md/blob/main/Etherspot-GasTankPaymasterModule-Extended-Security-Review.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "m-03-solver-offboarding-can-block-invoice-settlement-shieldify-none-etherspot-gastankpaymastermodule-extended-markdown",
+    "firm_name": "Shieldify",
+    "firm_logo_square": "Shieldify_square.png",
+    "protocol_name": "Etherspot Gastankpaymastermodule Extended",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Shieldify Security"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Shieldify",
+        "logo_square": "Shieldify_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Etherspot Gastankpaymastermodule Extended",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

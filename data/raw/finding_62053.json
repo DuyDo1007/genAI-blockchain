@@ -1,0 +1,50 @@
+{
+    "id": 62053,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 8,
+    "impact": "LOW",
+    "finders_count": 2,
+    "protocol_id": 3375,
+    "title": "Consider Making Forced Transfers Revert for Zero Amount  Acknowledged",
+    "content": "...\n\nExport to GitHub ...\n\nSet external GitHub Repo ...\n\nExport to Clipboard (json)\n\nExport to Clipboard (text)\n\n#### Resolution\n\nM0 acknowledged this with the following comment:\n\n> Since the ERC20’s `Transfer` event must be emitted even if the amount is `0`, we will keep the same behavior for the `ForcedTransfer` event.\n\n#### Description\n\nThe `MUSD` contract introduces forced transfers, which allow an address with the `FORCED_TRANSFER_MANAGER_ROLE` to move funds from a frozen account to a different address. Assuming all other conditions are met, forced transfers with amount zero succeed:\n\n**src/MUSD.sol:L166-L178**\n\n```\nfunction _forceTransfer(address frozenAccount, address recipient, uint256 amount) internal {\n    _revertIfInvalidRecipient(recipient);\n    _revertIfNotFrozen(frozenAccount);\n\n    emit Transfer(frozenAccount, recipient, amount);\n    emit ForcedTransfer(frozenAccount, recipient, msg.sender, amount);\n\n    if (amount == 0) return;\n\n    _revertIfInsufficientBalance(frozenAccount, balanceOf(frozenAccount), amount);\n\n    _update(frozenAccount, recipient, amount);\n}\n```\n\nThis behavior mimics regular transfers, which also succeed for amount zero – which is, in fact, mandated by the [ERC-20 specification](https://eips.ethereum.org/EIPS/eip-20):\n\n> *Note* Transfers of 0 values MUST be treated as normal transfers and fire the `Transfer` event.\n\nHowever, it is debatable whether forced transfers should indeed behave in the same way regarding zero-amount transfers: Unlike regular transfers, forced transfers move someone else’s funds without permission and should, therefore, be considered exceptional occurrences. Initiating a forced transfer without effect is most likely a mistake in the first place, and reverting might be considered beneficial in such a scenario.\n\n#### Recommendation\n\nConsider making forced transfers with amount zero revert, even if all other conditions for a forced transfer are met.",
+    "summary": "",
+    "report_date": "2025-08-01T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://diligence.consensys.io/audits/2025/08/metamask-usd-token/",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "consider-making-forced-transfers-revert-for-zero-amount-acknowledged-consensys-none-metamask-usd-token-markdown",
+    "firm_name": "ConsenSys",
+    "firm_logo_square": "consensys_square.png",
+    "protocol_name": "MetaMask USD Token",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "George Kobakhidze"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": " Heiko Fisch\n                        "
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "ConsenSys",
+        "logo_square": "consensys_square.png"
+    },
+    "protocols_protocol": {
+        "name": "MetaMask USD Token",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

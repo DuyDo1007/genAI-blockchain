@@ -1,0 +1,45 @@
+{
+    "id": 62702,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 23,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3435,
+    "title": "Misleading or Incorrect Comments",
+    "content": "##### Description\nThis issue has been identified in both `PTokenModule` and `RiskEngineModule` due to comments that do not accurately reflect the underlying code logic:\n\n- **`PTokenModule`** \n  - `_getReserveShares(...)` is described as retrieving a “block number” but actually handles the distribution of reserves.\n  - `_getBlockTimestamp()` also claims to retrieve the “block number” but returns `block.timestamp`.\n\n- **`RiskEngineModule`** \n  - `exitMarket(...)` has a line comment that says:\n    ```solidity!\n    /* Return true if the sender is not already ‘in’ the market as collateral */\n    ```\n    However, the function does not return a boolean—it checks membership and exits early if the user is not already in the market.\n\nSuch inconsistencies can mislead developers or auditors who rely on comments to understand the code.\n\n##### Recommendation\nWe recommend updating or removing incorrect comments to ensure that they accurately describe the functions’ purposes.\n",
+    "summary": "",
+    "report_date": "2025-09-18T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/mixbytes/audits_public/blob/master/NUTS%20Finance/Pike/README.md#5-misleading-or-incorrect-comments",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "misleading-or-incorrect-comments-mixbytes-none-nuts-finance-markdown",
+    "firm_name": "MixBytes",
+    "firm_logo_square": "mixbytes_square.png",
+    "protocol_name": "NUTS Finance",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "MixBytes"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "MixBytes",
+        "logo_square": "mixbytes_square.png"
+    },
+    "protocols_protocol": {
+        "name": "NUTS Finance",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

@@ -1,0 +1,45 @@
+{
+    "id": 62191,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 16,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 2031,
+    "title": "[L-04] Redemption limit bypass",
+    "content": "\n_Acknowledged_\n\n\r\nThe `redeem` function in `UsrRedemptionExtension` implements a daily redemption limit that resets every 24 hours. However, the current implementation is vulnerable to a limit bypass attack due to how the reset window is handled.\r\n\r\n```solidity\r\n    function redeem(\r\n        uint256 _amount,\r\n        address _receiver,\r\n        address _withdrawalTokenAddress\r\n    ) public whenNotPaused allowedWithdrawalToken(_withdrawalTokenAddress) onlyRole(SERVICE_ROLE) {\r\n        ...\r\n        uint256 currentTime = block.timestamp;\r\n        if (currentTime >= lastResetTime + 1 days) {\r\n            // slither-disable-start divide-before-multiply\r\n            uint256 periodsPassed = (currentTime - lastResetTime) / 1 days;\r\n            lastResetTime += periodsPassed * 1 days;\r\n            // slither-disable-end divide-before-multiply\r\n\r\n            currentRedemptionUsage = 0;\r\n\r\n            emit RedemptionLimitReset(lastResetTime);\r\n        }\r\n        ...\r\n    }\r\n```\r\n\r\nConsider the scenario:\r\n\r\n- An attacker monitors the `lastResetTime` and waits until just before the 24-hour reset window\r\n- They execute a redemption for the maximum allowed amount (e.g., 100,000 USR)\r\n- After the reset triggers (can be in the next block), they immediately execute another redemption for the maximum amount\r\n- This allows redeeming up to 2x the intended limit (e.g., 200,000 USR) within a very short timeframe\r\n\r\nAccording to the redemption extension documentation, the cap is a critical safety parameter: \r\n`Redemption Cap per 24hr = USR 100,000`.\r\n\r\nIt's recommended to implement redemption limit mechanism with rolling windows of 24 hours.\n\n\n",
+    "summary": "",
+    "report_date": "2025-08-27T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/pashov/audits/blob/master/team/md/Resolv-security-review_2024-12-09.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "l-04-redemption-limit-bypass-pashov-audit-group-none-resolv_2024-12-09-markdown_",
+    "firm_name": "Pashov Audit Group",
+    "firm_logo_square": "Pashov_square.png",
+    "protocol_name": "Resolv_2024-12-09",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Pashov Audit Group"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Pashov Audit Group",
+        "logo_square": "Pashov_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Resolv_2024-12-09",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

@@ -1,0 +1,55 @@
+{
+    "id": 62280,
+    "kind": "PDF",
+    "auditfirm_id": 6,
+    "impact": "HIGH",
+    "finders_count": 3,
+    "protocol_id": 3396,
+    "title": "Minipools can borrow from lending pool reserves that are not borrowable",
+    "content": "## Severity: High Risk\n\n## Context\nBorrowLogic.sol#L276-L283.\n\n## Description\nIn this context, unlike the borrow flow of the lending pool, we don't check whether:\n\n- The reserve is not frozen. This check is later performed when one deposits assets into the lending pool again when calling:\n  ```solidity\n  ILendingPool(vars.LendingPool).deposit(\n      underlying, true, vars.amountReceived, address(this)\n  );\n  ```\n- The reserve can be borrowed from.\n\nAdditionally, based on the assumption that it is an unbacked borrow, the following checks are omitted:\n\n- Checking that there are some collaterals.\n- The position of the mini pool is healthy (checking the health factor).\n- The amount being borrowed does not exceed what is allowed based on the total collateral, average LTV, and the total borrowed amount.\n\n## Recommendation\nMake sure `executeMiniPoolBorrow` checks whether the reserve can be borrowed from. `reserve.configuration.getBorrowingEnabled()` should return true.\n\n## Astera\nFixed in commit de7bbdc6.\n\n## Spearbit\nFix verified.",
+    "summary": "\nThe report states that there is a high-risk bug in the BorrowLogic.sol file between lines 276 and 283. In this section, there is a missing check to ensure that the reserve is not frozen before allowing a borrower to deposit assets into the lending pool. This check is later performed when assets are deposited into the pool, but it should also be done before allowing a borrower to borrow from the reserve.\n\nAdditionally, there are other checks that are not being performed in this context, such as checking for collaterals, the health of the mini pool, and the amount being borrowed does not exceed the allowed limit. The recommendation is to add a check to ensure that the reserve can be borrowed from and that the configuration for borrowing is enabled. The bug has been fixed in a recent commit and has been verified by the team.",
+    "report_date": "2025-08-29T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Astera-Spearbit-Security-Review-December-2024.pdf",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Astera-Spearbit-Security-Review-December-2024.pdf",
+    "github_link": "",
+    "pdf_link": "https://solodit-bucket.s3.amazonaws.com/storage/reports/spearbit/Astera-Spearbit-Security-Review-December-2024.pdf",
+    "pdf_page_from": 14,
+    "contest_id": "",
+    "slug": "minipools-can-borrow-from-lending-pool-reserves-that-are-not-borrowable-spearbit-none-astera-pdf",
+    "firm_name": "Spearbit",
+    "firm_logo_square": "spearbit_square.png",
+    "protocol_name": "Astera",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Saw-mon and Natalie"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Cergyk"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Jonatas Martins"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Spearbit",
+        "logo_square": "spearbit_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Astera",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

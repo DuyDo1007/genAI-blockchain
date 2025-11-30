@@ -1,0 +1,50 @@
+{
+    "id": 62345,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 11,
+    "impact": "LOW",
+    "finders_count": 2,
+    "protocol_id": 3401,
+    "title": "Natspec enhancements",
+    "content": "**Description:** * [`onUSD_Factory::deployonUSD`](https://github.com/ondoprotocol/rwa-internal/blob/a74d03f4a71bd9cac09e8223377b47f7d64ca8d4/contracts/globalMarkets/onUSDFactory.sol#L54-L76) is missing the `complianceView` parameter in its natspec.\n* [`onUSD_Factory.onUSDDeployed`](https://github.com/ondoprotocol/rwa-internal/blob/a74d03f4a71bd9cac09e8223377b47f7d64ca8d4/contracts/globalMarkets/onUSDFactory.sol#L113-L126) event is missing parameters `name`, `ticker`, and `complianceView`\n* [`GMTokenManager::constructor`](https://github.com/ondoprotocol/rwa-internal/blob/a74d03f4a71bd9cac09e8223377b47f7d64ca8d4/contracts/globalMarkets/tokenManager/GMTokenManager.sol#L140-L156) is missing `_onUsd` parameter\n* [`GMTokenManager::adminProcessMint`](https://github.com/ondoprotocol/rwa-internal/blob/a74d03f4a71bd9cac09e8223377b47f7d64ca8d4/contracts/globalMarkets/tokenManager/GMTokenManager.sol#L376-L398) is missing `gmToken` parameter\n* [`TokenPauseManager::unpauseAllTokens`](https://github.com/ondoprotocol/rwa-internal/blob/a74d03f4a71bd9cac09e8223377b47f7d64ca8d4/contracts/globalMarkets/tokenPauseManager/TokenPauseManager.sol#L105-L113): the text `Only affects tokens paused by the pauseAllTokens function` could be worded better as this is _all_ tokens.\n\n**Ondo:** Fixed in commit [`d7dc414`](https://github.com/ondoprotocol/rwa-internal/pull/471/commits/d7dc4144d42a5edb04a25814f42a677c8b798723)\n\n**Cyfrin:** Verified.",
+    "summary": "",
+    "report_date": "2025-07-14T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/solodit/solodit_content/blob/main/reports/Cyfrin/2025-07-14-cyfrin-ondo-global-markets-v2.0.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "natspec-enhancements-cyfrin-none-ondo-global-markets-markdown",
+    "firm_name": "Cyfrin",
+    "firm_logo_square": "Cyfrin_square.jpg",
+    "protocol_name": "Ondo Global Markets",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Immeas"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Al-Qa'qa'"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Cyfrin",
+        "logo_square": "Cyfrin_square.jpg"
+    },
+    "protocols_protocol": {
+        "name": "Ondo Global Markets",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

@@ -1,0 +1,50 @@
+{
+    "id": 62943,
+    "kind": "PDF",
+    "auditfirm_id": 6,
+    "impact": "LOW",
+    "finders_count": 2,
+    "protocol_id": 3463,
+    "title": "A malicious adapter could break the allocation ﬂow",
+    "content": "## Severity: Low Risk\n\n### Context\nVaultV2.sol#L519-L524\n\n### Description\nSome of the allocation ids returned are coarse allocation ids corresponding to multiple allocation routes. For example, the allocation id for a specific collateral or the allocation id for the morpho market adapter.\n\n| Parameter | Description                                | Type    |\n|-----------|--------------------------------------------|---------|\n| ai        | Allocation for i                           | uint256 |\n| cabs      | Absolute cap of allocation i               | uint128 |\n| crel      | Relative cap of allocation i                | uint128 |\n\nNow assume a malicious or buggy adapter returns a very high allocation change (even something like `type(uint128).max`). If that happens, one would not be able to allocate any funds to any other allocation id j such that \\( R_j \\) has an id in \\( R_i \\) where \\( i \\) is the allocation used in the buggy adapter, since the new allocation including the change would be bigger than a value that could fit into a uint128 and thus bigger than \\( cabs_i \\).\n\nAn example would be for the specific collateral \\( C_i \\). If the above scenario happens, the vault would not be able to allocate to any market using any morpho adapter if the market parameters use that specific collateral.\n\n### Recommendation\nPerhaps bound checks could be performed on the allocation changes. The checks mixed with some time and estimate analysis should be performed to ensure the above issue could not happen within a certain time range. But even this might not cover all the potential cases.\n\nIt should also be noted that the above could only happen in some extreme cases when the values \\( cabs_i \\) were already at or close to maximum. If they were low enough, one could remove the buggy adapter and adjust the caps for any incorrect amount of allocation change introduced by the buggy adapter. This change would need to be applied to all \\( j \\) such that \\( R_j \\cap R_i \\neq \\emptyset \\).\n\n### Morpho\nAcknowledged.\n\n### Spearbit\nAcknowledged.",
+    "summary": "",
+    "report_date": "2025-10-13T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Morpho-Vaults-v2-fixes-Spearbit-Security-Review-August-2025.pdf",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Morpho-Vaults-v2-fixes-Spearbit-Security-Review-August-2025.pdf",
+    "github_link": "",
+    "pdf_link": "https://solodit-bucket.s3.amazonaws.com/storage/reports/spearbit/Morpho-Vaults-v2-fixes-Spearbit-Security-Review-August-2025.pdf",
+    "pdf_page_from": 13,
+    "contest_id": "",
+    "slug": "a-malicious-adapter-could-break-the-allocation-flow-spearbit-none-morpho-vaults-v2-fix-review-pdf",
+    "firm_name": "Spearbit",
+    "firm_logo_square": "spearbit_square.png",
+    "protocol_name": "Morpho Vaults v2 Fix Review",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Saw-mon and Natalie"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "MiloTruck"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Spearbit",
+        "logo_square": "spearbit_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Morpho Vaults v2 Fix Review",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

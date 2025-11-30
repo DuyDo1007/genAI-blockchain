@@ -1,0 +1,60 @@
+{
+    "id": 62158,
+    "kind": "PDF",
+    "auditfirm_id": 6,
+    "impact": "LOW",
+    "finders_count": 4,
+    "protocol_id": 3384,
+    "title": "checkRateInBound is only performed on the new set of orders getting added to the orderbook",
+    "content": "## Severity: Low Risk\n\n## Context\n`MarginViewUtils.sol#L121-L126`\n\n## Description\nThe `checkRateInBound` function is only performed on the new set of orders getting added to the orderbook. This is one of the main ingredients of the proofs in the Boros research paper. For the proof to be sound, one needs to enforce that only orders within the bounds provided by `_calcRateBound` can be matched at all times.\n\nThe check performed in this context in `_checkMargin` only guarantees that the new set of orders getting added to the corresponding order books have their rates within the provided bounds (these bounds depend on the state of the market and timestamp and thus can change). \n\nLet's call the set of bad open orders of user `u` which fall outside of the required bound `Ob,u(t, S)`, where `t` is the timestamp and `S` is the state of the market. \n\nThere is a functionality that allows an authorized user to call `market hut` to purge out of bound orders for a set of markets, potentially guaranteeing that for all users at that timestamp `tp`, `Ob,u(tp+, S) = ∅` (where `tp+` represents the timestamp `tp` after the purge call). \n\nThen, when a user calls `orderAndOtc` at the same timestamp, one could deduce that `Ob,u(tp+, S) = ∅` because of the check in `_checkMargin`. \n\nHowever, time could pass, and just before the next purge call, the set `Ob,u(tp+, S)` could start having some elements. At this point, if someone calls `orderAndOtc` to match against those out of bound bad orders, since the bound check is not performed in the matching route, those out of bound orders could get matched, thus breaking one of the invariant assumptions of the paper.\n\n## Recommendation\nTo fully guarantee the invariant assumption in Proposition 5.2 of the Boros research paper, one should perform the bound checks for the rates during order matching.\n\n## Pendle Finance\nAcknowledged.\n\n## Spearbit\nAcknowledged.",
+    "summary": "",
+    "report_date": "2025-08-22T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Pendle-Spearbit-Security-Review-August-2025.pdf",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Pendle-Spearbit-Security-Review-August-2025.pdf",
+    "github_link": "",
+    "pdf_link": "https://solodit-bucket.s3.amazonaws.com/storage/reports/spearbit/Pendle-Spearbit-Security-Review-August-2025.pdf",
+    "pdf_page_from": 41,
+    "contest_id": "",
+    "slug": "checkrateinbound-is-only-performed-on-the-new-set-of-orders-getting-added-to-the-orderbook-spearbit-none-pendle-core-v3-pdf",
+    "firm_name": "Spearbit",
+    "firm_logo_square": "spearbit_square.png",
+    "protocol_name": "Pendle Core v3",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Saw-mon and Natalie"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Ethan"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Desmond Ho"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "RustyRabbit"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Spearbit",
+        "logo_square": "spearbit_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Pendle Core v3",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

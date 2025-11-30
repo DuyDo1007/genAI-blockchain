@@ -1,0 +1,50 @@
+{
+    "id": 62335,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 11,
+    "impact": "LOW",
+    "finders_count": 2,
+    "protocol_id": 3401,
+    "title": "`guardian` missing `PAUSER_ROLE` grant in `onUSD` deployment",
+    "content": "**Description:** Deployment of the `onUSD` token is handled via the `onUSDFactory`, which sets up the token as an upgradeable proxy using the transparent proxy pattern (EIP-1967).\n\nAs documented in the contract comments, the `guardian` address is expected to be granted both the `DEFAULT_ADMIN_ROLE` and `PAUSER_ROLE`:\n\n[globalMarkets/onUSDFactory.sol#L33-36](https://github.com/ondoprotocol/rwa-internal/blob/a74d03f4a71bd9cac09e8223377b47f7d64ca8d4/contracts/globalMarkets/onUSDFactory.sol#L33-L36)\n\n```solidity\n/**\n...\n *         Following the above mentioned deployment, the address of the onUSD_Factory contract will:\n *         i) Grant the `DEFAULT_ADMIN_ROLE` & PAUSER_ROLE to the `guardian` address <<----------------\n *         ii) Revoke the `MINTER_ROLE`, `PAUSER_ROLE` & `DEFAULT_ADMIN_ROLE` from address(this).\n *         iii) Transfer ownership of the ProxyAdmin to that of the `guardian` address.\n */\n```\n\nHowever, in the actual deployment logic, only the `DEFAULT_ADMIN_ROLE` is granted to the `guardian`. The `PAUSER_ROLE` is omitted:\n\n[globalMarkets/onUSDFactory.sol#L88](https://github.com/ondoprotocol/rwa-internal/blob/a74d03f4a71bd9cac09e8223377b47f7d64ca8d4/contracts/globalMarkets/onUSDFactory.sol#L88)\n\n```solidity\n  function deployonUSD( ... ) external onlyGuardian returns (address, address, address) {\n    ...\n\n    // @audit `PAUSER_ROLE` not granted to guardian\n>>  onusdProxied.grantRole(DEFAULT_ADMIN_ROLE, guardian);\n\n    onusdProxied.revokeRole(MINTER_ROLE, address(this));\n    onusdProxied.revokeRole(PAUSER_ROLE, address(this));\n    onusdProxied.revokeRole(DEFAULT_ADMIN_ROLE, address(this));\n\n    onusdProxyAdmin.transferOwnership(guardian);\n    assert(onusdProxyAdmin.owner() == guardian);\n    initialized = true;\n    emit onUSDDeployed( ... );\n\n    return ( ... );\n  }\n```\n\nAs a result, deployment completes without the `guardian` address having the `PAUSER_ROLE` in the `onUSD` token contract, contrary to the intended and documented behavior.\n\n\n**Impact:** The `guardian` will not have the `PAUSER_ROLE` in the deployed `onUSD` token contract. This prevents them from pausing the token immediately after deployment, potentially limiting their ability to respond to emergencies or enforce compliance controls. However, since the guardian retains the `DEFAULT_ADMIN_ROLE`, they can manually grant themselves the `PAUSER_ROLE` later. Still, this deviates from the intended one-step initialization flow and introduces the risk of operational oversight.\n\n**Recommended Mitigation:** Grant the `PAUSER_ROLE` to the `guardian` address immediately after assigning the `DEFAULT_ADMIN_ROLE`, to match both the contract’s intended behavior and its documentation:\n\n```diff\n  onusdProxied.initialize(name, ticker, complianceView);\n\n  onusdProxied.grantRole(DEFAULT_ADMIN_ROLE, guardian);\n+ onusdProxied.grantRole(PAUSER_ROLE, guardian);\n\n  onusdProxied.revokeRole(MINTER_ROLE, address(this));\n  onusdProxied.revokeRole(PAUSER_ROLE, address(this));\n```\n\n**Ondo:** Fixed in commit [`b13a651`](https://github.com/ondoprotocol/rwa-internal/pull/472/commits/b13a651ae927e972a5c1478080fbe37e85409071).  It's the comment that is incorrect here - we only want to grant the default admin role, as it is temporarily used by the deployment EOA to configure the contract properly. Once configured, the default admin is renounced. If the pauser was also granted to the EOA on deployment it would just require another call to renounce\n\n**Cyfrin:** Verified. Comment removed.",
+    "summary": "",
+    "report_date": "2025-07-14T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/solodit/solodit_content/blob/main/reports/Cyfrin/2025-07-14-cyfrin-ondo-global-markets-v2.0.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "guardian-missing-pauser_role-grant-in-onusd-deployment-cyfrin-none-ondo-global-markets-markdown",
+    "firm_name": "Cyfrin",
+    "firm_logo_square": "Cyfrin_square.jpg",
+    "protocol_name": "Ondo Global Markets",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Immeas"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Al-Qa'qa'"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Cyfrin",
+        "logo_square": "Cyfrin_square.jpg"
+    },
+    "protocols_protocol": {
+        "name": "Ondo Global Markets",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

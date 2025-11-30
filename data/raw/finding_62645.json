@@ -1,0 +1,45 @@
+{
+    "id": 62645,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 30,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3429,
+    "title": "[L-02] Absence of Storage Gaps Will Lead to Storage Collision in the Upgradable Contracts",
+    "content": "\n## Severity\n\nLow Risk\n\n## Description\n\nWhen contracts upgrade their logic, a storage collision may occur if any other storage variables are added to support the new logic. That's where storage gaps and namespaced storage come into play. When put and used correctly, they protect the upgraded system of storage collision.\n\nThis is not the case with both `BvtRewardVault` and `BondDealer` contracts, which are upgradable but don't support either storage gaps or namespaced storage.\n\n## Location of Affected Code\n\nFile: [src/BvtRewardVault.sol](https://github.com/batoshidao/berabtc-vault-token/blob/c68f412b3c7dfd99d3f6302a42bdf772ededb2a3/src/BvtRewardVault.sol)\n\nFile: [src/BondDealer.sol](https://github.com/batoshidao/berabtc-vault-token/blob/c68f412b3c7dfd99d3f6302a42bdf772ededb2a3/src/BondDealer.sol)\n\n## Impact\n\nWhen the contracts are upgraded and new logic with new storage variables is added, a storage collision will occur, resulting in an unusable protocol.\n\n## Recommendation\n\nEither add storage gaps or namespaced storage.\n\n## Team Response\n\nFixed.\n\n",
+    "summary": "",
+    "report_date": "2025-09-17T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/shieldify-security/audits-portfolio-md/blob/main/Terplayer-BVT-Staking&Distribution-Security-Review.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "l-02-absence-of-storage-gaps-will-lead-to-storage-collision-in-the-upgradable-contracts-shieldify-none-terplayer-bvt-stakingdistribution-markdown",
+    "firm_name": "Shieldify",
+    "firm_logo_square": "Shieldify_square.png",
+    "protocol_name": "Terplayer Bvt Staking&Distribution",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Shieldify Security"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Shieldify",
+        "logo_square": "Shieldify_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Terplayer Bvt Staking&Distribution",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

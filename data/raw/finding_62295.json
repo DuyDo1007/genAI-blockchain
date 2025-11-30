@@ -1,0 +1,55 @@
+{
+    "id": 62295,
+    "kind": "PDF",
+    "auditfirm_id": 6,
+    "impact": "MEDIUM",
+    "finders_count": 3,
+    "protocol_id": 3396,
+    "title": "variableBorrowIndex is only updated in _updateIndexes of the mini pool if currentLiquidityRate",
+    "content": "## Non-Zero Condition Review\n\n**Severity:** Medium Risk  \n**Context:** MiniPoolReserveLogic.sol#L320-L340  \n\n**Description:**  \nThe second `if` block is nested in this context, although it is not nested in the lending pool's `ReserveLogic` library (in Aave v2 it is nested):\n\n```solidity\nif (currentLiquidityRate != 0) {\n    // ...\n    if (scaledVariableDebt != 0) {\n        // ...\n    }\n}\n```\n\nIt is possible that `scaledVariableDebt` is non-zero even when `currentLiquidityRate` is 0 due to rounding errors or, for example, when both the `Cod3x` and reserve's owner's reserve factors sum up to 100%.\n\n**Recommendation:**  \nMake sure the `if` blocks are not nested and let the index updates happen separately:\n\n```solidity\nif (currentLiquidityRate != 0) {\n    // ...\n}\nif (scaledVariableDebt != 0) {\n    // ...\n}\n```\n\n**Astera:** Fixed in commit 5ddd6f4b.  \n**Spearbit:** Fix verified.",
+    "summary": "\nThe bug report is about a medium risk issue in a code called MiniPoolReserveLogic.sol. The code has a nested \"if\" block that may cause problems. This means that one \"if\" statement is inside another \"if\" statement. This is not how it is supposed to be in the Aave v2 code. It is possible that this nested \"if\" block can cause issues due to rounding errors or other factors. The recommendation is to fix the code by separating the \"if\" blocks and updating the index separately. The bug has been fixed in a commit called 5ddd6f4b and has been verified by Spearbit.",
+    "report_date": "2025-08-29T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Astera-Spearbit-Security-Review-December-2024.pdf",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Astera-Spearbit-Security-Review-December-2024.pdf",
+    "github_link": "",
+    "pdf_link": "https://solodit-bucket.s3.amazonaws.com/storage/reports/spearbit/Astera-Spearbit-Security-Review-December-2024.pdf",
+    "pdf_page_from": 29,
+    "contest_id": "",
+    "slug": "variableborrowindex-is-only-updated-in-_updateindexes-of-the-mini-pool-if-currentliquidityrate-spearbit-none-astera-pdf",
+    "firm_name": "Spearbit",
+    "firm_logo_square": "spearbit_square.png",
+    "protocol_name": "Astera",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Saw-mon and Natalie"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Cergyk"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Jonatas Martins"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Spearbit",
+        "logo_square": "spearbit_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Astera",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

@@ -1,0 +1,45 @@
+{
+    "id": 62743,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 30,
+    "impact": "MEDIUM",
+    "finders_count": 1,
+    "protocol_id": 3440,
+    "title": "[M-04] VRF Callback Scales with Player Count Can Lead to OOG and Stuck `WaitingVRF`",
+    "content": "\n## Severity\n\nMedium Risk\n\n## Description\n\nIn `Revolver` the `randomNumberCallback(uint256 requestId, uint256 randomNumber)` calls `_checkSolePlayer(round)` every callback.\n\nHowever, the `_checkSolePlayer()` function iterates all active cells and then all players in those cells:\n\n```solidity\nfor (uint256 i = 1; i <= NUM_CELLS; ++i) {\n    Cell storage cell = round.cells[i];\n    if (!cell.isActive || cell.players.length == 0) continue;\n    uint256 playersLength = cell.players.length;\n    for (uint256 j = 0; j < playersLength; ++j) {\n        address p = cell.players[j];\n        if (cell.stakeByPlayer[p] == 0) continue;\n        // code\n    }\n}\n```\n\nWith enough players, this scan exceeds the tx gas budget and reverts. The revert occurs before settlement logic; `status` remains `WaitingVRF`.\n\nThis results in a state where rounds with thousands of active players can’t progress past the VRF callback. The contract stays in `WaitingVRF`; no further eliminations; no settlement; funds are effectively stuck until an upgrade/migration.\n\nLet's do some quick math on how many players this bug requires:\n\n- `_checkSolePlayer()` does ~2 SLOADs per player (`players[j]` + `stakeByPlayer[p]`) + loop overhead ≈ **~5k gas per player** (rough order).\n- With a ~30M gas envelope, OOG around **~6,000 active players** across the still-active cells: `30,000,000 / 5,000 ≈ 6k`.\n\n## Location of Affected Code:\n\nFile: [contracts/Revolver.sol#L531](https://github.com/xgrisha666x/revolver-contract/blob/b9c318f97f10a4f496bda8959aeb90696402e114/contracts/Revolver.sol#L531)\n\n```solidity\nfunction randomNumberCallback( uint256 requestId, uint256 randomNumber ) external onlyVRFSystem {\n    uint256 roundId = vrfRequestToRoundId[requestId];\n    Round storage round = rounds[roundId];\n    if (round.status != RoundStatus.WaitingVRF) revert InvalidState();\n    // ... eliminate a cell, decrement activeCellsCount, emit ...\n\n    // ❌ Unbounded scan over all players in all active cells\n    if (_checkSolePlayer(round)) {\n        round.status = RoundStatus.Finished;\n        finishGameProportional(roundId);\n        return;\n    }\n\n    if (round.activeCellsCount == 1) {\n        round.status = RoundStatus.Finished;\n        distributePayout(roundId);\n    } else {\n        round.status = RoundStatus.Gathering;\n        round.startTimestamp = block.timestamp;\n        round.locked = true;\n    }\n}\n```\n\nFile: [contracts/Revolver.sol#L774](https://github.com/xgrisha666x/revolver-contract/blob/b9c318f97f10a4f496bda8959aeb90696402e114/contracts/Revolver.sol#L774)\n\n```solidity\nfunction _checkSolePlayer(Round storage round) private view returns (bool) {\n    address solePlayer;\n    bool foundPlayer = false;\n\n    for (uint256 i = 1; i <= NUM_CELLS; ++i) {\n        Cell storage cell = round.cells[i];\n        if (!cell.isActive || cell.players.length == 0) continue;\n\n        uint256 playersLength = cell.players.length;\n        for (uint256 j = 0; j < playersLength; ++j) {\n            address p = cell.players[j];\n            if (cell.stakeByPlayer[p] == 0) continue;\n\n            if (!foundPlayer) {\n                solePlayer = p;\n                foundPlayer = true;\n            } else if (p != solePlayer) {\n                return false; // Multiple players found\n            }\n        }\n    }\n    return foundPlayer;\n}\n```\n\n## Recommendation\n\n1. Remove `_checkSolePlayer()` from `randomNumberCallback()`.\n   In the callback, only:\n   - mark eliminated cell inactive,\n   - decrement `activeCellsCount`,\n   - set `status/locked`,\n   - emit event.\n2. Decide whether to finish outside the callback (e.g., next backend tick) or maintain an `O(1)` counter:\n   - Track `uniqueActivePlayers` (increment on first active stake, decrement when player loses last active stake), or\n   - Track per-player `activeCellCount`/`activeStakeTotal` and adjust only for players in the eliminated cell (bounded by cell size).\n3. Consider a participant cap per round/cell if you retain any per-player scans.\n\n## Team Response\n\nFixed.\n\n",
+    "summary": "\nIn the game `Revolver`, there is a bug that causes the game to get stuck in a state called `WaitingVRF`, where no further progress can be made. This happens when there are thousands of active players in the game. The bug is caused by a function called `_checkSolePlayer()` which scans all active cells and all players in those cells. This scan uses up too much gas and the game reverts, resulting in the game being stuck. The bug can be fixed by removing the `_checkSolePlayer()` function from the callback and making some other changes to the code. The team has responded to the bug report and has fixed the issue. ",
+    "report_date": "2025-09-24T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/shieldify-security/audits-portfolio-md/blob/main/SoulsClub-Revolver-Security-Review.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "m-04-vrf-callback-scales-with-player-count-can-lead-to-oog-and-stuck-waitingvrf-shieldify-none-soulsclub-revolver-markdown",
+    "firm_name": "Shieldify",
+    "firm_logo_square": "Shieldify_square.png",
+    "protocol_name": "Soulsclub Revolver",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Shieldify Security"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Shieldify",
+        "logo_square": "Shieldify_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Soulsclub Revolver",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

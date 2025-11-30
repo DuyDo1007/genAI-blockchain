@@ -1,0 +1,55 @@
+{
+    "id": 62005,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 37,
+    "impact": "LOW",
+    "finders_count": 3,
+    "protocol_id": 3365,
+    "title": "Misplaced `sleep()` Function",
+    "content": "**Update**\nMarked as \"Fixed\" by the client. Addressed in: `fca8eeab8c45cb3f0e3417ebda18d0bd746e5168`. The client provided the following explanation:\n\n> Fix sleep timing in gas estimation retry loop\n\n**File(s) affected:**`hooks/react-query/mutations/useProcessTransaction.ts`\n\n**Description:** In `useProcessTransaction()` , after the gas estimate has been properly determined, the code unnecessarily sleeps for two seconds, immediately before the break statement. We understand that the delay should be in the catch block, in the case where the gas estimate was unsuccessful. As it is now, there will be an unnecessary delay in the client app following a successful gas estimation.\n\n**Recommendation:** Move the `sleep(2000)` line to the catch block.",
+    "summary": "",
+    "report_date": "2025-08-26T12:12:16.438Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://certificate.quantstamp.com/full/saucer-swap-wallet/d30efab8-8abd-46b1-bba5-6360b87e3aa3/index.html",
+    "sponsor_name": "",
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://certificate.quantstamp.com/full/saucer-swap-wallet/d30efab8-8abd-46b1-bba5-6360b87e3aa3/index.html",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "misplaced-sleep-function-quantstamp-saucerswap-wallet-markdown",
+    "firm_name": "Quantstamp",
+    "firm_logo_square": "quantstamp_square.png",
+    "protocol_name": "SaucerSwap Wallet",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Albert Heinle"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Darren Jensen"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Jonathan Mevs"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Quantstamp",
+        "logo_square": "quantstamp_square.png"
+    },
+    "protocols_protocol": {
+        "name": "SaucerSwap Wallet",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

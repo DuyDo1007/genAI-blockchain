@@ -1,0 +1,45 @@
+{
+    "id": 62179,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 16,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3389,
+    "title": "[L-06] `setFlowCaps()` can be front-run to increase effective cap usage",
+    "content": "\n_Acknowledged_\n\nThe `setFlowCaps()` function in `PublicAllocator` directly sets new `FlowCaps` values. This allows a malicious actor to front-run an update by submitting a `reallocateTo()` that fully uses the existing cap values. Then, once the update is applied, the actor can use the new caps again.\n\n```solidity\nfunction setFlowCaps(address vault, FlowCapsConfig[] calldata config) external onlyAdminOrVaultOwner(vault) {\n    for (uint256 i = 0; i < config.length; i++) {\n        IERC4626 id = config[i].id;\n        if (!IEulerEarn(vault).config(id).enabled && (config[i].caps.maxIn > 0 || config[i].caps.maxOut > 0)) {\n            revert ErrorsLib.MarketNotEnabled(id);\n        }\n        if (config[i].caps.maxIn > MAX_SETTABLE_FLOW_CAP || config[i].caps.maxOut > MAX_SETTABLE_FLOW_CAP) {\n            revert ErrorsLib.MaxSettableFlowCapExceeded();\n        }\n        flowCaps[vault][id] = config[i].caps;\n    }\n\n    emit EventsLib.SetFlowCaps(_msgSender(), vault, config);\n}\n```\n\nFor example, consider the following scenario: the current `maxIn` is 280, and the admin intends to reduce it to 250. An attacker can front-run with a `reallocateTo()` that deposits 280. Then, the admin’s `setFlowCaps()` overwrites the state with `maxIn = 250` again. This allows another 250 to be deposited into the strategy. As a result, a total of `280 + 250 = 530` would effectively flow in (which is far more than the admin intended).\n\nTo fix this issue, consider not directly assigning the flow caps but instead passing the changes (increases/decreases) as parameters.\n\n\n### Euler comments\n\nWe acknowledge the finding, will keep as is. Behaviour is the same in the original codebase and we prefer to preserve compatibility.\n\n\n\n",
+    "summary": "",
+    "report_date": "2025-08-27T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/pashov/audits/blob/master/team/md/EulerEarn-security-review_2025-07-25.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "l-06-setflowcaps-can-be-front-run-to-increase-effective-cap-usage-pashov-audit-group-none-eulerearn_2025-07-25-markdown",
+    "firm_name": "Pashov Audit Group",
+    "firm_logo_square": "Pashov_square.png",
+    "protocol_name": "EulerEarn_2025-07-25",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Pashov Audit Group"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Pashov Audit Group",
+        "logo_square": "Pashov_square.png"
+    },
+    "protocols_protocol": {
+        "name": "EulerEarn_2025-07-25",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

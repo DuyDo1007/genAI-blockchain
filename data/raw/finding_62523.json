@@ -1,0 +1,45 @@
+{
+    "id": 62523,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 16,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3417,
+    "title": "[L-03] Insufficient validation allows ETH transfers on visibility credits payment",
+    "content": "\nIn the payable function requestServiceExecution(), when the payment type is the credit token, we do not ensure that the msg.value is 0. Due to this, if ETH is sent along with the call, it would remain locked in the contract. The sanity check `if (msg.value != 0) revert();` should be added to prevent any user mistakes from occurring during service requests.\n```solidity\nif (paymentType == PaymentType.VISIBILITY_CREDITS) {\n            /// @dev it reverts if not enough credits\n            $.visibilityCredits.transferCredits(\n                service.visibilityId,\n                msg.sender,\n                address(this),\n                service.creditsCostAmount\n            );\n```\n\n\n\n",
+    "summary": "",
+    "report_date": "2025-09-09T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/pashov/audits/blob/master/team/md/Noodles-security-review_2025-03-11.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "l-03-insufficient-validation-allows-eth-transfers-on-visibility-credits-payment-pashov-audit-group-none-noodles_2025-03-11-markdown",
+    "firm_name": "Pashov Audit Group",
+    "firm_logo_square": "Pashov_square.png",
+    "protocol_name": "Noodles_2025-03-11",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Pashov Audit Group"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Pashov Audit Group",
+        "logo_square": "Pashov_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Noodles_2025-03-11",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

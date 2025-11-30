@@ -1,0 +1,45 @@
+{
+    "id": 62403,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 34,
+    "impact": "MEDIUM",
+    "finders_count": 1,
+    "protocol_id": 3405,
+    "title": "[LOGLAB-19] Unable to execute the final withdrawal due to utilizedAssets() not being zero",
+    "content": "**Severity:** Medium\n\n**Path:** src/vault/LogarithmVault.sol#L758-L761 \n\n**Description:** The function `LogarithmVault._isWithdrawRequestExecuted()` determines whether a specific withdrawal request can be executed. It returns a boolean variable, `isExecuted`, to indicate if the user’s request has been fulfilled. A user is allowed to execute the withdrawal only when this variable evaluates to `true`.\n\nFor the last withdrawal request, the value of `isExecuted` is determined by checking whether the `utilizedAssets()` value of the strategy contract is zero. If it is, the user is permitted to withdraw their tokens. However, an attacker can manipulate the state by front-running the execution and causing `utilizedAssets()` to remain non-zero, thereby preventing the user from completing their withdrawal.\n\nTo understand this, we examine the implementation of the function `BasisStrategy.utilizedAssets()`:\n```\nfunction utilizedAssets() public view returns (uint256) {\n    BasisStrategyStorage storage $ = _getBasisStrategyStorage();\n    return \n        $.spotManager.getAssetValue() + \n        $.hedgeManager.positionNetBalance() + \n        assetsToWithdraw(); \n}\n\nfunction assetsToWithdraw() public view returns (uint256) {\n    return IERC20(asset()).balanceOf(address(this));\n}\n```\nThe `assetsToWithdraw()` function calculates its value based on the strategy contract's token balance. An attacker can exploit this by transferring 1 wei of the asset token directly to the strategy contract, making the `utilizedAssets()` return a value greater than zero. As a result, `isExecuted` will evaluate to `false`, blocking the final withdrawal request.\n\nAnother way to exploit this involves manipulating `the positionNetBalance()` value. An attacker can transfer some collateral token directly to the `OffChainPositionManager` contract, possibly causing `positionNetBalance()` to return a non-zero value. Here's the relevant implementation:\n```\nfunction positionNetBalance() public view virtual override returns (uint256) {\n    OffChainPositionManagerStorage storage $ = _getOffChainPositionManagerStorage();\n    PositionState memory state = $.positionStates[$.currentRound];\n        \n    uint256 initialNetBalance = state.netBalance \n                              + $.pendingCollateralIncrease \n                              + idleCollateralAmount(); \n    ... \n}\n\nfunction idleCollateralAmount() public view returns (uint256) {\n    return IERC20(collateralToken()).balanceOf(address(this));\n}\n```\nIn both cases, by transferring minimal tokens to the respective contracts, the attacker can artificially inflate the `utilizedAssets()` value, thereby preventing the execution of the last withdrawal request.\n```\nif (isLast) {\n    // last withdraw is claimable when utilized assets is 0\n    isExecuted = IStrategy(strategy()).utilizedAssets() == 0;\n} else {\n```\n\n**Remediation:**  Consider clearing the idle assets within the strategy and hedge manager contract before checking if the `utilizedAssets()` is equal to zero. \n\n**Status:** Fixed\n\n- - -",
+    "summary": "\nThis bug report discusses an issue with the `LogarithmVault._isWithdrawRequestExecuted()` function in the `LogarithmVault.sol` file. This function determines whether a user's withdrawal request can be executed and returns a boolean variable called `isExecuted`. However, an attacker can manipulate the state by transferring small amounts of tokens to the strategy and hedge manager contracts, causing the `utilizedAssets()` value to remain non-zero. This prevents the final withdrawal request from being executed. The report suggests clearing idle assets before checking the `utilizedAssets()` value as a possible solution. This bug has been fixed.",
+    "report_date": "2024-11-25T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/solodit/solodit_content/blob/main/reports/Hexens/2024-11-25-BasisOS.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "loglab-19-unable-to-execute-the-final-withdrawal-due-to-utilizedassets-not-being-zero-hexens-none-basisos-markdown",
+    "firm_name": "Hexens",
+    "firm_logo_square": "Hexens_square.png",
+    "protocol_name": "Basisos",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Hexens"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Hexens",
+        "logo_square": "Hexens_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Basisos",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

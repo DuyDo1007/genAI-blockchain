@@ -1,0 +1,45 @@
+{
+    "id": 62613,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 16,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3421,
+    "title": "[L-16] Incorrect packet burning mechanism in bundle allocation",
+    "content": "\n_Acknowledged_\n\nThe `CardAllocationPool.addCardBundlesToPacketPool()` function **burns 1 packet for each card in a bundle**. \n\nThis creates a mismatch between packets and card bundles, as the protocol's design shows that 1 packet should correspond to 1 card bundle (which may contain multiple cards).\n\nBurning 1 packet for each card in a bundle can lead to incorrectly burning multiple packets or burning packets that are not of the same `packetType` as the added card bundle.\n\n```solidity\nfunction addCardBundlesToPacketPool(\n    ...\n) external noPendingRandomness onlyRole(redeemManagerRoleId) {\n    --- SNIPPED ---\n    for (uint256 i = 0; i < cardBundles.length; i++) {\n@>      RipFunPacks(packetNFTAddress).burnFromInventory(packetIds[i]);\n        IERC721(cardNFTAddress).safeTransferFrom(msg.sender, address(this), cardBundles[i]);\n    }\n\n    emit CardsAddedToPool(packetType, cardBundles, bundleProvenance);\n}\n```\n\nRecommendation:\nModify the function to burn one packet per bundle rather than per card.\n\nIf the intention is to burn 1 packet per card (assuming each packet corresponds to 1 card), then the `packetType` of each packet should be validated to ensure it matches the bundle being added.\n\n\n\n",
+    "summary": "",
+    "report_date": "2025-09-11T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/pashov/audits/blob/master/team/md/RipIt-security-review_2025-05-10.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "l-16-incorrect-packet-burning-mechanism-in-bundle-allocation-pashov-audit-group-none-ripit_2025-05-10-markdown",
+    "firm_name": "Pashov Audit Group",
+    "firm_logo_square": "Pashov_square.png",
+    "protocol_name": "RipIt_2025-05-10",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Pashov Audit Group"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Pashov Audit Group",
+        "logo_square": "Pashov_square.png"
+    },
+    "protocols_protocol": {
+        "name": "RipIt_2025-05-10",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

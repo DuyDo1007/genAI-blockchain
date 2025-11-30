@@ -1,0 +1,45 @@
+{
+    "id": 62954,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 16,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3464,
+    "title": "[L-08] Bytecode validation missing for adapter instances",
+    "content": "\n_Resolved_\n\nWhen a vault is created via the `createVault` function, the factory verifies that the adapter address provided by the user corresponds to a registered adapter. However, it does **not verify** whether the adapter's associated bytecode (template) is still valid and present in the factory’s `adapterTypeByteCode` mapping.\n\nThe system allows the contract owner to \"delete\" (deactivate) adapter templates by clearing their bytecode from `adapterTypeByteCode`. Nevertheless, a malicious user can pre-deploy multiple adapter instances (using a soon-to-be-deprecated adapter type), and after the bytecode has been deleted by the owner, these instances can still be used for vault creation. This allows the bypassing of owner-intended deactivation of adapter types, leading to the unintended creation of vaults with deprecated adapter logic.\n\nThe issue arises from missing logic that should enforce that **only adapter instances with an active (undeleted) adapter type bytecode can be used**.\n\n**Recommendations**\n\nAdd a check in the `createVault` function to ensure that the adapter's associated type ID still has valid bytecode in the factory's storage. Specifically:\n\n```solidity\nbytes memory adapterBytecode = adapterTypeByteCode[_adapterInfo.adapterTypeId];\nrequire(adapterBytecode.length != 0, \"BDE\"); // Bytecode Deleted\n```\n\nThis ensures that even if an adapter instance was deployed prior to bytecode deletion, it cannot be used to create new vaults after its template has been deactivated.\n\n\n\n",
+    "summary": "",
+    "report_date": "2025-10-13T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/pashov/audits/blob/master/team/md/Saffron-security-review_2025-07-31.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "l-08-bytecode-validation-missing-for-adapter-instances-pashov-audit-group-none-saffron_2025-07-31-markdown",
+    "firm_name": "Pashov Audit Group",
+    "firm_logo_square": "Pashov_square.png",
+    "protocol_name": "Saffron_2025-07-31",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Pashov Audit Group"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Pashov Audit Group",
+        "logo_square": "Pashov_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Saffron_2025-07-31",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

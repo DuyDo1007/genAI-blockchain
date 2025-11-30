@@ -1,0 +1,45 @@
+{
+    "id": 62430,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 34,
+    "impact": "MEDIUM",
+    "finders_count": 1,
+    "protocol_id": 3407,
+    "title": "[ZLS1-10] lastRewardBlock Should Be Updated to Current Block When Resuming Emissions",
+    "content": "**Severity:** Medium\n\n**Path:** contracts/ZEALInfinityPool.sol#L300-L304 \n\n**Description:** When emissions are paused and later resumed via the `setEmissionsPaused(false) `function in the `ZEALInfinityPool` contract, the `lastRewardBlock` should be updated to the current block number at the time of resumption. Failing to do so results in reward accrual during the paused period, which is incorrect.\n\nConsider the following scenario:\n\n1. At block 100, the contract is configured as follows:\n\n    - `zealPerBlock = 10`\n\n    - `totalRewards = 1000`\n\n    - `astRewardBlock = 100`\n\n    - `xZealToken.totalSupply() > 0`\n\n    - `emissionsPaused = false`\n\n2. At block `200`, the owner calls `setEmissionsPaused(true)`:\n\n    - `_updateEmissions()` is invoked in line 301:\n\n        - `blocksSince = 200 - 100 = 100`\n\n        - `pending = 100 * 10 = 1000`\n\n        - `totalRewards = 2000`\n\n        - `lastRewardBlock = 200`\n\n    - `emissionsPaused` is set to `true` in line 302.\n\n3. At block `300`, the owner calls `setEmissionsPaused(false)`:\n\n     - `_updateEmissions()` exits early due to `emissionsPaused` being `true`, so `lastRewardBlock` remains at `200`.\n\n    - `emissionsPaused` is now set to `false`.\n\n4. Still at block `300`, a user calls `stake()`, which triggers `_updateEmissions()`:\n\n    - `blocksSince = 300 - 200 = 100`\n\n    - `pending = 100 * 10 = 1000`\n\n    - `totalRewards = 3000`\n\n    - `lastRewardBlock = 300`\n\nThe issue is the rewards were incorrectly accrued for the paused period (block 200 to 300), even though emissions were halted. This happens because `lastRewardBlock` wasn't updated when emissions resumed, causing `_updateEmissions()` to include the paused period in its reward calculations.\n```\nfunction setEmissionsPaused(bool _paused) external onlyOwner {\n    _updateEmissions();\n    emissionsPaused = _paused;\n    emit EmissionsPaused(_paused);\n}\n```\n\n**Remediation:**  When `setEmissionsPaused(false)` is called, `lastRewardBlock` should be explicitly set to the current block number to ensure that no rewards are emitted for the paused interval.\n\n**Status:**   Fixed\n\n\n- - -",
+    "summary": "\nThis bug report is about a medium severity issue in a contract called ZEALInfinityPool. When the contract's emissions are paused and then resumed, the lastRewardBlock should be updated to the current block number. However, in the current state, this is not happening, resulting in incorrect reward accrual during the paused period. This can be seen in a scenario where the contract is paused at block 200, and then resumed at block 300, but rewards are still being accrued for the paused period. The bug can be fixed by explicitly setting the lastRewardBlock to the current block number when emissions are resumed. The status of this bug is currently fixed.",
+    "report_date": "2025-05-26T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/solodit/solodit_content/blob/main/reports/Hexens/2025-05-26-Zealous.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "zls1-10-lastrewardblock-should-be-updated-to-current-block-when-resuming-emissions-hexens-none-zealous-markdown",
+    "firm_name": "Hexens",
+    "firm_logo_square": "Hexens_square.png",
+    "protocol_name": "Zealous",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Hexens"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Hexens",
+        "logo_square": "Hexens_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Zealous",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

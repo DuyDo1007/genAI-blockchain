@@ -1,0 +1,45 @@
+{
+    "id": 62770,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 16,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3443,
+    "title": "[L-10] Lack of minimum redemption causes spam for `ORDER_FILLER_ROLE`",
+    "content": "\n_Resolved_\n\nCurrently in the `createRedeemOrder` function in `YuzuOrderBook`, there is a check to ensure that not more than `maxTokens` are being redeemed. But there is no such check for the minimum amount on withdrawals. Users are allowed to withdraw as little as 1 wei. This would allow spammers to create multiple `createRedeemOrder` transactions with extremely small token amounts for redemption. This is a problem because these created redeem orders are supposed to be fulfilled by the `ORDER_FILLER_ROLE`, who would call the `fillRedeemOrder` function to fulfil these orders. As the orders are very small, the `ORDER_FILLER_ROLE` could spend more on gas than the order amount being fulfilled, especially on a chain like Ethereum. Hence, this results in gas waste for the `ORDER_FILLER_ROLE`. Also, this would cause unnecessary delays for other redeem orders to be processed.\n\n**Recommendation**\n\nAdd a minimum amount for redemptions. Any amount lower than this should not be allowed to be redeemed via `createRedeemOrder`.\n\n\n\n",
+    "summary": "",
+    "report_date": "2025-09-28T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/pashov/audits/blob/master/team/md/YuzuUSD-security-review_2025-08-28.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "l-10-lack-of-minimum-redemption-causes-spam-for-order_filler_role-pashov-audit-group-none-yuzuusd_2025-08-28-markdown",
+    "firm_name": "Pashov Audit Group",
+    "firm_logo_square": "Pashov_square.png",
+    "protocol_name": "YuzuUSD_2025-08-28",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Pashov Audit Group"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Pashov Audit Group",
+        "logo_square": "Pashov_square.png"
+    },
+    "protocols_protocol": {
+        "name": "YuzuUSD_2025-08-28",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

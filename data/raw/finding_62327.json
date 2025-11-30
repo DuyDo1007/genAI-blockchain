@@ -1,0 +1,45 @@
+{
+    "id": 62327,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 16,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3400,
+    "title": "[L-03] Ghost members in ACL causing potential storage bloat",
+    "content": "\n_Resolved_\n\nThe bug occurs in `remove_role` and `set_roles` functions in acl.move, where members with all roles revoked (roles=0) remain in the `roles_by_member` LinkedTable without automatic removal, leading to accumulation of useless entries via repeated add/clear operations; this bloats storage and increases gas costs/iteration time in `get_members`, degrading performance over time.\n\nAs a recommendation, add logic in `remove_role` and `set_roles` to check if roles==0 after updates and invoke `remove_member` to purge empty entries, ensuring efficient table management without impacting existing functionality.\n\n\n\n",
+    "summary": "",
+    "report_date": "2025-09-02T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/pashov/audits/blob/master/team/md/Elixir-security-review_2025-08-17.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "l-03-ghost-members-in-acl-causing-potential-storage-bloat-pashov-audit-group-none-elixir_2025-08-17-markdown",
+    "firm_name": "Pashov Audit Group",
+    "firm_logo_square": "Pashov_square.png",
+    "protocol_name": "Elixir_2025-08-17",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Pashov Audit Group"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Pashov Audit Group",
+        "logo_square": "Pashov_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Elixir_2025-08-17",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

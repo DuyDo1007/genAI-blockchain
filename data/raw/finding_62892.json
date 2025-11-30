@@ -1,0 +1,60 @@
+{
+    "id": 62892,
+    "kind": "PDF",
+    "auditfirm_id": 6,
+    "impact": "HIGH",
+    "finders_count": 4,
+    "protocol_id": 3419,
+    "title": "RaptorCast Combined Memory Exhaustion Attack",
+    "content": "## High Risk Vulnerability Report\n\n## Severity\nHigh Risk\n\n## Context\n(No context files were provided by the reviewer)\n\n## Description\nA memory exhaustion vulnerability exists by combining two separate RaptorCast weaknesses: an unbounded pending message cache and per-decoder memory allocation amplification. A malicious validator can leverage both vulnerabilities to achieve large memory consumption by flooding the system with incomplete messages that maximize per-decoder allocation while avoiding automatic cleanup mechanisms.\n\n## Attack Synopsis\n- **Unbounded cache issue**: Unlimited decoder instance creation via unbounded cache for incomplete messages.\n- **Memory allocation amplification**: Maximizes memory consumption per decoder instance.\n- **Combined effect**: Multiplicative memory exhaustion (Max per-decoder allocation × Unlimited incomplete decoder instances).\n- **Cleanup bypass**: Incomplete messages never trigger successful decoding cleanup.\n\n## Vulnerable Code Locations\n```rust\n// udp.rs:135 - Unbounded cache enabling unlimited decoder instances\npending_message_cache: LruCache::unbounded(),\n\n// udp.rs:316-327 - Per-decoder memory allocation based on attacker-controlled app_message_len\nlet num_source_symbols = app_message_len.div_ceil(symbol_len).max(SOURCE_SYMBOLS_MIN);\nlet encoded_symbol_capacity = MAX_REDUNDANCY\n    .scale(num_source_symbols)\n    .expect(\"redundancy-scaled num_source_symbols doesn't fit in usize\");\nManagedDecoder::new(num_source_symbols, encoded_symbol_capacity, symbol_len)\n    .map(|decoder| DecoderState {\n        decoder,\n        recipient_chunks: BTreeMap::new(),\n        encoded_symbol_capacity,\n        seen_esis: bitvec![usize, Lsb0; 0; encoded_symbol_capacity], // Large per-decoder allocation\n    });\n\n// udp.rs:386-389 - Automatic cleanup only occurs on successful decoding\nlet decoded_state = self\n    .pending_message_cache\n    .pop(&key) // Cleanup only happens here, after successful decode\n    .expect(\"decoder exists\");\n```\n\n## Proof of Concept\n**Prerequisite**: Attacker must be an active validator with signature authority.\n```rust\nlet validator_keypair = malicious_validator_keys; // Requires validator stake\n// Maximize per-decoder memory allocation\nlet maximized_app_message_len = u32::MAX; // 4,294,967,295 bytes\nlet minimal_symbol_len = 960; // Small symbol size for max division result\n\n// Create unlimited incomplete decoder instances\nfor attack_iteration in 0..100_000 {\n    let unique_message_content = format!(\"incomplete_attack_{}\", attack_iteration);\n    let unique_timestamp = base_timestamp + attack_iteration;\n    let malicious_incomplete_packet = create_incomplete_chunk(\n        &validator_keypair, // Valid validator signature\n        maximized_app_message_len, // Memory amplification: Trigger max allocation\n        minimal_symbol_len, // Memory amplification: Maximize division result\n        unique_message_content, // Unbounded cache: Unique cache key\n        unique_timestamp, // Unbounded cache: Unique cache key component\n        current_epoch, // Must be active validator in epoch\n        incomplete_chunk_design, // CRITICAL: Ensure message can NEVER complete\n    );\n    send_udp_packet_to_target(malicious_incomplete_packet);\n}\n```\n\n## Attack Impact\n- **Memory Consumption**:\n  - Per-decoder allocation: ~8MB per decoder instance (worst case).\n  - Attack scaling: 1,000 decoders = 8GB, 10,000 decoders = 80GB.\n  - No automatic cleanup for incomplete messages.\n  - Attack persists until manual intervention.\n  \n- **Network Impact**:\n  - Memory exhaustion leading to OOM conditions.\n  - Node performance degradation and potential crashes.\n  - Multi-node attack possible.\n  - Consensus participation degradation.\n\n- **Attack Requirements**:\n  - Active validator status (high barrier to entry).\n  - UDP message access.\n\n## Recommendation\n1. Implement bounded cache with limits: Max decoders per validator and global memory bounds.\n2. Add timeout-based cleanup: Automatically remove incomplete decoders after timeout period.\n3. Per-validator rate limiting: Limit decoder creation rate per validator.\n4. Memory monitoring: Alert on unusual memory allocation patterns.\n5. Input validation: Reasonable limits on app_message_len and related parameters.\n\n## Category Labs\nAcknowledged. A fix is being worked on in monad issue 2092.\n\n## Spearbit\nAcknowledged.",
+    "summary": "\nA memory exhaustion vulnerability has been identified in RaptorCast, a program that allows for the transmission of data over a network. This vulnerability can be exploited by a malicious user to consume large amounts of memory by sending incomplete messages. This can lead to system crashes and performance degradation. The vulnerability can only be exploited by active validators with signature authority. The recommended solution is to implement a bounded cache with limits, add timeout-based cleanup, and implement per-validator rate limiting. A fix is being worked on by the developers.",
+    "report_date": "2025-09-19T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Monad-Spearbit-Security-Review-September-2025.pdf",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Monad-Spearbit-Security-Review-September-2025.pdf",
+    "github_link": "",
+    "pdf_link": "https://solodit-bucket.s3.amazonaws.com/storage/reports/spearbit/Monad-Spearbit-Security-Review-September-2025.pdf",
+    "pdf_page_from": 18,
+    "contest_id": "",
+    "slug": "raptorcast-combined-memory-exhaustion-attack-spearbit-none-monad-pdf",
+    "firm_name": "Spearbit",
+    "firm_logo_square": "spearbit_square.png",
+    "protocol_name": "Monad",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Haxatron"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Dtheo"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Guido Vranken"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Rikard Hjort"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Spearbit",
+        "logo_square": "spearbit_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Monad",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

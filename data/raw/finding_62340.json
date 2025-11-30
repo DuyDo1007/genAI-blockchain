@@ -1,0 +1,50 @@
+{
+    "id": 62340,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 11,
+    "impact": "LOW",
+    "finders_count": 2,
+    "protocol_id": 3401,
+    "title": "Inconsistent role for `GMTokenManager::setIssuanceHours`",
+    "content": "**Description:** The [`GMTokenManager::setIssuanceHours`](https://github.com/ondoprotocol/rwa-internal/blob/a74d03f4a71bd9cac09e8223377b47f7d64ca8d4/contracts/globalMarkets/tokenManager/GMTokenManager.sol#L400-L410) function is restricted to `CONFIGURER_ROLE`, whereas other configuration and role assignment functions across the system are typically restricted to `DEFAULT_ADMIN_ROLE`. This inconsistency may cause confusion about which roles are responsible for governance and configuration actions.\n\nConsider aligning access control by restricting `setIssuanceHours` to `DEFAULT_ADMIN_ROLE`, consistent with similar configuration functions elsewhere.\n\n**Ondo:** Fixed in commit [`3d18299`](https://github.com/ondoprotocol/rwa-internal/pull/470/commits/3d18299bab888ef204073581d92ffbc3de13ad30)\n\n**Cyfrin:** Verified. `DEFAULT_ADMIN_ROLE` is now used for `GMTokenManager::setIssuanceHours`.",
+    "summary": "",
+    "report_date": "2025-07-14T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/solodit/solodit_content/blob/main/reports/Cyfrin/2025-07-14-cyfrin-ondo-global-markets-v2.0.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "inconsistent-role-for-gmtokenmanagersetissuancehours-cyfrin-none-ondo-global-markets-markdown",
+    "firm_name": "Cyfrin",
+    "firm_logo_square": "Cyfrin_square.jpg",
+    "protocol_name": "Ondo Global Markets",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Immeas"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Al-Qa'qa'"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Cyfrin",
+        "logo_square": "Cyfrin_square.jpg"
+    },
+    "protocols_protocol": {
+        "name": "Ondo Global Markets",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

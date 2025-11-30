@@ -1,0 +1,45 @@
+{
+    "id": 62623,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 16,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3422,
+    "title": "[L-02] Emergency withdrawal cannot recover `HYPE`",
+    "content": "\n_Resolved_\n\n`emergencyWithdrawToken()` is meant to be called in the case of an emergency to withdraw tokens from the contract. However, it does not implement any logic to recover native tokens.\n\nIt is recommended to implement a mechanism to recover native tokens in the `emergencyWithdrawToken()` function.\n\n\n\n",
+    "summary": "",
+    "report_date": "2025-09-12T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/pashov/audits/blob/master/team/md/Funnel-security-review_2025-08-27.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "l-02-emergency-withdrawal-cannot-recover-hype-pashov-audit-group-none-funnel_2025-08-27-markdown",
+    "firm_name": "Pashov Audit Group",
+    "firm_logo_square": "Pashov_square.png",
+    "protocol_name": "Funnel_2025-08-27",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Pashov Audit Group"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Pashov Audit Group",
+        "logo_square": "Pashov_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Funnel_2025-08-27",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

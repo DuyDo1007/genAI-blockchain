@@ -1,0 +1,45 @@
+{
+    "id": 62547,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 16,
+    "impact": "MEDIUM",
+    "finders_count": 1,
+    "protocol_id": 3420,
+    "title": "[M-03] Inconsistent trade fees from `tradeFee` and `acceptedCurrency` mods",
+    "content": "\n_Resolved_\n\n## Severity\n\n**Impact:** Medium\n\n**Likelihood:** Medium\n\n## Description\nIn the Marketplace contract, the `tradeFee` is charged in the `acceptedCurrency`, which can be modified independently of the fee itself. \n\n```solidity\n            // Update state before external calls\n            totalPendingFees += tradeFee;\n\n            // External calls after state changes\n            // take fee from requester\n            IERC20(acceptedCurrency).transferFrom(trades[i].request.requester, address(this), tradeFee);\n```\n\n```solidity\n    /**\n     * @notice Updates the trade fee (called by MarketplaceAdmin)\n     * @dev Only callable by the MarketplaceAdmin contract\n     * @param newTradeFee New trade fee amount\n     */\n    function setTradeFee(uint256 newTradeFee) external {\n        require(msg.sender == marketplaceAdmin, \"Only marketplaceAdmin can call\");\n        tradeFee = newTradeFee;\n    }\n\n\n    /**\n     * @notice Updates the accepted currency (called by MarketplaceAdmin)\n     * @dev Only callable by the MarketplaceAdmin contract\n     * @param newERC20TokenAddress Address of the new ERC20 token to be accepted\n     */\n    function setAcceptedCurrency(address newERC20TokenAddress) external {\n        require(msg.sender == marketplaceAdmin, \"Only marketplaceAdmin can call\");\n        if (newERC20TokenAddress == address(0)) revert InvalidCurrencyAddress();\n        acceptedCurrency = newERC20TokenAddress;\n    }\n```\n\nThis creates a potential risk when both the `tradeFee` and `acceptedCurrency` are changed in separate transactions. If a user initiates a payment between these two modifications, it could lead to unintended consequences, such as overpayment or underpayment.\n\nFor example, if the decimals of the `acceptedCurrency `change from `6` (as with `USDC`) to `18` (as with `DAI`), a `tradeFee` of 1e6 would effectively become negligible, resulting in a significant loss of revenue for the marketplace.\n\n## Recommendations\nRequire that any changes to `acceptedCurrency` should also change `acceptedCurrency` in the same transaction to ensure that both values are updated simultaneously. \n\n\n\n",
+    "summary": "\nThe bug report discusses an issue in the Marketplace contract where the `tradeFee` is charged in a currency that can be changed separately from the fee itself. This can lead to unintended consequences, such as overpayment or underpayment, if both the fee and currency are changed in separate transactions. The report recommends requiring that any changes to the accepted currency also change the fee in the same transaction to avoid potential issues.",
+    "report_date": "2025-09-11T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/pashov/audits/blob/master/team/md/RipIt-security-review_2025-04-25.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "m-03-inconsistent-trade-fees-from-tradefee-and-acceptedcurrency-mods-pashov-audit-group-none-ripit_2025-04-25-markdown",
+    "firm_name": "Pashov Audit Group",
+    "firm_logo_square": "Pashov_square.png",
+    "protocol_name": "RipIt_2025-04-25",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Pashov Audit Group"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Pashov Audit Group",
+        "logo_square": "Pashov_square.png"
+    },
+    "protocols_protocol": {
+        "name": "RipIt_2025-04-25",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

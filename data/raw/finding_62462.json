@@ -1,0 +1,45 @@
+{
+    "id": 62462,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 16,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3411,
+    "title": "[L-06] The `transfer_from`/`transfer` functions do not check the return value",
+    "content": "\n_Resolved_\n\nAlthough the `checked_transfer_from` and `checked_transfer` functions perform relatively thorough balance and allowance checks before making a transfer call, they still do not check the return value during the transfer. This may result in the transfer silently failing for other reasons, returning false, while the contract treats it as successful.\n\n```rust\n    fn checked_transfer_from(\n        self: IERC20Dispatcher, sender: ContractAddress, recipient: ContractAddress, amount: u256,\n    ) -> bool {\n        assert!(amount <= self.balance_of(account: sender), \"{}\", Erc20Error::INSUFFICIENT_BALANCE);\n        assert!(\n            amount <= self.allowance(owner: sender, spender: get_contract_address()),\n            \"{}\",\n            Erc20Error::INSUFFICIENT_ALLOWANCE,\n        );\n        self.transfer_from(:sender, :recipient, :amount)\n    }\n\n    fn checked_transfer(self: IERC20Dispatcher, recipient: ContractAddress, amount: u256) -> bool {\n        assert!(\n            amount <= self.balance_of(account: get_contract_address()),\n            \"{}\",\n            Erc20Error::INSUFFICIENT_BALANCE,\n        );\n        self.transfer(:recipient, :amount)\n    }\n```\nIt is recommended to check the return values of `transfer` and `transfer_from` function calls.\n\n\n\n",
+    "summary": "",
+    "report_date": "2025-09-03T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/pashov/audits/blob/master/team/md/Starknet-security-review_2025-07-31.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "l-06-the-transfer_fromtransfer-functions-do-not-check-the-return-value-pashov-audit-group-none-starknet_2025-07-31-markdown",
+    "firm_name": "Pashov Audit Group",
+    "firm_logo_square": "Pashov_square.png",
+    "protocol_name": "Starknet_2025-07-31",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Pashov Audit Group"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Pashov Audit Group",
+        "logo_square": "Pashov_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Starknet_2025-07-31",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

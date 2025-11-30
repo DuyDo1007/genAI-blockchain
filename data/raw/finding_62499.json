@@ -1,0 +1,100 @@
+{
+    "id": 62499,
+    "kind": "GIT",
+    "auditfirm_id": 3,
+    "impact": "MEDIUM",
+    "finders_count": 12,
+    "protocol_id": 3104,
+    "title": "M-7: Rounding discrepancy between `MorphoLendingRouter::healthFactor` and `Morpho::repay` causes position migration failures",
+    "content": "\nSource: https://github.com/sherlock-audit/2025-06-notional-exponent-judging/issues/417 \n\n## Found by \n0xRstStn, 0xpiken, Bigsam, Ragnarok, bretzel, mstpr-brainbot, rudhra1749, shiazinho, talfao, touristS, wickie, xiaoming90\n\n### Summary\n\nA flaw in how borrow assets are calculated in `MorphoLendingRouter::healthFactor` causes position migrations to revert under specific conditions. The function underestimates the true debt owed by rounding down, while `Morpho` internally rounds up for repayment. This discrepancy leads to insufficient asset transfers during `AbstractLendingRouter::migratePosition`, breaking a core protocol feature.\n\nAlthough the rounding difference may not appear initially, it inevitably emerges over time as interest accrues and the market grows, causing migrations that once worked to start failing silently, making this a latent but critical bug.\n\n### Root Cause\n\nIn `MorphoLendingRouter::healthFactor`, the borrowed assets are calculated using integer division:\n\n[MorphoLendingRouter::healthFactor#L279](https://github.com/sherlock-audit/2025-06-notional-exponent/blob/82c87105f6b32bb362d7523356f235b5b07509f9/notional-v4/src/routers/MorphoLendingRouter.sol#L279)\n```solidity\nif (position.borrowShares > 0) {\n    borrowed = (uint256(position.borrowShares) * uint256(market.totalBorrowAssets)) / uint256(market.totalBorrowShares);\n}\n```\n\nHowever, In `Morpho::_isHealthy` and `Morpho::repay`, the equivalent borrow amount is calculated using a rounding-up approach:\n\n[Morpho::_isHealthy#L532](https://github.com/morpho-org/morpho-blue/blob/c75dc8244032b30768217599ae8f1c11e9b43a35/src/Morpho.sol#L532)\n```solidity\nuint256 borrowed = uint256(position[id][borrower].borrowShares).toAssetsUp(\n    market[id].totalBorrowAssets, market[id].totalBorrowShares\n);\n```\n\n[Morpho::repay#L284](https://github.com/morpho-org/morpho-blue/blob/c75dc8244032b30768217599ae8f1c11e9b43a35/src/Morpho.sol#L284)\n```solidity\nelse assets = shares.toAssetsUp(market[id].totalBorrowAssets, market[id].totalBorrowShares);\n```\n\nThe discrepancy causes `MorphoLendingRouter::healthFactor` to underestimate the amount required to repay a loan, especially by ~1 wei in precision-sensitive scenarios, like `AbstractLending::migratePosition`.\n\n### Internal Pre-conditions\n\n- The user's position must have some borrowed assets.\n- No excess asset tokens are held in the new router during migration (which is by design).\n\n\n### External Pre-conditions\n\nInitially, this rounding inconsistency may not manifest. However, as the market accrues interest and grows, the discrepancy between the round-down calculation used by `MorphoLendingRouter::healthFactor` and the round-up logic used internally by Morpho (e.g. in repay) will inevitably emerge, even for previously safe positions.\n\n### Attack Path\n\n1. `migratePosition` calls `healthFactor` on the previous router, which underestimates the borrow amount.\n2. This amount is used to request a flash loan.\n3. During `_exitWithRepay`, Morpho calls `repay()` with the actual borrow shares.\n4. `repay()` requires more assets (rounded-up) than were flash-borrowed.\n5. The internal `safeTransferFrom` fails due to insufficient balance.\n6. The entire migration reverts.\n\nCheck the impact section for more details.\n\n### Impact\n\nThis bug has a significant impact: it breaks the `migratePosition` functionality, a core protocol feature designed to allow seamless transitions between lending routers.\n\nThe issue stems from an underestimated borrow amount returned by `MorphoLendingRouter::healthFactor`, due to incorrect rounding (rounding down instead of up). This results in insufficient funds being flash-loaned during a migration, ultimately causing the entire operation to revert.\n\nHere’s a breakdown of how this failure manifests step by step:\n\n1. In `AbstractLending::migratePosition` the borrowAmount is obtained from healthFactor (which underestimates the actual borrow due to rounding down):  \n\n[AbstractLendingRouter::migratePosition#L74](https://github.com/sherlock-audit/2025-06-notional-exponent/blob/82c87105f6b32bb362d7523356f235b5b07509f9/notional-v4/src/routers/AbstractLendingRouter.sol#L74)\n```solidity\nfunction migratePosition(\n    address onBehalf,\n    address vault,\n    address migrateFrom\n) public override isAuthorized(onBehalf, vault) {\n    if (!ADDRESS_REGISTRY.isLendingRouter(migrateFrom)) revert InvalidLendingRouter();\n    // Borrow amount is set to the amount of debt owed to the previous lending router\n@>  (uint256 borrowAmount, /* */, /* */) = ILendingRouter(migrateFrom).healthFactor(onBehalf, vault);\n\n@>  _enterPosition(onBehalf, vault, 0, borrowAmount, bytes(\"\"), migrateFrom);\n}\n```\n\n2. `_enterPosition` passes the underestimated `borrowAmount` into `_flashBorrowAndEnter`, which requests a flash loan for that exact amount:\n\n[AbstractLendingRouter::_enterPosition#L97](https://github.com/sherlock-audit/2025-06-notional-exponent/blob/82c87105f6b32bb362d7523356f235b5b07509f9/notional-v4/src/routers/AbstractLendingRouter.sol#L97)\n```solidity\nif (borrowAmount > 0) {\n    _flashBorrowAndEnter(\n        onBehalf, vault, asset, depositAssetAmount, borrowAmount, depositData, migrateFrom\n    );\n}\n```\n\n3. In the `MorphoLendingRouter::onMorphoFlashLoan` callback, `_enterOrMigrate` is called using only the flash loaned amount (no extra funds):\n\n[MorphoLendingRouter::onMorphoFlashLoan#L140](https://github.com/sherlock-audit/2025-06-notional-exponent/blob/82c87105f6b32bb362d7523356f235b5b07509f9/notional-v4/src/routers/MorphoLendingRouter.sol#L140)\n```solidity\nfunction onMorphoFlashLoan(uint256 assets, bytes calldata data) external override {\n    require(msg.sender == address(MORPHO));\n\n    (\n        address onBehalf,\n        address vault,\n        address asset,\n        uint256 depositAssetAmount,\n        bytes memory depositData,\n        address migrateFrom\n    ) = abi.decode(data, (address, address, address, uint256, bytes, address));\n\n@>  _enterOrMigrate(onBehalf, vault, asset, assets + depositAssetAmount, depositData, migrateFrom);\n    // Note: depositAssetAmount here is equal to 0, so we're passing only the asset amount we get from `MorphoLendingRouter::healthFactor`\n    ...\n}\n```\n\n4. Because this is a migration, `exitPosition` is called with `assetToRepay = type(uint256).max`, signaling a full repayment:\n\n[AbstractLendingRouter::_enterOrMigrate#L236](https://github.com/sherlock-audit/2025-06-notional-exponent/blob/82c87105f6b32bb362d7523356f235b5b07509f9/notional-v4/src/routers/AbstractLendingRouter.sol#L236)\n```solidity\n    function _enterOrMigrate(\n        address onBehalf,\n        address vault,\n        address asset,\n        uint256 assetAmount,\n        bytes memory depositData,\n        address migrateFrom\n    ) internal returns (uint256 sharesReceived) {\n        if (migrateFrom != address(0)) {\n            // Allow the previous lending router to repay the debt from assets held here.\n            ERC20(asset).checkApprove(migrateFrom, assetAmount);\n            sharesReceived = ILendingRouter(migrateFrom).balanceOfCollateral(onBehalf, vault);\n\n            // Must migrate the entire position\n@>          ILendingRouter(migrateFrom).exitPosition(\n                onBehalf, vault, address(this), sharesReceived, type(uint256).max, bytes(\"\")\n            );\n        } \n        ...\n    }\n```\n\n5. Inside `_exitWithRepay`, the logic switches to using the user's `borrowShares` directly to calculate repayment:\n\n[MorphoLendingRouter::_exitWithRepay#L192](https://github.com/sherlock-audit/2025-06-notional-exponent/blob/82c87105f6b32bb362d7523356f235b5b07509f9/notional-v4/src/routers/MorphoLendingRouter.sol#L192)\n```solidity\n    function _exitWithRepay(\n        address onBehalf,\n        address vault,\n        address asset,\n        address receiver,\n        uint256 sharesToRedeem,\n        uint256 assetToRepay,\n        bytes calldata redeemData\n    ) internal override {\n        MarketParams memory m = marketParams(vault, asset);\n\n        uint256 sharesToRepay;\n@>      if (assetToRepay == type(uint256).max) {\n            // If assetToRepay is uint256.max then get the morpho borrow shares amount to\n            // get a full exit.\n@>          sharesToRepay = MORPHO.position(morphoId(m), onBehalf).borrowShares;\n@>          assetToRepay = 0;\n        }\n\n        bytes memory repayData = abi.encode(\n            onBehalf, vault, asset, receiver, sharesToRedeem, redeemData, _isMigrate(receiver)\n        );\n\n        // Will trigger a callback to onMorphoRepay\n@>      MORPHO.repay(m, assetToRepay, sharesToRepay, onBehalf, repayData);\n    }\n```\n\n6. When `Morpho` receives the repay request, it uses `toAssetsUp()` — rounding up the amount needed to repay the debt.\n[Morpho::repay#L284](https://github.com/morpho-org/morpho-blue/blob/c75dc8244032b30768217599ae8f1c11e9b43a35/src/Morpho.sol#L284)\n\n7. `Morpho` then calls back to `MorphoLendingRouter::onMorphoRepay`, which attempts to transfer `assetToRepay` from the receiver:\n\n[MorphoLendingRouter::onMorphoRepay#L224](https://github.com/sherlock-audit/2025-06-notional-exponent/blob/82c87105f6b32bb362d7523356f235b5b07509f9/notional-v4/src/routers/MorphoLendingRouter.sol#L224)\n```solidity\n@>  function onMorphoRepay(uint256 assetToRepay, bytes calldata data) external override {\n        require(msg.sender == address(MORPHO));\n\n        ...\n\n        if (isMigrate) {\n            // When migrating we do not withdraw any assets and we must repay the entire debt\n            // from the previous lending router.\n@>          ERC20(asset).safeTransferFrom(receiver, address(this), assetToRepay);\n            // assetToRepay here is the value passed as parameter from Morpho::repay, rounded-up\n            assetsWithdrawn = assetToRepay;\n        }\n    ...\n    } \n```\n\nThis transfer fails because the flash-loaned amount was based on a rounded-down borrow calculation, and is ~1 wei short.\n\n8. Since lending routers do not hold idle assets (by design), there are no extra funds available to cover the difference. This causes the `safeTransferFrom` to revert, breaking the migration flow entirely.\n\n\n### PoC\n\nThis proof of concept demonstrates the discrepancy between `MorphoLendingRouter::healthFactor` and Morpho's internal borrow asset calculation (`toAssetsUp`). It uses a real, high-liquidity and interest-accruing market, eUSDE/USDE, as an example, to show how the rounding difference manifests in production conditions.\n\nThe following test compares the result of:\n\n- `MorphoLendingRouter::healthFactor` round-down calculation (Notional's implementation)\n- vs Morpho's `toAssetsUp()` round-up logic (used during actual repayment).\n\n1. Create a file named `POC.sol` in `tests/` folder.\n2. Add the following code to the newly created file:\n\n```solidity\n// SPDX-License-Identifier: MIT\npragma solidity ^0.8.0;\n\nimport {Test, console2} from \"forge-std/src/Test.sol\";\nimport {MORPHO, Id, IMorphoStaticTyping} from \"src/interfaces/Morpho/IMorpho.sol\";\n\ncontract POC3 is Test {\n    /// @dev Warning: The assets to which virtual borrow shares are entitled behave like unrealizable bad debt.\n    uint256 internal constant VIRTUAL_SHARES = 1e6;\n\n    /// @dev A number of virtual assets of 1 enforces a conversion rate between shares and assets when a market is\n    /// empty.\n    uint256 internal constant VIRTUAL_ASSETS = 1;\n\n    // to run this test use --fork-url $RPC_URL \n    // rpc-url needs to be mainnet\n    function test_healthFactorReturnsIncorrectBorrowAmountOnChain() public view {\n        uint256 shares = 100e6; \n\n        Id id = Id.wrap(0x140fe48783fe88d2a52b31705577d917628caaf74ff79865b39d4c2aa6c2fd3c);\n        (,, uint128 totalBorrowAssets, uint128 totalBorrowShares,,) = IMorphoStaticTyping(address(MORPHO)).market(id);\n\n        uint256 notionalResult = _calculationNotional(shares, totalBorrowAssets, totalBorrowShares);\n        uint256 morphoResult = _calculationMorpho(shares, totalBorrowAssets, totalBorrowShares);\n\n        console2.log(\"Protocol borrow amount calculated: \", notionalResult);\n        console2.log(\"Needed assets to repay loan by Morpho calculation: \", morphoResult);\n\n        assertLt(notionalResult, morphoResult);\n    }\n\n    function test_healthFactorReturnsIncorrectBorrowAmount() public pure {\n        // 1. User will try to redeem 100e6 shares;\n        uint256 shares = 100e6; \n\n        // Snapshoted values from Morpho market 0x140fe48783fe88d2a52b31705577d917628caaf74ff79865b39d4c2aa6c2fd3c (eUSDE, USDE)\n        // https://app.morpho.org/ethereum/market/0x140fe48783fe88d2a52b31705577d917628caaf74ff79865b39d4c2aa6c2fd3c/eusde-usde\n        // 07/16/2025\n        uint256 totalBorrowAssets = 1683699089027334601033968;\n        uint256 totalBorrowShares = 1607215221550593809991229062204;\n\n        uint256 notionalResult = _calculationNotional(shares, totalBorrowAssets, totalBorrowShares); // Round down to 104\n        uint256 morphoResult = _calculationMorpho(shares, totalBorrowAssets, totalBorrowShares); // Round up to 105\n\n        console2.log(\"Protocol borrow amount calculated: \", notionalResult);\n        console2.log(\"Needed assets to repay loan by Morpho calculation: \", morphoResult);\n\n        assertLt(notionalResult, morphoResult);\n    }\n\n    function _calculationMorpho(uint256 a, uint256 b, uint256 c) internal pure returns (uint256) {\n        return toAssetsUp(a, b, c);\n    }\n\n    function _calculationNotional(uint256 a, uint256 b, uint256 c) internal pure returns (uint256) {\n        return (a * b) / c;\n    }\n\n    /// @dev Calculates the value of `shares` quoted in assets, rounding up.\n    function toAssetsUp(uint256 shares, uint256 totalAssets, uint256 totalShares) internal pure returns (uint256) {\n        return mulDivUp(shares, totalAssets + VIRTUAL_ASSETS, totalShares + VIRTUAL_SHARES);\n    }\n\n    /// @dev Returns (`x` * `y`) / `d` rounded up.\n    function mulDivUp(uint256 x, uint256 y, uint256 d) internal pure returns (uint256) {\n        return (x * y + (d - 1)) / d;\n    }\n}\n```\n\n3. Run: \n\n```shell\n    forge test --mt test_healthFactorReturnsIncorrectBorrowAmount -vvvv\n```\n\n> Output:\n```shell\n    Traces:\n  [18020] POC3::test_healthFactorReturnsIncorrectBorrowAmountOnChain()\n    ├─ [6929] 0xBBBBBbbBBb9cC5e90e3b3Af64bdAF62C37EEFFCb::market(0x140fe48783fe88d2a52b31705577d917628caaf74ff79865b39d4c2aa6c2fd3c) [staticcall]\n    │   └─ ← [Return] Market({ totalSupplyAssets: 1948947786194877138152276 [1.948e24], totalSupplyShares: 1870086616999893965690591681848 [1.87e30], totalBorrowAssets: 1682873320105785386589083 [1.682e24], totalBorrowShares: 1606423686119321497595859897438 [1.606e30], lastUpdate: 1752690551 [1.752e9], fee: 0 })\n    ├─ [0] console::log(\"Protocol borrow amount calculated: \", 104) [staticcall]\n    │   └─ ← [Stop]\n    ├─ [0] console::log(\"Needed assets to repay loan by Morpho calculation: \", 105) [staticcall]\n    │   └─ ← [Stop]\n    ├─ [0] VM::assertLt(104, 105) [staticcall]\n    │   └─ ← [Return]\n    └─ ← [Stop]\n```\n\nThis 1 wei difference may seem small, but it's sufficient to cause position migration to fail when exact asset repayment is required.\n\n\n### Mitigation\n\nUpdate `MorphoLendingRouter::healthFactor` to match Morpho's internal borrow share conversion, using the same rounding-up logic:\n\n```solidity\n    borrowed = toAssetsUp(position.borrowShares, market.totalBorrowAssets, market.totalBorrowShares);\n```\n\n> Note: don't forget to add virtual asset/share offset constants (e.g., VIRTUAL_ASSETS, VIRTUAL_SHARES).\n\n## Discussion\n\n**sherlock-admin2**\n\nThe protocol team fixed this issue in the following PRs/commits:\nhttps://github.com/notional-finance/notional-v4/pull/8\n\n\n\n\n",
+    "summary": "\nThis bug report discusses a flaw in the `MorphoLendingRouter::healthFactor` function that causes position migrations to fail under certain conditions. The issue stems from a discrepancy in how the function calculates the amount of borrowed assets, leading to insufficient transfers during a migration. This bug can cause significant problems for the protocol, as it breaks a core feature and can lead to unexpected failures over time. The root cause of the issue is due to rounding differences between the `healthFactor` function and internal calculations used by `Morpho`. The bug can be triggered when certain pre-conditions are met, and can also manifest over time as interest accrues. The impact of this bug is significant, as it breaks the `migratePosition` functionality and can cause the entire migration process to fail. The protocol team has fixed this issue in the latest PRs/commits. ",
+    "report_date": "2025-07-18T15:00:00.000Z",
+    "contest_prize_txt": "75500 USDC",
+    "contest_link": "https://app.sherlock.xyz/audits/contests/1001",
+    "sponsor_name": "",
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "",
+    "github_link": "https://github.com/sherlock-audit/2025-06-notional-exponent-judging/issues/417",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "1001",
+    "slug": "m-7-rounding-discrepancy-between-morpholendingrouterhealthfactor-and-morphorepay-causes-position-migration-failures-sherlock-notional-exponent-git",
+    "firm_name": "Sherlock",
+    "firm_logo_square": "sherlock_square.png",
+    "protocol_name": "Notional Exponent",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "bretzel"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "0xpiken"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "touristS"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "shiazinho"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "xiaoming90"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Ragnarok"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "talfao"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "0xRstStn"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "mstpr-brainbot"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "wickie"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "rudhra1749"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Bigsam"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Sherlock",
+        "logo_square": "sherlock_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Notional Exponent",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

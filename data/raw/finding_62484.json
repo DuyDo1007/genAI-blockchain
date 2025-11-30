@@ -1,0 +1,90 @@
+{
+    "id": 62484,
+    "kind": "GIT",
+    "auditfirm_id": 3,
+    "impact": "HIGH",
+    "finders_count": 10,
+    "protocol_id": 3104,
+    "title": "H-3: `DineroWithdrawRequestManager` vulnerable to token overwithdrawal via batch ID overlap",
+    "content": "\nSource: https://github.com/sherlock-audit/2025-06-notional-exponent-judging/issues/297 \n\n## Found by \n0xc0ffEE, Atharv, Ledger\\_Patrol, Ragnarok, Schnilch, X0sauce, aman, hgrano, seeques, xiaoming90\n\n### Summary\n\nSome users may profit while others incur losses because the `DineroWithdrawRequestManager` contract does not track the balance of each `upxETH` token per withdrawal request, even though a single `upxETH` token may be associated with multiple requests.\n\n### Root Cause\n\nWhen a user initiates a withdrawal request through `DineroWithdrawRequestManager`, the contract executes the `_initiateWithdrawImpl()` function. This function captures `PirexETH.batchId()` before and after calling `PirexETH::initiateRedemption()`:\n\n[DineroWithdrawRequestManager::_initiateWithdrawImpl()](https://github.com/sherlock-audit/2025-06-notional-exponent/blob/82c87105f6b32bb362d7523356f235b5b07509f9/notional-v4/src/withdraws/Dinero.sol#L17) function:\n```solidity\nfunction _initiateWithdrawImpl(\n    address /* account */,\n    uint256 amountToWithdraw,\n    bytes calldata /* data */\n) override internal returns (uint256 requestId) {\n      ...\n=>    uint256 initialBatchId = PirexETH.batchId();\n      pxETH.approve(address(PirexETH), amountToWithdraw);\n      PirexETH.initiateRedemption(amountToWithdraw, address(this), false);\n=>    uint256 finalBatchId = PirexETH.batchId();\n      uint256 nonce = ++s_batchNonce;\n\n=>    return nonce << 240 | initialBatchId << 120 | finalBatchId;\n  }\n```\n\nWhen the user later finalizes the withdrawal via `_finalizeWithdrawImpl()`, the contract attempts to redeem all `upxETH` tokens within the range `[initialBatchId, finalBatchId]`:\n\n```solidity\nfunction _finalizeWithdrawImpl(\n    address /* account */,\n    uint256 requestId\n) internal override returns (uint256 tokensClaimed, bool finalized) {\n    finalized = canFinalizeWithdrawRequest(requestId);\n\n    if (finalized) {\n        (uint256 initialBatchId, uint256 finalBatchId) = _decodeBatchIds(requestId);\n\n=>      for (uint256 i = initialBatchId; i <= finalBatchId; i++) {\n=>          uint256 assets = upxETH.balanceOf(address(this), i);\n            if (assets == 0) continue;\n            PirexETH.redeemWithUpxEth(i, assets, address(this));\n            tokensClaimed += assets;\n        }\n    }\n\n    WETH.deposit{value: tokensClaimed}();\n}\n```\n\nAfter this, `upxETH.balanceOf(address(this), i)` for all `i` in the range `[initialBatchId, finalBatchId]` becomes 0.\n\nOn the other hand, `initialBatchId` and `finalBatchId` may overlap across multiple withdrawal requests due to the logic inside `PirexETH::initiateRedemption()`, which internally calls `PirexEthValidators::_initiateRedemption()`:\n\n```solidity\nfunction _initiateRedemption(\n    uint256 _pxEthAmount,\n    address _receiver,\n    bool _shouldTriggerValidatorExit\n) internal {\n    pendingWithdrawal += _pxEthAmount;\n\n    while (pendingWithdrawal / DEPOSIT_SIZE != 0) {\n        uint256 _allocationPossible = DEPOSIT_SIZE + _pxEthAmount - pendingWithdrawal;\n\n=>      upxEth.mint(_receiver, batchId, _allocationPossible, \"\");\n        ...\n        batchIdToValidator[batchId++] = _pubKey;\n        status[_pubKey] = DataTypes.ValidatorStatus.Withdrawable;\n    }\n    ...\n    if (_pxEthAmount > 0) {\n=>      upxEth.mint(_receiver, batchId, _pxEthAmount, \"\");\n    }\n}\n```\n\nThis can lead to some users benefiting at the expense of others. Consider the following scenario:\n\n1. User A initiates a withdrawal request, associated with `upxETH` token IDs 1 and 2.\n2. User B then initiates a withdrawal request, associated with token IDs 2 and 3.\n3. User A finalizes their request and redeems all ETH from token IDs 1 and 2, even though ID 2 is also tied to User B's request. User A withdraws more than intended.\n4. When User B finalizes their request, the balance of token ID 2 is already 0. Thus, they only receive the ETH from token ID 3.\n\nA malicious user can exploit this behavior by front-running another user’s withdrawal request, intentionally causing batch ID overlaps and withdrawing more tokens than intended.\n\n### Impact\n\nA malicious user can:\n\n* Withdraw more tokens than they should by front-running others.\n* Cause financial loss to other users.\n\n### Mitigation\n\nUpdate the `DineroWithdrawRequestManager` contract to track `upxETH` balances per withdrawal request:\n\nAdd state variables:\n\n```solidity\nmapping(uint256 requestId => mapping(uint256 batchId => uint256 balance)) upxETHBalanceOfRequest;\nmapping(uint256 batchId => uint256 balance) latestUpxETHBalance;\n```\n\nModify `_initiateWithdrawImpl`:\n\n```diff\nfunction _initiateWithdrawImpl(\n    address /* account */,\n    uint256 amountToWithdraw,\n    bytes calldata /* data */\n) override internal returns (uint256 requestId) {\n    ...\n    // Initial and final batch ids may overlap between requests so the nonce is used to ensure uniqueness\n-   return nonce << 240 | initialBatchId << 120 | finalBatchId;\n+   requestId = nonce << 240 | initialBatchId << 120 | finalBatchId;\n\n+   for (uint256 i = initialBatchId; i <= finalBatchId; i += 1) {\n+       uint256 currentBalance = upxETH.balanceOf(address(this), i);\n+       upxETHBalanceOfRequest[requestId][i] =  currentBalance - latestUpxETHBalance[i];\n+       latestUpxETHBalance[i] = currentBalance;\n+   }\n    \n}\n```\n\nModify `_finalizeWithdrawImpl`:\n\n```diff\nfunction _finalizeWithdrawImpl(\n    address /* account */,\n    uint256 requestId\n) internal override returns (uint256 tokensClaimed, bool finalized) {\n    finalized = canFinalizeWithdrawRequest(requestId);\n\n    if (finalized) {\n        (uint256 initialBatchId, uint256 finalBatchId) = _decodeBatchIds(requestId);\n\n        for (uint256 i = initialBatchId; i <= finalBatchId; i++) {\n-           uint256 assets = upxETH.balanceOf(address(this), i);\n+           uint256 assets = upxETHBalanceOfRequest[requestId][i];\n            if (assets == 0) continue;\n            PirexETH.redeemWithUpxEth(i, assets, address(this));\n            tokensClaimed += assets;\n+           latestUpxETHBalance[i] -= assets;\n        }\n    }\n\n    WETH.deposit{value: tokensClaimed}();\n}\n```\n\n## Discussion\n\n**sherlock-admin2**\n\nThe protocol team fixed this issue in the following PRs/commits:\nhttps://github.com/notional-finance/notional-v4/pull/20\n\n\n\n\n",
+    "summary": "\nThe bug report discusses an issue in the `DineroWithdrawRequestManager` contract where some users may profit while others may incur losses. This is due to the contract not properly tracking the balance of each `upxETH` token per withdrawal request, which can lead to overlaps and unintended withdrawals. This can be exploited by malicious users to withdraw more tokens than intended. To fix this, the contract needs to be updated to track balances per request. The protocol team has already fixed this issue in a recent pull request.",
+    "report_date": "2025-07-18T15:00:00.000Z",
+    "contest_prize_txt": "75500 USDC",
+    "contest_link": "https://app.sherlock.xyz/audits/contests/1001",
+    "sponsor_name": "",
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "",
+    "github_link": "https://github.com/sherlock-audit/2025-06-notional-exponent-judging/issues/297",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "1001",
+    "slug": "h-3-dinerowithdrawrequestmanager-vulnerable-to-token-overwithdrawal-via-batch-id-overlap-sherlock-notional-exponent-git",
+    "firm_name": "Sherlock",
+    "firm_logo_square": "sherlock_square.png",
+    "protocol_name": "Notional Exponent",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Ledger\\_Patrol"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "aman"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "X0sauce"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Schnilch"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "seeques"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "xiaoming90"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Ragnarok"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "0xc0ffEE"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Atharv"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "hgrano"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Sherlock",
+        "logo_square": "sherlock_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Notional Exponent",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

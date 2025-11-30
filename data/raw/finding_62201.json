@@ -1,0 +1,50 @@
+{
+    "id": 62201,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 11,
+    "impact": "LOW",
+    "finders_count": 2,
+    "protocol_id": 3392,
+    "title": "Non-compliant users can claim withdrawn assets after the cooldown period",
+    "content": "**Description:** `StakingVault::redeem, withdraw` use the `onlyWhitelisted` modifier to verify that `msg.sender` is whitelisted or is compliant, as this modifier ends up calling `Whitelist::isAddressWhitelisted`:\n```solidity\nfunction isAddressWhitelisted(address user) public view returns (bool) {\n    if (manualWhitelist[user] || globalWhitelist) {\n        return true;\n    }\n\n    return complianceChecker.isCompliant(user);\n}\n```\n\nIf a user was whitelisted or was compliant when they created the withdrawal/redemption, but was then removed from the whitelist or became non-compliant, they will still be able to call `StakingVault::claimWithdraw` to withdraw their assets after the cooldown period.\n\n**Recommended Mitigation:** `StakingVault::claimWithdraw` should use modifier `onlyWhitelisted(msg.sender)` to ensure that the caller is still whitelisted or compliant; `onlyWhitelisted(receiver)` could also be used to enforce that the destination address is also whitelisted.\n\n**Syntetika:**\nFixed in commit [86384fe](https://github.com/SyntetikaLabs/monorepo/commit/86384fe1504780338649d25f720fb78b25132875) by removing the whitelist functionality entirely from `StakingVault` to resolve finding L-4.\n\n**Cyfrin:** Verified.",
+    "summary": "",
+    "report_date": "2025-08-01T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/solodit/solodit_content/blob/main/reports/Cyfrin/2025-08-01-cyfrin-syntetika-v2.0.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "non-compliant-users-can-claim-withdrawn-assets-after-the-cooldown-period-cyfrin-none-syntetika-markdown",
+    "firm_name": "Cyfrin",
+    "firm_logo_square": "Cyfrin_square.jpg",
+    "protocol_name": "Syntetika",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Dacian"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Jorge"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Cyfrin",
+        "logo_square": "Cyfrin_square.jpg"
+    },
+    "protocols_protocol": {
+        "name": "Syntetika",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

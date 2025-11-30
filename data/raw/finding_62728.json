@@ -1,0 +1,45 @@
+{
+    "id": 62728,
+    "kind": "GIT",
+    "auditfirm_id": 3,
+    "impact": "MEDIUM",
+    "finders_count": 1,
+    "protocol_id": 3324,
+    "title": "M-5: Rebalancer can send to unallowed destination chains through EverclearBridge",
+    "content": "\nSource: https://github.com/sherlock-audit/2025-07-malda-judging/issues/123 \n\n## Found by \ncergyk\n\n### Description\n\nThe rebalancer contract is called on `sendMsg` with a message encoded as bytes (`_msg.message`). This message is specific for the bridge contract, and in the case of `EverclearBridge` it is of the form `IntentParams`:\n\n[EverclearBridge.sol#L40-L50](https://github.com/sherlock-audit/2025-07-malda/blob/main/malda-lending/src/rebalancer/bridges/EverclearBridge.sol#L40-L50):\n```solidity\n    struct IntentParams {\n        uint32[] destinations;\n        bytes32 receiver;\n        address inputAsset;\n        bytes32 outputAsset;\n        uint256 amount;\n        uint24 maxFee;\n        uint48 ttl;\n        bytes data;\n        IFeeAdapter.FeeParams feeParams;\n    }\n```\n\nWe notice that multiple destination chains can be provided (`destinations`); Out of these chains, it is only checked that one is the `_dstChainId` provided as argument of `sendMsg`:\n\n[EverclearBridge.sol#L95-L102](https://github.com/sherlock-audit/2025-07-malda/blob/main/malda-lending/src/rebalancer/bridges/EverclearBridge.sol#L95-L102):\n```solidity\n    bool found;\n    for (uint256 i; i < destinationsLength; ++i) {\n        if (params.destinations[i] == _dstChainId) {\n            found = true;\n            break;\n        }\n    }\n    require(found, Everclear_DestinationNotValid());\n```\n\nHowever, the intent is created on Everclear using all the provided destinations, and can be fulfilled on any of the chains of the list. If it is fulfilled on a chain that Malda does not handle, the funds are lost.\n\n### Recommendation\n\n`destinations` should be checked to be of length 1, and that `destinations[0] == _dstChainId`\n\n## Discussion\n\n**sherlock-admin2**\n\nThe protocol team fixed this issue in the following PRs/commits:\nhttps://github.com/malda-protocol/malda-lending/pull/119/files\n\n\n**CergyK**\n\nFix looks good, only 1 destination chain allowed now\n\n\n\n",
+    "summary": "\nThis bug report is about a vulnerability found in the `EverclearBridge` contract, which is used for transferring assets between different chains. The issue was discovered by a user named `cergyk` and reported on GitHub. \n\nThe problem is that the contract allows multiple destination chains to be provided, but only checks that one of them matches the intended destination. This means that if the transfer is fulfilled on a chain that is not supported by the `Malda` protocol, the funds will be lost. \n\nTo fix this, the recommendation is to check that the `destinations` array only contains one element and that it matches the intended destination. The `sherlock-admin2` team has already addressed this issue in a recent update. ",
+    "report_date": "2025-08-14T17:00:00.000Z",
+    "contest_prize_txt": "80000 USDC",
+    "contest_link": "https://app.sherlock.xyz/audits/contests/1029",
+    "sponsor_name": "",
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "",
+    "github_link": "https://github.com/sherlock-audit/2025-07-malda-judging/issues/123",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "1029",
+    "slug": "m-5-rebalancer-can-send-to-unallowed-destination-chains-through-everclearbridge-sherlock-malda-git",
+    "firm_name": "Sherlock",
+    "firm_logo_square": "sherlock_square.png",
+    "protocol_name": "Malda",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "cergyk"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Sherlock",
+        "logo_square": "sherlock_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Malda",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

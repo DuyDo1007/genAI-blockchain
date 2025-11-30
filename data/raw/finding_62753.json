@@ -1,0 +1,50 @@
+{
+    "id": 62753,
+    "kind": "PDF",
+    "auditfirm_id": 6,
+    "impact": "LOW",
+    "finders_count": 2,
+    "protocol_id": 3441,
+    "title": "Client-Side RPC Endpoint and API Key Exposure",
+    "content": "## Security Assessment Report\n\n## Severity\n**Low Risk**\n\n## Context\n- `src/config/index.ts#L95-L111`\n- `src/providers/WalletProvider/wagmi.ts#L11-L16`\n- `src/components/Action-Flow/ActionFlowProvider.tsx`\n\n## Description\nThe application violates security best practices by exposing RPC endpoints and API keys to client-side code. All blockchain operations (gas estimation, transaction broadcasting, receipt polling) are performed directly from the browser without server-side validation or control. The key issues are the following:\n\n- RPC URLs with embedded API keys are exposed via `NEXT_PUBLIC_` environment variables.\n- All blockchain operations bypass server-side validation.\n- API keys are transmitted in plaintext and visible in browser dev tools.\n- No server-side monitoring or rate limiting of RPC calls.\n\n## Affected Files\n- `src/config/index.ts#L95-L111` - RPC URL configuration.\n- `src/providers/WalletProvider/wagmi.ts#L11-L16` - Wagmi transport configuration.\n- `src/components/ActionFlow/ActionFlowProvider.tsx` - Client-side RPC operations.\n\n## Proof of Concept\n1. **Client-Side RPC Operations:**\n   ```javascript\n   // Gas estimation happens client-side\n   const gasEstimate = await estimateGas(publicClient, { ...txReq, account: client.account });\n\n   // Transaction broadcasting happens client-side\n   const hash = await sendTransaction(client, { ...txReq, gas: gasEstimateWithBuffer });\n\n   // Transaction receipt polling happens client-side\n   const receipt = await waitForTransactionReceipt(publicClient, { hash, pollingInterval: 1000 });\n   ```\n\n2. **Network Request Visibility:**\n   - Open browser dev tools → Network tab.\n   - Perform any blockchain operation (supply, borrow, etc...).\n   - Observe RPC requests containing API keys in plaintext.\n   - All blockchain interactions are visible and controllable from client-side.\n\n**Important Note:** While `getSimulationState()` is located in the actions folder (server-side by default), it receives a `publicClient` parameter created client-side and executes in the browser context, making all 42-47 RPC calls from the client.\n\n## Recommendation\n- **Immediate Actions:**\n    - Remove `NEXT_PUBLIC_` prefix from RPC environment variables.\n    - Implement server-side RPC proxy for all blockchain operations.\n    - Move all RPC calls to server-side API routes.\n\n- **Security Benefits:**\n    - API keys remain server-side only.\n    - Server-side validation and monitoring.\n    - Rate limiting and abuse prevention.\n    - Centralized logging and audit trail.\n    - Compliance with security best practices.\n\n## Responses\n- **Steakhouse:** Fixed in PR 7.\n- **Spearbit:** Fix verified. Some slight suggestions though:\n   - Checking the body size is a great idea, but we believe this implementation is bound to have bypasses:\n     ```javascript\n     // Check payload size (help prevent abuse)\n     const contentLength = request.headers.get(\"Content-Length\");\n     if (!contentLength || Number.parseInt(contentLength, 10) > MAX_PAYLOAD_BYTES) {\n         return Response.json({ error: /grave.ts1Payload too large/grave.ts1}, { status: 413 });\n     }\n     ```\n     `Content-Length` is not the only way to pass the body size, and some servers don't even follow the spec correctly regarding it. Usually, it's also possible to replace it with `Transfer-Encoding: chunked` to completely bypass the check. Ideally, you want to be looking at enforcing the NextJS bodyParser size limits or trying to get the request size directly from the `.byteLength` property or similar.\n\n   - Another one is related to the CORS Origin header:\n     ```javascript\n     const origin = request.headers.get(\"Origin\") ?? request.headers.get(\"Referer\");\n     if (!origin) {\n         return Response.json({ error: \"Unauthorized\" }, { status: 401 });\n     }\n     ```\n     Ideally, you want to validate the Origin hostname if you really want to prevent client-side abuses.\n\n- **Steakhouse:** Changes made to address feedback:\n   - Kept \"Content-Length\" check as a cheap first-layer check when the header is provided.\n   - Added a check for actual payload size after parsing which always runs. Note that bodyParser config is not available in Next.js App Router route handlers like it was with Pages Router API handlers.\n   - Didn't change the Origin check. Our CORS policy already prevents cross-origin requests from browsers. The origin check is a simple server-side abuse prevention measure, but it can be easily bypassed by spoofing this header. This remains true even when checking against specific hostnames, so we're not adding hostname validation as it would complicate dev/preview deployments without meaningfully improving security.",
+    "summary": "",
+    "report_date": "2025-09-25T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Steakhouse-App-Web2-Spearbit-Security-Review-September-2025.pdf",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Steakhouse-App-Web2-Spearbit-Security-Review-September-2025.pdf",
+    "github_link": "",
+    "pdf_link": "https://solodit-bucket.s3.amazonaws.com/storage/reports/spearbit/Steakhouse-App-Web2-Spearbit-Security-Review-September-2025.pdf",
+    "pdf_page_from": 8,
+    "contest_id": "",
+    "slug": "client-side-rpc-endpoint-and-api-key-exposure-spearbit-none-steakhouse-app-pdf",
+    "firm_name": "Spearbit",
+    "firm_logo_square": "spearbit_square.png",
+    "protocol_name": "Steakhouse App",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Dreyand"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Mikey96"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Spearbit",
+        "logo_square": "spearbit_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Steakhouse App",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

@@ -1,0 +1,45 @@
+{
+    "id": 62677,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 23,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3435,
+    "title": "`rebase()` Reverts If `D` Does Not Increase",
+    "content": "##### Description\nIn the `rebase()` function of the `SelfPeggingAsset` contract, if the new invariant (`newD`) does not exceed the old invariant (`oldD`), a zero `addBuffer` call triggers a revert. This can cause automated scripts or user calls to fail when no net increase occurs.\n\nThe issue is classified as **low** severity because it does not pose a direct exploit risk but can disrupt normal operations when `D` remains unchanged.\n\n##### Recommendation\nWe recommend checking for a zero increase in `D` and returning early if no rebase is needed, thereby avoiding an unnecessary revert.\n",
+    "summary": "",
+    "report_date": "2025-09-19T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/mixbytes/audits_public/blob/master/NUTS%20Finance/Tapio/README.md#7-rebase-reverts-if-d-does-not-increase",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "rebase-reverts-if-d-does-not-increase-mixbytes-none-nuts-finance-markdown",
+    "firm_name": "MixBytes",
+    "firm_logo_square": "mixbytes_square.png",
+    "protocol_name": "NUTS Finance",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "MixBytes"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "MixBytes",
+        "logo_square": "mixbytes_square.png"
+    },
+    "protocols_protocol": {
+        "name": "NUTS Finance",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

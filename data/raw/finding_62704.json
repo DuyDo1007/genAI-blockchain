@@ -1,0 +1,45 @@
+{
+    "id": 62704,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 23,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3435,
+    "title": "Inefficient Struct Usage in `ExponentialNoError` Library",
+    "content": "##### Description\nThis issue has been identified within the `ExponentialNoError` library, which uses `struct` types (`Exp` and `Double`) to store fixed-precision decimals. Because structs must reside in memory, this design may be more cumbersome and less gas‑efficient than user-defined value types, for example:\n```solidity!\ntype Exp is uint256;\ntype Double is uint256;\n```\nUsing these can reduce memory usage, simplify code, and potentially lower gas costs while improving readability.\n\n##### Recommendation\nWe recommend refactoring the `ExponentialNoError` library to leverage user-defined value types. This approach can improve efficiency and maintainability without sacrificing correctness.\n",
+    "summary": "",
+    "report_date": "2025-09-18T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/mixbytes/audits_public/blob/master/NUTS%20Finance/Pike/README.md#7-inefficient-struct-usage-in-exponentialnoerror-library",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "inefficient-struct-usage-in-exponentialnoerror-library-mixbytes-none-nuts-finance-markdown",
+    "firm_name": "MixBytes",
+    "firm_logo_square": "mixbytes_square.png",
+    "protocol_name": "NUTS Finance",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "MixBytes"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "MixBytes",
+        "logo_square": "mixbytes_square.png"
+    },
+    "protocols_protocol": {
+        "name": "NUTS Finance",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

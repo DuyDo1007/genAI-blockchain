@@ -1,0 +1,38 @@
+{
+    "id": 62091,
+    "kind": "GIT",
+    "auditfirm_id": 2,
+    "impact": "LOW",
+    "finders_count": 0,
+    "protocol_id": 2159,
+    "title": "[18] Contrary to whitepaper, backstop rate can be changed",
+    "content": "\n<https://docs.blend.capital/blend-whitepaper# owned-pools>\n\n<https://github.com/code-423n4/2025-02-blend/blob/f23b3260763488f365ef6a95bfb139c95b0ed0f9/blend-contracts-v2/pool/src/contract.rs# L326-L327>\n\n### Finding description and impact\n\nAccording to the whitepaper, the backstop rate should be immutable and set upon deployment.\n\n> Owned pools are isolated lending pools where a delegated address can modify pool state and most pool parameters. Notably, they cannot modify the oracle contract address parameter or the backstop take rate parameter. This restriction prevents excessive damage to users by malicious or compromised pool owners.\n\nBut in our implementation, the `update_pool` allows setting a new backstop rate.\n```\n\npub fn execute_update_pool(\n    e: &Env,\n    backstop_take_rate: u32,\n    max_positions: u32,\n    min_collateral: i128,\n) {\n    let mut pool_config = storage::get_pool_config(e);\n    pool_config.bstop_rate = backstop_take_rate;\n    pool_config.max_positions = max_positions;\n    pool_config.min_collateral = min_collateral;\n\n    require_valid_pool_config(e, &pool_config);\n    storage::set_pool_config(e, &pool_config);\n}\n```\n\n---\n\n",
+    "summary": "",
+    "report_date": "2025-08-13T00:00:00.000Z",
+    "contest_prize_txt": "125000",
+    "contest_link": "https://code4rena.com/reports/2025-02-blend-v2-audit-certora-formal-verification",
+    "sponsor_name": "Blend",
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://code4rena.com/reports/2025-02-blend-v2-audit-certora-formal-verification",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "492",
+    "slug": "18-contrary-to-whitepaper-backstop-rate-can-be-changed-code4rena-blend-blend-git",
+    "firm_name": "Code4rena",
+    "firm_logo_square": "code4rena_square.png",
+    "protocol_name": "Blend",
+    "bookmarked": false,
+    "read": false,
+    "auditfirms_auditfirm": {
+        "name": "Code4rena",
+        "logo_square": "code4rena_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Blend",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

@@ -1,0 +1,45 @@
+{
+    "id": 62700,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 23,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3435,
+    "title": "Missing Range Validation for Key Parameters",
+    "content": "##### Description\nThis issue has been identified in several parameter setters and configuration functions—such as `setProtocolSeizeShare()`, `setCloseFactor()`, `configureMarket()`, `configureEMode()`, and the handling of `borrowRateMaxMantissa_`. None of these parameters are currently constrained by explicit interval checks.\n\nSpecific risks include:\n- **`setProtocolSeizeShare()`**: Failing to ensure that `reserveFactorMantissa + protocolSeizeShareMantissa` remains under 1e18 could result in seizing more collateral than exists.\n- **`setCloseFactor()`**: The `closeFactor` could be set to an extreme value above 1e18, breaking normal liquidation assumptions.\n- **`configureMarket()`, `configureEMode()`**: The `liquidationIncentiveMantissa` may be set to an unreasonably high or low value, distorting the liquidation process.\n\n##### Recommendation\nWe recommend introducing explicit validation in each function to ensure these parameters remain within sensible intervals.\n",
+    "summary": "",
+    "report_date": "2025-09-18T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/mixbytes/audits_public/blob/master/NUTS%20Finance/Pike/README.md#3-missing-range-validation-for-key-parameters",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "missing-range-validation-for-key-parameters-mixbytes-none-nuts-finance-markdown",
+    "firm_name": "MixBytes",
+    "firm_logo_square": "mixbytes_square.png",
+    "protocol_name": "NUTS Finance",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "MixBytes"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "MixBytes",
+        "logo_square": "mixbytes_square.png"
+    },
+    "protocols_protocol": {
+        "name": "NUTS Finance",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

@@ -1,0 +1,55 @@
+{
+    "id": 62813,
+    "kind": "GIT",
+    "auditfirm_id": 3,
+    "impact": "HIGH",
+    "finders_count": 3,
+    "protocol_id": 3398,
+    "title": "H-6: Reward Token Loss for LPs During NFT Position Transfer",
+    "content": "\nSource: https://github.com/sherlock-audit/2025-09-bmx-deli-swap-judging/issues/184 \n\n## Found by \n0x73696d616f, blockace, secret\\_\\_one\n\n### Summary\n\nIn **DeliHook v4 pools**, when a liquidity provider (LP) transfers their NFT position to a new owner, the **auto-claiming of rewards** is executed in favor of the new owner instead of the previous owner.  \n\nAs a result, the previous LP permanently loses their accumulated reward tokens at the time of transfer.\n\nCurrently, during **position removal or modification**, the protocol performs an auto-claim of reward tokens to the LP. \n\nHowever, during a **position transfer** (DeliHook v4 Pools), the `transferFrom` function changes ownership *before* the unsubscribe process is triggered. This ordering causes the reward claim to be credited to the **new owner**, not the previous owner.\n\n### Vulnerability Details\n\nWhen an NFT position is transferred, the following function is called:\n\n```solidity\nfunction transferFrom(\n    address from,\n    address to,\n    uint256 id\n) public virtual override onlyIfPoolManagerLocked {\n    super.transferFrom(from, to, id);   // Ownership is updated first\n    if (positionInfo[id].hasSubscriber()) _unsubscribe(id);\n}\n```\n\n- Ownership of the NFT position is changed first.\n- _unsubscribe is then called, which triggers the notifyUnsubscribe logic.\n\n```solidity\n    function notifyUnsubscribe(\n        uint256 tokenId\n    ) external override onlyAuthorizedCaller {\n        NotifyContext memory c = _buildContextFromToken(tokenId, true);\n\n        dailyEpochGauge.notifyUnsubscribeWithContext(\n            c.posKey,\n            c.pidRaw,\n            c.currentTick,\n            c.owner,\n            c.tickLower,\n            c.tickUpper,\n            c.liquidity\n        );\n\n        ...\n    }\n\n```\n\nDuring unsubscribe, context is built for the position, including the owner:\n\n```solidity\n    function _buildContextFromToken(\n        uint256 tokenId,\n        bool includeOwner\n    ) internal view returns (NotifyContext memory ctx) {\n        IPositionHandler handler = getHandler(tokenId);\n\n        ...\n \n        if (includeOwner) {\n            ctx.owner = handler.ownerOf(tokenId);\n        }\n\n    }\n```\n\n```solidity\n    function ownerOf(uint256 tokenId) external view override returns (address) {\n        return IERC721(address(positionManager)).ownerOf(tokenId);\n    }\n```\n\nBecause the transfer already occurred, ownerOf(tokenId) returns the new owner’s address.\n\nThe unsubscribe function then passes this owner to notifyUnsubscribeWithContext:\n\n```solidity\n    function notifyUnsubscribeWithContext(\n        bytes32 posKey,\n        bytes32 poolIdRaw,\n        int24 currentTick,\n        address ownerAddr,\n        int24 tickLower,\n        int24 tickUpper,\n        uint128 liquidity\n    ) external onlyPositionManagerAdapter {\n        ....\n\n        _claimRewards(posKey, ownerAddr);\n\n        _removePosition(pid, posKey);\n\n    }\n```\n\nFinally, rewards are transferred:\n\n```solidity\n    function _claimRewards(\n        bytes32 posKey,\n        address recipient\n    ) internal returns (uint256 amount) {\n        amount = positionRewards[posKey].claim();\n\n        if (amount > 0) {\n            BMX.transfer(recipient, amount); \n\n            emit Claimed(recipient, amount);\n        }\n    }\n```\n\nSince recipient is the new owner, the previous LP loses all their accumulated rewards.\n\n### Root Cause\n\nThe reward claim in notifyUnsubscribeWithContext (https://github.com/sherlock-audit/2025-09-bmx-deli-swap/blob/main/deli-swap-contracts/src/DailyEpochGauge.sol#L706-L707) uses the current NFT owner (post-transfer) instead of the previous LP (position owner):\n\n```solidity\n\n    function notifyUnsubscribeWithContext(\n        bytes32 posKey,\n        bytes32 poolIdRaw,\n        int24 currentTick,\n        address ownerAddr,\n        int24 tickLower,\n        int24 tickUpper,\n        uint128 liquidity\n    ) external onlyPositionManagerAdapter {\n\n        ...\n\n        _claimRewards(posKey, ownerAddr); // root-cause\n        _removePosition(pid, posKey);\n    }\n\n```\n\n### Internal Pre-conditions\n\n1. LP holds an NFT position in a DeliHook v4 pool.\n2. LP transfers their NFT position to another account.\n\n### External Pre-conditions\n\nNone\n\n### Attack Path\n\n1. An attacker purchases an existing NFT position from an LP.\n\n2. The transferFrom function executes, updating the NFT ownership to the attacker.\n\n3. _unsubscribe is triggered, building context with the attacker’s address as the new owner.\n\n4. notifyUnsubscribeWithContext calls _claimRewards with the attacker’s address.\n\n5. The attacker receives all reward tokens that belonged to the previous LP.\n\n### Impact\n\n- Loss of accumulated rewards: The previous LP permanently loses all their unclaimed rewards.\n\n- High Impact — direct and irreversible economic loss for LPs.\n\n### PoC\n\nNone\n\n### Mitigation\n\nThe reward claim logic should be updated to reference the recorded position owner (tracked from subscription) rather than the current NFT owner.\n\n```diff\n\n```solidity\n    function notifyUnsubscribeWithContext(\n        bytes32 posKey,\n        bytes32 poolIdRaw,\n        int24 currentTick,\n        address ownerAddr,\n        int24 tickLower,\n        int24 tickUpper,\n        uint128 liquidity\n    ) external onlyPositionManagerAdapter {\n\n        ...\n        \n        @ audit Bug\n-     _claimRewards(posKey, ownerAddr); \n     \n       @ audit Fix\n\n+     address owner = positionOwner[posKey];\n+     _claimRewards(posKey, ownerAddr);\n\n\n\n    }\n\n```\n```\n\n",
+    "summary": "\nSummary:\n\nThe DeliHook v4 pools have a bug where when a liquidity provider (LP) transfers their NFT position to a new owner, the auto-claiming of rewards is executed in favor of the new owner instead of the previous owner. This results in the previous LP permanently losing their accumulated reward tokens. The bug occurs because the ownership of the NFT position is changed before the unsubscribe process is triggered, causing the reward claim to be credited to the new owner instead of the previous owner. This bug can be exploited by attackers to purchase an existing NFT position from an LP and receive all the reward tokens that belonged to the previous LP. The impact of this bug is high as it results in direct and irreversible economic loss for LPs. To fix this bug, the reward claim logic should be updated to reference the recorded position owner instead of the current NFT owner. ",
+    "report_date": "2025-09-16T15:00:00.000Z",
+    "contest_prize_txt": "47000 USDC",
+    "contest_link": "https://app.sherlock.xyz/audits/contests/1154",
+    "sponsor_name": "",
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "",
+    "github_link": "https://github.com/sherlock-audit/2025-09-bmx-deli-swap-judging/issues/184",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "1154",
+    "slug": "h-6-reward-token-loss-for-lps-during-nft-position-transfer-sherlock-bmx-deli-swap-git",
+    "firm_name": "Sherlock",
+    "firm_logo_square": "sherlock_square.png",
+    "protocol_name": "BMX Deli Swap",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "0x73696d616f"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "secret\\_\\_one"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "blockace"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Sherlock",
+        "logo_square": "sherlock_square.png"
+    },
+    "protocols_protocol": {
+        "name": "BMX Deli Swap",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

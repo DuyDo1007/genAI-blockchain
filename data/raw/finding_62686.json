@@ -1,0 +1,45 @@
+{
+    "id": 62686,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 23,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3435,
+    "title": "Rounding‑Error Amplification When Chaining Inverted Price Feeds",
+    "content": "##### Description\nThis issue has been identified within the `price` function of the `ChainlinkCompositeOracleProvider` contract.\n\nEach time an inverted feed is processed, the intermediate result is truncated to the current decimal scale. \n\nRepeating the operation three times with 8‑decimal feeds, assuming their inverted price is around 0.001 yields a cumulative error of about:\n\n```\n(1 - 10^-5)^3 ≈ 1 - 3 × 10^-5\n```\n\n(~0.003 %). While acceptable for typical 8–18‑decimal feeds, lower‑precision feeds or more chained operations could magnify the error.\n\n##### Recommendation\nWe recommend performing all multiplications in a higher‑precision accumulator (e.g., 1e36) with taking into account possible overflow errors that could arise.\n",
+    "summary": "",
+    "report_date": "2025-09-19T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/mixbytes/audits_public/blob/master/NUTS%20Finance/Tapio/README.md#16-roundingerror-amplification-when-chaining-inverted-price-feeds",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "roundingerror-amplification-when-chaining-inverted-price-feeds-mixbytes-none-nuts-finance-markdown",
+    "firm_name": "MixBytes",
+    "firm_logo_square": "mixbytes_square.png",
+    "protocol_name": "NUTS Finance",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "MixBytes"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "MixBytes",
+        "logo_square": "mixbytes_square.png"
+    },
+    "protocols_protocol": {
+        "name": "NUTS Finance",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

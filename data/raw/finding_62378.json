@@ -1,0 +1,45 @@
+{
+    "id": 62378,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 34,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 1390,
+    "title": "[ASTRO-11] Misleading error declaration",
+    "content": "**Severity:** Informational\n\n**Path:** bridgeConnectorRemoteSTG.sol\n\n**Description:** The contract is declaring an error ZeroAddress() and using it in the function setAllocator()(L134-138), but that function doesn’t do a zero address check. Instead, it checks whether the allocator is set; thereby, it needs a clearer error declaration, e.g., AllocatorSet.\n```\ncontract BridgeConnectorRemoteSTG {\n\n[...]\n\n\terror ZeroAddress();\n\n[...]\n\n\tfunction setAllocator(address _allocator) external onlyOwner {\n\t\t// We can't change it after it's set\n\t\tif (allocator != address(0)) revert ZeroAddress();\n\t\tallocator = _allocator;\n\t}\n}\n```\n\n**Remediation:**  Reconsider the error declaration.\n\n**Status:** Fixed\n\n- - -",
+    "summary": "",
+    "report_date": "2023-04-17T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/solodit/solodit_content/blob/main/reports/Hexens/2023-04-17-Astrolab.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "astro-11-misleading-error-declaration-hexens-none-astrolab-markdown",
+    "firm_name": "Hexens",
+    "firm_logo_square": "Hexens_square.png",
+    "protocol_name": "Astrolab",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Hexens"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Hexens",
+        "logo_square": "Hexens_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Astrolab",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

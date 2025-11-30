@@ -1,0 +1,60 @@
+{
+    "id": 62161,
+    "kind": "PDF",
+    "auditfirm_id": 6,
+    "impact": "LOW",
+    "finders_count": 4,
+    "protocol_id": 3384,
+    "title": "No lower bound checks in setRiskyThresHR",
+    "content": "## Low Risk Severity Report\n\n## Context\n`Storage.sol` Lines 233-242\n\n## Description\nThe variable `riskyThresHR` is utilized to forcefully cancel user orders when the health ratio falls below an established value. This value corresponds to \\( H_c \\) as described in the Boros research paper, which is used by the cancel bot \\( B_c \\). Furthermore, `critHR` appears to correspond to \\( H_f \\) from the same paper. \n\nDuring discussions with the client regarding the Boros research paper review (Finding 5), we established the following inequalities:\n- \\( H_f < H_d - D(H_d, 30s) < H_d < H_c - D(H_c, 30s) < H_c \\)\n\nCurrently, the value for \\( H_d \\) is not defined in the contracts, nor is the function \\( D(H, t) \\) established. However, based on the aforementioned inequalities, we should ensure that:\n- \\( H_f < H_c - D(H_c, 30s) - D(H_c - D(H_c, 30s), 30s) < H_c \\)\n\n## Recommendation\nIt is advisable to verify in the `setRiskyThresHR` function that:\n- \\( H_f < H_c - D(H_c, 30s) - D(H_c - D(H_c, 30s), 30s) \\)\n\nThis would necessitate defining the function \\( D \\) or, at the very least, ensuring that:\n- \\( H_f < H_c \\)\n\n## Acknowledgements\n**Pendle Finance**: Acknowledged.  \n**Spearbit**: Acknowledged.\n\n## Footnote\nTest suite (`BorosTestBase.sol` Lines 130-132):\n\n```solidity\nint256 critHR = 0.4e18; // H_f, at some other places set to 1e18\nint256 delevHR = 0.6e18; // H_d, not used in the test suite\nint256 cancelHR = 0.8e18; // H_c, not used in the test suite\n```\n\nSource: `margin.t.sol` Line 971:\n\n```solidity\nint256 riskyThresHR = 1.2e18;\n``` ",
+    "summary": "",
+    "report_date": "2025-08-22T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Pendle-Spearbit-Security-Review-August-2025.pdf",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Pendle-Spearbit-Security-Review-August-2025.pdf",
+    "github_link": "",
+    "pdf_link": "https://solodit-bucket.s3.amazonaws.com/storage/reports/spearbit/Pendle-Spearbit-Security-Review-August-2025.pdf",
+    "pdf_page_from": 42,
+    "contest_id": "",
+    "slug": "no-lower-bound-checks-in-setriskythreshr-spearbit-none-pendle-core-v3-pdf",
+    "firm_name": "Spearbit",
+    "firm_logo_square": "spearbit_square.png",
+    "protocol_name": "Pendle Core v3",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Saw-mon and Natalie"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Ethan"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Desmond Ho"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "RustyRabbit"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Spearbit",
+        "logo_square": "spearbit_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Pendle Core v3",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

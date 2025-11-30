@@ -1,0 +1,50 @@
+{
+    "id": 62788,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 37,
+    "impact": "MEDIUM",
+    "finders_count": 2,
+    "protocol_id": 3445,
+    "title": "Griefing Users Can Cause Deposits to Fail on the Destination Chain Due to Lack of Minimum `_gaslimit` Validation",
+    "content": "**Update**\nMarked as \"Fixed\" by the client. Addressed in: `ca194fd861d7406c934a01ed91b06205da2f067d`.\n\nAdditional fix in: `8e41143cf6839753b027569e24f70a88dffd2388`.\n\n**File(s) affected:**`contracts/CampTimelockEscrow.sol`\n\n**Description:** The `bridgeOut()` and `release()` functions allow the caller to specify a `_gaslimit` argument. This value is the maximum amount of gas units the executor should use on the destination chain when completing the bridge. However, in the case of the `CampTimelockEscrow` contract, there is never any validation that some minimum amount of gas is available on the destination chain to ensure the bridge transaction is successful. Therefore, User A could process User B's deposit via the `release()` function, specifying a very small `_gaslimit`, causing the transaction to fail on the destination chain. This means the affected user would have directly to call the `lzReceive()` function on the target chain's implementation of the Camp OFT contract in order to complete their bridge action successfully.\n\n**Recommendation:** As the `CampTimelockEscrow` contract never attaches any data within its `SendParam` struct, it should be possible to estimate a minimum amount of gas required on the target chain to complete a basic bridge action (`MIN_GAS_LIMIT`) and validate that `_gaslimit >= MIN_GAS_LIMIT`.",
+    "summary": "\nA bug has been reported in the `CampTimelockEscrow.sol` file, where the `bridgeOut()` and `release()` functions do not have a minimum gas validation. This means that a user could specify a very small gas limit, causing the transaction to fail on the destination chain. The recommendation is to add a minimum gas validation to ensure successful bridge transactions.",
+    "report_date": "2025-09-15T14:20:31.258Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://certificate.quantstamp.com/full/camp-re-audit/2a90a14d-4635-462c-905c-0b444e0d8cf8/index.html",
+    "sponsor_name": "",
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://certificate.quantstamp.com/full/camp-re-audit/2a90a14d-4635-462c-905c-0b444e0d8cf8/index.html",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "griefing-users-can-cause-deposits-to-fail-on-the-destination-chain-due-to-lack-of-minimum-_gaslimit-validation-quantstamp-camp-re-audit-markdown",
+    "firm_name": "Quantstamp",
+    "firm_logo_square": "quantstamp_square.png",
+    "protocol_name": "Camp - Re-Audit",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Paul Clemson"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Darren Jensen"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Quantstamp",
+        "logo_square": "quantstamp_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Camp - Re-Audit",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

@@ -1,0 +1,45 @@
+{
+    "id": 62437,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 34,
+    "impact": "HIGH",
+    "finders_count": 1,
+    "protocol_id": 3408,
+    "title": "[UFARM1-2] Quex callback can be permanently DoSed by congesting queues",
+    "content": "**Severity:** Critical\n\n**Path:** main/contracts/pool/UFarmPool.sol:quexCallback (L881-1007)\n\n**Description:** The UFarmPool contract uses the Quex Oracle to query off-chain information, namely the total value of the pool (`_totalCost`). \n\nAny deposit or withdrawal action will add this action to the corresponding queue (`depositQueue` and `withdrawQueue`) and fire a Quex request. The Quex core contract will call into `quexCallback` to resolve the request with the queried data.\n\nThe issue here however, is that `quexCallback` contains unbounded loops in the handling of the queues. More specifically, it will loop over the entire `depositQueue` and `withdrawQueue`, and execute each action in there:\n```\nrequestsLength = depositQueue.length;\nwhile (requestsLength > 0) {\n    [..]\n}\n```\nAn attacker can arbitrarily create a large amount of deposit requests without the need for assets (the tokens are only transferred in the callback). As a result, the `quexCallback` will always revert with out-of-gas. The Quex flow currently has a constant gas limit of 1m gas, which can be easily filled.\n\nMoreover, in the current implementation the deposit queue and withdraw queue can only be reduced/popped inside of the callback. So if it (forcibly) grows outside of maximum gas capabilities, then the pool would have no way of recovering from the DoS attack.\n```\nfunction quexCallback(uint256 receivedRequestId, DataItem memory response) external {\n    [..]\n    {\n        uint256 sharesToMint;\n        uint256 amountToInvest;\n        uint256 totalDeposit;\n        bytes32 depositRequestHash;\n        QueueItem memory depositItem;\n\n        requestsLength = depositQueue.length;\n        while (requestsLength > 0) {\n            // Validate each deposit request\n            depositItem = depositQueue[requestsLength - 1];\n            amountToInvest = depositItem.amount;\n            investor = depositItem.investor;\n            depositRequestHash = depositItem.requestHash;\n\n            // Process the deposit\n            try this.safeTransferToPool(investor, amountToInvest, depositItem.bearerToken) {\n                sharesToMint = _mintSharesByQuote(investor, amountToInvest, _totalCost);\n\n                // Adjust the total cost and total deposit\n                _totalCost += amountToInvest;\n                totalDeposit += amountToInvest;\n\n                emit Deposit(investor, depositItem.bearerToken, amountToInvest, sharesToMint);\n\n                if (depositRequestHash != bytes32(0)) {\n                    __usedDepositsRequests[depositRequestHash] = true;\n                    emit DepositRequestExecuted(investor, depositRequestHash);\n                }\n            } catch {\n                depositQueue.pop();\n                requestsLength = depositQueue.length;\n                continue;\n            }\n\n            depositQueue.pop();\n            requestsLength = depositQueue.length;\n        }\n\n        highWaterMark += totalDeposit;\n    }\n    [..]\n}\n```\n\n**Remediation:**  The `quexCallback` function should better manage gas limitations by only handling a maximum number of deposit/withdraw requests.\n\n**Status:**  Fixed\n\n\n- - -",
+    "summary": "\nThe UFarmPool contract has a critical bug that allows an attacker to create a large number of deposit requests and cause the `quexCallback` function to run out of gas, leading to a denial of service (DoS) attack. This is due to unbounded loops in the handling of the deposit and withdrawal queues. The bug has been fixed by limiting the number of requests that can be handled in the `quexCallback` function. ",
+    "report_date": "2025-06-10T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/solodit/solodit_content/blob/main/reports/Hexens/2025-06-10-Ufarm.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "ufarm1-2-quex-callback-can-be-permanently-dosed-by-congesting-queues-hexens-none-ufarm-markdown",
+    "firm_name": "Hexens",
+    "firm_logo_square": "Hexens_square.png",
+    "protocol_name": "Ufarm",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Hexens"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Hexens",
+        "logo_square": "Hexens_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Ufarm",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

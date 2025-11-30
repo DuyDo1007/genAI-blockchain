@@ -1,0 +1,45 @@
+{
+    "id": 62182,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 16,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3389,
+    "title": "[L-09] Re-adding removed vault assets duplicates accounting in `lastTotalAssets`",
+    "content": "\n_Acknowledged_\n\nWhen a strategy vault is removed via emergency removal while it still holds assets (`strategy.balanceOf(address(EulerEarn)) > 0`), these unrecoverable assets are added to the `lostAssets` variable in `_accruedFeeAndAssets()`:\n\n```solidity\n function _accruedFeeAndAssets()\n        internal\n        view\n        returns (uint256 feeShares, uint256 newTotalAssets, uint256 newLostAssets)\n    {\n        // The assets that the Earn vault has on the strategy vaults.\n        uint256 realTotalAssets;\n        for (uint256 i; i < withdrawQueue.length; ++i) {\n            IERC4626 id = withdrawQueue[i];\n            realTotalAssets += _expectedSupplyAssets(id);\n        }\n\n        uint256 lastTotalAssetsCached = lastTotalAssets;\n        if (realTotalAssets < lastTotalAssetsCached - lostAssets) {\n            // If the vault lost some assets (realTotalAssets decreased), lostAssets is increased.\n            newLostAssets = lastTotalAssetsCached - realTotalAssets;\n        } else {\n            // If it did not, lostAssets stays the same.\n            newLostAssets = lostAssets;\n        }\n\n        newTotalAssets = realTotalAssets + newLostAssets;\n        uint256 totalInterest = newTotalAssets - lastTotalAssetsCached;\n       //...\n    }\n```\n\nHowever, **if the same vault is later re-added** to the `EulerEarn` vault, it is treated as a fresh strategy and added to the `withdrawQueue`. During this process, its configuration is initialized with `marketConfig.balance = id.balanceOf(address(this))`. Since this balance still contains the previously lost shares, **those same assets are now re-counted in `totalAssets()`, leading to double counting**:\n\n```solidity\nfunction _setCap(IERC4626 id, uint136 supplyCap) internal {\n        //...\n        if (supplyCap > 0) {\n            IERC20(asset()).forceApproveMaxWithPermit2(address(id), permit2);\n\n            if (!marketConfig.enabled) {\n                withdrawQueue.push(id);\n\n                //...\n                marketConfig.balance = id.balanceOf(address(this)).toUint112();\n\n                // Take into account assets of the new vault without applying a fee.\n                _updateLastTotalAssets(lastTotalAssets + _expectedSupplyAssets(id));\n\n                //...\n            }\n\n            //...\n        } else {\n            IERC20(asset()).revokeApprovalWithPermit2(address(id), permit2);\n        }\n\n        //...\n    }\n```\n\nThis results in an inflated `totalAssets()` value, which raises the share price of the `EaulerEarn` vault. Consequently, users interacting with the vault (e.g., minting) may receive fewer shares than they should.\n\n**Recommendations**\n\nAvoid initializing re-added strategy vaults with their current balance. Instead, explicitly set `marketConfig.balance = 0` when adding a vault that was previously removed.\n\n### Euler comments\n\nWe acknowledge the finding, will keep as is. Behaviour is the same in the original codebase.\n\n\n\n",
+    "summary": "",
+    "report_date": "2025-08-27T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/pashov/audits/blob/master/team/md/EulerEarn-security-review_2025-07-25.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "l-09-re-adding-removed-vault-assets-duplicates-accounting-in-lasttotalassets-pashov-audit-group-none-eulerearn_2025-07-25-markdown",
+    "firm_name": "Pashov Audit Group",
+    "firm_logo_square": "Pashov_square.png",
+    "protocol_name": "EulerEarn_2025-07-25",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Pashov Audit Group"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Pashov Audit Group",
+        "logo_square": "Pashov_square.png"
+    },
+    "protocols_protocol": {
+        "name": "EulerEarn_2025-07-25",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

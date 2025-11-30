@@ -1,0 +1,45 @@
+{
+    "id": 62707,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 23,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3435,
+    "title": "Risk of Storage Slot Overlap Leading to Unpredictable Behavior",
+    "content": "##### Description\nThis issue has been identified due to the shared use of the same storage address (`_SLOT_PTOKEN_STORAGE`) for both transient reentrancy guard data and persistent protocol data. While currently functional, any future refactoring that merges these two data sets into a single storage layout may cause overlap of the reentrancy guard flag with other state variables, leading to unpredictable or corrupted behavior.\n\n##### Recommendation\nAs a precautionary measure, we recommend assigning a dedicated storage slot for the reentrancy guard flag to ensure clear separation from other storage variables. This isolation helps protect against unintentional overlap during upgrades or refactoring.\n",
+    "summary": "",
+    "report_date": "2025-09-18T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/mixbytes/audits_public/blob/master/NUTS%20Finance/Pike/README.md#10-risk-of-storage-slot-overlap-leading-to-unpredictable-behavior",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "risk-of-storage-slot-overlap-leading-to-unpredictable-behavior-mixbytes-none-nuts-finance-markdown",
+    "firm_name": "MixBytes",
+    "firm_logo_square": "mixbytes_square.png",
+    "protocol_name": "NUTS Finance",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "MixBytes"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "MixBytes",
+        "logo_square": "mixbytes_square.png"
+    },
+    "protocols_protocol": {
+        "name": "NUTS Finance",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

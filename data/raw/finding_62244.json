@@ -1,0 +1,50 @@
+{
+    "id": 62244,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 11,
+    "impact": "GAS",
+    "finders_count": 2,
+    "protocol_id": 3393,
+    "title": "Modifier `mintRequestExist` can be safely removed from `RequestsManager::cancelMint, cancelBurn` saving 1 identical storage read",
+    "content": "**Description:** `RequestsManager::cancelMint` validates that `request.provider == msg.sender`:\n```solidity\nL152:    _assertAddress(request.provider, msg.sender);\n```\n\nHence the modifier `mintRequestExist(_id)` can be safely removed to save 1 identical storage read of `mintRequests[_id].provider`.\n\nThe same applies to `RequestsManager::cancelBurn`.\n\n**Avant:**\nFixed in commit [f74d1fc](https://github.com/Avant-Protocol/Avant-Contracts-Max/commit/f74d1fc334cf34f8751285e55cf44e41238859e1).\n\n**Cyfrin:** Verified.",
+    "summary": "",
+    "report_date": "2025-08-28T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/solodit/solodit_content/blob/main/reports/Cyfrin/2025-08-28-cyfrin-avant-max-v2.0.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "modifier-mintrequestexist-can-be-safely-removed-from-requestsmanagercancelmint-cancelburn-saving-1-identical-storage-read-cyfrin-none-avant-max-markdown",
+    "firm_name": "Cyfrin",
+    "firm_logo_square": "Cyfrin_square.jpg",
+    "protocol_name": "Avant Max",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Dacian"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Jorge"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Cyfrin",
+        "logo_square": "Cyfrin_square.jpg"
+    },
+    "protocols_protocol": {
+        "name": "Avant Max",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

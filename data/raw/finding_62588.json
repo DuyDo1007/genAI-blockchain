@@ -1,0 +1,45 @@
+{
+    "id": 62588,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 16,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3420,
+    "title": "[L-30] Use of `transferFrom` over `safeTransferFrom()` in NFT transfers",
+    "content": "\n_Resolved_\n\nReference Finding: https://solodit.cyfrin.io/issues/fuel1-5-use-safetransferfrom-instead-of-transferfrom-for-erc721-transfers-hexens-none-fuel-markdown\n\nThe `PacketStore` contract utilizes the transferFrom method to transfer NFTs, which is not the recommended approach for `ERC721` tokens. The `transferFrom` method does not perform any checks to ensure that the recipient is capable of receiving the NFT.\n\n```solidity\n        // Transfer packet to buyer\n        packetContract.transferFrom(address(this), recipient, packetId);\n        \n        emit PacketSold(packetId, recipient, price, packetTypeId);\n        \n```\n\nIf the recipient is a contract that does not implement the required `ERC721` interface, the NFT could be permanently locked, as it would not be able to be transferred out of that contract.\n\nNote:\nThis is the same in other contracts, including `CardAllocationPool` and `SpinLottery`.\n\nRecommendations:\n\nTo enhance the safety of NFT transfers, it is advisable to use the `safeTransferFrom` method instead of `transferFrom`.\n\n\n\n",
+    "summary": "",
+    "report_date": "2025-09-11T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/pashov/audits/blob/master/team/md/RipIt-security-review_2025-04-25.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "l-30-use-of-transferfrom-over-safetransferfrom-in-nft-transfers-pashov-audit-group-none-ripit_2025-04-25-markdown",
+    "firm_name": "Pashov Audit Group",
+    "firm_logo_square": "Pashov_square.png",
+    "protocol_name": "RipIt_2025-04-25",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Pashov Audit Group"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Pashov Audit Group",
+        "logo_square": "Pashov_square.png"
+    },
+    "protocols_protocol": {
+        "name": "RipIt_2025-04-25",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

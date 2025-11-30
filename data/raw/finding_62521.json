@@ -1,0 +1,45 @@
+{
+    "id": 62521,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 16,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3417,
+    "title": "[L-01] Missing restriction on request data size during request lifecycle",
+    "content": "\nThe functions `requestServiceExecution`, `addInformationForServiceExecution`, `acceptServiceExecution`, `cancelServiceExecution`, and `disputeServiceExecution` allow users to input string data of arbitrary length. \n```solidity\n    function requestServiceExecution(\n        uint256 serviceNonce,\n        string calldata requestData \n    ) external payable {\n\n    function addInformationForServiceExecution(\n        uint256 serviceNonce,\n        uint256 executionNonce,\n        string calldata informationData\n    ) external {\n\n    function acceptServiceExecution(\n        uint256 serviceNonce,\n        uint256 executionNonce,\n        string calldata responseData \n    ) external {\n\n    function cancelServiceExecution(\n        uint256 serviceNonce,\n        uint256 executionNonce,\n        string calldata cancelData\n    ) external {\n\n    function disputeServiceExecution(\n        uint256 serviceNonce,\n        uint256 executionNonce,\n        string calldata disputeData\n    ) {\n```\nThe lack of a maximum data size restriction could lead to malicious actors sending requests with large amounts of invalid data. These data would ultimately appear on the frontend, resulting in a poor user experience.\n\n\n\n",
+    "summary": "",
+    "report_date": "2025-09-09T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/pashov/audits/blob/master/team/md/Noodles-security-review_2025-03-11.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "l-01-missing-restriction-on-request-data-size-during-request-lifecycle-pashov-audit-group-none-noodles_2025-03-11-markdown",
+    "firm_name": "Pashov Audit Group",
+    "firm_logo_square": "Pashov_square.png",
+    "protocol_name": "Noodles_2025-03-11",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Pashov Audit Group"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Pashov Audit Group",
+        "logo_square": "Pashov_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Noodles_2025-03-11",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

@@ -1,0 +1,50 @@
+{
+    "id": 62337,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 11,
+    "impact": "LOW",
+    "finders_count": 2,
+    "protocol_id": 3401,
+    "title": "`OndoSanityCheckOracle::setAllowedDeviationBps` is not checking zero value as input which will introduce problems using it",
+    "content": "**Description:** In `OndoSanityCheckOracle`, there are two types of deviation values: a default deviation applied to all tokens by default, and a token-specific deviation set per asset via `setAllowedDeviationBps()`.\n\nThe default deviation value is validated to be non-zero, while token-specific deviations can be set to zero:\n\n[OndoSanityCheckOracle.sol#L222-L245](https://github.com/ondoprotocol/rwa-internal/blob/a74d03f4a71bd9cac09e8223377b47f7d64ca8d4/contracts/globalMarkets/tokenManager/sanityCheckOracle/OndoSanityCheckOracle.sol#L222-L245)\n\n```solidity\nfunction setAllowedDeviationBps(...) external onlyRole(CONFIGURER_ROLE) {\n  if (bps >= BPS_DENOMINATOR) revert InvalidDeviationBps();\n  prices[token].allowedDeviationBps = bps;\n  emit AllowedDeviationSet(token, bps);\n}\n\nfunction setDefaultAllowedDeviationBps(...) public onlyRole(CONFIGURER_ROLE) {\n  if (bps == 0) revert InvalidDeviationBps(); // enforced here\n  if (bps >= BPS_DENOMINATOR) revert InvalidDeviationBps();\n  emit DefaultAllowedDeviationSet(defaultDeviationBps, bps);\n  defaultDeviationBps = bps;\n}\n```\n\nSetting a token deviation to zero is functionally meaningless, however, because zero is interpreted as “use the default” during price posting:\n\n[OndoSanityCheckOracle.sol#L189-L192](https://github.com/ondoprotocol/rwa-internal/blob/a74d03f4a71bd9cac09e8223377b47f7d64ca8d4/contracts/globalMarkets/tokenManager/sanityCheckOracle/OndoSanityCheckOracle.sol#L189-L192)\n\n```solidity\nif (priceData.allowedDeviationBps == 0) {\n  priceData.allowedDeviationBps = defaultDeviationBps;\n  emit AllowedDeviationSet(token, priceData.allowedDeviationBps);\n}\n```\n\nThis creates a subtle inconsistency: the contract accepts `0` as a valid input for per-token deviations, but the value will be ignored and overridden when posting a price. If zero deviation is considered too strict or unsupported, enforce a `bps > 0` check in `setAllowedDeviationBps()`, mirroring the validation in `setDefaultAllowedDeviationBps()`.\n\nAlternatively, if `0` is meant to indicate “use default,” consider introducing an explicit boolean field to track whether a token’s deviation has been explicitly set, rather than relying on `0` as a sentinel value.\n\n**Ondo:** Fixed in commit [`6a33346`](https://github.com/ondoprotocol/rwa-internal/pull/470/commits/6a333464ee54fe04957331c270ce185a44e5e528)\n\n**Cyfrin:** Verified. `allowedDeviationBps` is not allowed to be 0.",
+    "summary": "",
+    "report_date": "2025-07-14T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/solodit/solodit_content/blob/main/reports/Cyfrin/2025-07-14-cyfrin-ondo-global-markets-v2.0.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "ondosanitycheckoraclesetalloweddeviationbps-is-not-checking-zero-value-as-input-which-will-introduce-problems-using-it-cyfrin-none-ondo-global-markets-markdown",
+    "firm_name": "Cyfrin",
+    "firm_logo_square": "Cyfrin_square.jpg",
+    "protocol_name": "Ondo Global Markets",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Immeas"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Al-Qa'qa'"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Cyfrin",
+        "logo_square": "Cyfrin_square.jpg"
+    },
+    "protocols_protocol": {
+        "name": "Ondo Global Markets",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

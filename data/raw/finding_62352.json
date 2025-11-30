@@ -1,0 +1,55 @@
+{
+    "id": 62352,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 11,
+    "impact": "LOW",
+    "finders_count": 3,
+    "protocol_id": 3402,
+    "title": "Initialization to zero price can cause permanent stuck state due to clamping",
+    "content": "**Description:** In `ChainlinkOracle` in the constructor, the contract initializes `currentPriceX96`, `lastPriceX96`, and `emaPrice` using the current `sqrtPriceX96` from the Uniswap V4 pool. If the pool is uninitialized (`sqrtPriceX96 == 0`), all these price variables are set to zero. In this state, the `update` function will always clamp any new price to the range `lastPriceX96 ± (lastPriceX96 >> 6)`, which evaluates to `0 ± 0 = 0`. As a result, the oracle is stuck at zero and cannot update to a non-zero price, even if the pool becomes initialized later.\n\n**Impact:** The oracle will be permanently stuck at a zero price if deployed before the pool is initialized. This prevents the oracle from ever reflecting the true market price, breaking all dependent pricing and margin logic. Users and protocols relying on the oracle will receive invalid (zero) price data, potentially causing loss of functionality or incorrect behavior.\n\n**Recommended Mitigation:** Add a check in the constructor (and/or in the `update` function) to ensure that initialization only occurs if `sqrtPriceX96 > 0`. If the pool is uninitialized, revert deployment or defer initialization until a valid price is available. Alternatively, allow the oracle to update from zero to a non-zero price once the pool is initialized, bypassing the clamp logic when `lastPriceX96 == 0`.\n\n**Licredity:** Fixed in [PR#16](https://github.com/Licredity/licredity-v1-oracle/pull/16/files), commit [`6f5fdd7`](https://github.com/Licredity/licredity-v1-oracle/commit/6f5fdd7c2fdffc4e90b80d7b1c967a700bc9936e)\n\n**Cyfrin:** Verified. `sqrtPrice` now verified to not be `0` in the constructor.",
+    "summary": "",
+    "report_date": "2025-09-01T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/solodit/solodit_content/blob/main/reports/Cyfrin/2025-09-01-cyfrin-licredity-v2.0.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "initialization-to-zero-price-can-cause-permanent-stuck-state-due-to-clamping-cyfrin-none-licredity-markdown",
+    "firm_name": "Cyfrin",
+    "firm_logo_square": "Cyfrin_square.jpg",
+    "protocol_name": "Licredity",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Immeas"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Alexzoid"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "ChainDefenders](https://x.com/ChDefendersEth) ([0x539](https://x.com/1337web3) & [PeterSR"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Cyfrin",
+        "logo_square": "Cyfrin_square.jpg"
+    },
+    "protocols_protocol": {
+        "name": "Licredity",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

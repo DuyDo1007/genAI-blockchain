@@ -1,0 +1,70 @@
+{
+    "id": 62477,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 16,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3413,
+    "title": "[L-04] Bearish users have an advantage over bullish ones",
+    "content": "\n_Acknowledged_\n\nTo determine whether the prediction is bullish or bearish in `claimReward()`, the calculation is as follows:\n```solidity\nbool isBullWinning = round.endPrice > round.startPrice;\n```\nIf `round.endPrice == round.startPrice`, the bearish predictions win by default. This gives the bearish position a slight advantage over the bullish.\n\nRecommendation: If `round.endPrice == round.startPrice`, refund the entire deposited amount to the users.\n\n\n\n",
+    "summary": "",
+    "report_date": "2025-09-04T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/pashov/audits/blob/master/team/md/MCP-security-review_2025-08-07.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "l-04-bearish-users-have-an-advantage-over-bullish-ones-pashov-audit-group-none-mcp_2025-08-07-markdown",
+    "firm_name": "Pashov Audit Group",
+    "firm_logo_square": "Pashov_square.png",
+    "protocol_name": "MCP_2025-08-07",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Pashov Audit Group"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Pashov Audit Group",
+        "logo_square": "Pashov_square.png"
+    },
+    "protocols_protocol": {
+        "name": "MCP_2025-08-07",
+        "protocols_protocolcategoryscore": [
+            {
+                "protocols_protocolcategory": {
+                    "title": "NFT Lending"
+                },
+                "score": 0.5
+            },
+            {
+                "protocols_protocolcategory": {
+                    "title": "RWA"
+                },
+                "score": 0.5
+            },
+            {
+                "protocols_protocolcategory": {
+                    "title": "RWA Lending"
+                },
+                "score": 0.5
+            },
+            {
+                "protocols_protocolcategory": {
+                    "title": "Staking Pool"
+                },
+                "score": 0.5
+            }
+        ]
+    },
+    "issues_issuetagscore": []
+}

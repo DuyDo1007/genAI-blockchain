@@ -1,0 +1,45 @@
+{
+    "id": 62951,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 16,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3464,
+    "title": "[L-05] No access control in `initializeVault()` allows unauthorized init",
+    "content": "\n_Resolved_\n\nThe `RestrictedVaultFactory` contract restricts vault creation to the current contract owner. However, it fails to override the `initializeVault()`, which is still accessible to the previous owner who is recorded as the vault's creator.\n\nIf ownership of the `RestrictedVaultFactory` contract changes after vault creation but before initialization or there are vaults that were left uninitialed, the previous owner can still initialize those vaults with arbitrary parameters, bypassing the intended restricted control.\n\n```solidity\n  function initializeVault(\n    uint256 vaultId,\n    uint256 fixedSideCapacity,\n    uint256 variableSideCapacity,\n    uint256 duration,\n    address variableAsset\n  ) public {\n    // Get vault info for the vault we want to initialize and make sure msg.sender is the creator\n@>  require(vaultInfo[vaultId].creatorAddress == msg.sender, \"CMI\");\n\n    --- SNIPPED ---\n  }\n```\n\nConsider overriding the `initializeVault()` in `RestrictedVaultFactory` to add the `onlyOwner` modifier.\n\n\n\n",
+    "summary": "",
+    "report_date": "2025-10-13T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/pashov/audits/blob/master/team/md/Saffron-security-review_2025-07-31.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "l-05-no-access-control-in-initializevault-allows-unauthorized-init-pashov-audit-group-none-saffron_2025-07-31-markdown",
+    "firm_name": "Pashov Audit Group",
+    "firm_logo_square": "Pashov_square.png",
+    "protocol_name": "Saffron_2025-07-31",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Pashov Audit Group"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Pashov Audit Group",
+        "logo_square": "Pashov_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Saffron_2025-07-31",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

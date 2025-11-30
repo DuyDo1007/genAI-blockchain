@@ -1,0 +1,60 @@
+{
+    "id": 62915,
+    "kind": "PDF",
+    "auditfirm_id": 6,
+    "impact": "LOW",
+    "finders_count": 4,
+    "protocol_id": 3419,
+    "title": "Bin::shr_ceil undersizes result",
+    "content": "## Severity: Low Risk\n\n## Context\n(No context files were provided by the reviewer)\n\n## Description/Recommendation\nThe template `template <std::size_t N>` class `Bin` represents an unsigned integer of up to 32 bits, where `N` tracks the capacity of the underlying value `value_` at compile-time. For some combinations of values and shift counts, the method `shr_ceil` will undersize the result's `N`. \n\n**Example:**\n```cpp\nconst auto A = Bin<3>::unsafe_from(4);\n/* Good */\nconst auto B1 = shr_ceil<1>(A);\n/* Good */\nconst auto B2 = shr_ceil<2>(A);\n/* Fail: B3::value_ is 1, requiring 1 bit, but B3's N is 0 */\nconst auto B3 = shr_ceil<3>(A);\n```\n\n`N` and `value_` are uncoupled. An `N` that is invalid with regards to the space requirement of `value_` does influence `value_`. Hence, `value_` is always correct irrespective of `N`'s drift, and there is no risk of incorrect calculations at runtime.\n\n## Category\nLabs: Fixed in PR 1432.\n\n## Spearbit\nFix verified.",
+    "summary": "",
+    "report_date": "2025-09-19T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Monad-Spearbit-Security-Review-September-2025.pdf",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Monad-Spearbit-Security-Review-September-2025.pdf",
+    "github_link": "",
+    "pdf_link": "https://solodit-bucket.s3.amazonaws.com/storage/reports/spearbit/Monad-Spearbit-Security-Review-September-2025.pdf",
+    "pdf_page_from": 47,
+    "contest_id": "",
+    "slug": "binshr_ceil-undersizes-result-spearbit-none-monad-pdf",
+    "firm_name": "Spearbit",
+    "firm_logo_square": "spearbit_square.png",
+    "protocol_name": "Monad",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Haxatron"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Dtheo"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Guido Vranken"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Rikard Hjort"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Spearbit",
+        "logo_square": "spearbit_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Monad",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

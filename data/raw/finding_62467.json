@@ -1,0 +1,45 @@
+{
+    "id": 62467,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 23,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 1179,
+    "title": "Implement `sweep()` for ETH",
+    "content": "##### Description\nThe [`sweep()`](https://github.com/BarterLab/argon/blob/f653d58132124854db42d2bd93d0c6b91da2c398/contracts/InchFusionBarterResolver.sol#L125-L133) function in the `InchFusionBarterResolver` contract only handles ERC20 tokens but does not provide functionality to sweep native ETH that may accumulate in the contract.\n<br/>\n##### Recommendation\nWe recommend implementing ETH sweeping functionality.\n\n---\n",
+    "summary": "",
+    "report_date": "2025-09-05T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/mixbytes/audits_public/blob/master/Barter%20DAO/InchFusionBarterResolver/README.md#1-implement-sweep-for-eth",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "implement-sweep-for-eth-mixbytes-none-barter-dao-markdown",
+    "firm_name": "MixBytes",
+    "firm_logo_square": "mixbytes_square.png",
+    "protocol_name": "Barter DAO",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "MixBytes"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "MixBytes",
+        "logo_square": "mixbytes_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Barter DAO",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

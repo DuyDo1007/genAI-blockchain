@@ -1,0 +1,38 @@
+{
+    "id": 62195,
+    "kind": "GIT",
+    "auditfirm_id": 2,
+    "impact": "LOW",
+    "finders_count": 0,
+    "protocol_id": 3136,
+    "title": "[L-02] Mid-Season Merkle Root Update Invalidates Previously Valid Proofs",
+    "content": "\nType: Operational / Design Limitation\n\n### Summary\n\nIn the `VettedGate` referral reward system, the on-chain contract stores a single active `merkleRoot` and verifies claims with respect to that root. If the root is updated mid-season — even without removing a legitimate referrer from the set — all proofs generated against the previous root become invalid and cannot be used to claim rewards.\n\nThis behavior is inherent to Merkle proof verification: proofs are root-specific, so any root change (due to leaf removal, addition, or re-ordering) requires distributing new proofs to all eligible participants.\n\nWhile this is not a security bug, it introduces an operational dependency: off-chain systems must re-issue updated proofs to all still-eligible referrers whenever the root changes.\n\n### Description\n\nDuring a referral season, administrators may call:\n\nin [VettedGate.sol# L291-297](https://github.com/code-423n4/2025-07-lido-finance/blob/main/src/VettedGate.sol# L291-L297):\n```\n\nvettedGate.setTreeParams(newRoot, newCid);\n```\n\nto replace the current Merkle root and CID. This may happen to ban malicious addresses or add new reward addresses. However:\n\n* The contract does not store historical roots. and [`claimReferrerBondCurve`](https://github.com/code-423n4/2025-07-lido-finance/blob/main/src/VettedGate.sol# L265) always calls [`verifyProof`](https://github.com/code-423n4/2025-07-lido-finance/blob/main/src/VettedGate.sol# L330) against the current root.\n* Because Merkle proofs are tied to a specific root, any proof generated for a previous root will become invalid after an update, even if the address remains in the new tree.\n\nExample sequence:\n\n1. Season starts, tree = `[NodeOperator, Stranger, AnotherNodeOperator]`.\n2. Stranger reaches referral threshold.\n3. Admin updates root mid-season to `[Stranger, NodeOperator]` to ban `AnotherNodeOperator`.\n4. Stranger tries to claim with old proof (built for index=1 in old tree) → `InvalidProof` revert.\n5. Stranger must obtain new proof (index=0 in new tree) to succeed.\n\nThis matches expected Merkle mechanics but can surprise operators if not accounted for.\n\n### PoC\n\nThis PoC was implemented directly in the existing `VettedGateReferralProgramTest` suite, not `PoC.t.sol`, due to the low severity and straightforward nature of the issue.\n```\n\nfunction test_proofBreaksAfterRootUpdate_whenIndexShifts() public {\n    _addReferrals();\n    bytes32[] memory oldProof = merkleTree.getProof(1); // stranger's original index is 1\n\n    MerkleTree newTree = new MerkleTree();\n    newTree.pushLeaf(abi.encode(stranger)); // index now 0\n    newTree.pushLeaf(abi.encode(anotherNodeOperator));\n    bytes32 newRoot = newTree.root();\n\n    vm.startPrank(admin);\n    vettedGate.grantRole(vettedGate.SET_TREE_ROLE(), admin);\n    vettedGate.setTreeParams(newRoot, \"cid\");\n    vm.stopPrank();\n\n    NodeOperatorManagementProperties memory no;\n    no.rewardAddress = stranger;\n    CSMMock(csm).mock_setNodeOperatorManagementProperties(no);\n\n    // Old proof fails\n    vm.expectRevert(IVettedGate.InvalidProof.selector);\n    vm.prank(stranger);\n    vettedGate.claimReferrerBondCurve(0, oldProof);\n\n    // New proof works\n    bytes32[] memory newProof = newTree.getProof(0);\n    vm.prank(stranger);\n    vettedGate.claimReferrerBondCurve(0, newProof);\n}\n```\n\nTest Output:\n```\n\nRan 1 test for test/VettedGate.t.sol:VettedGateReferralProgramTest\n[PASS] test_proofBreaksAfterRootUpdate_whenIndexShifts() (gas: 1228763)\nSuite result: ok. 1 passed; 0 failed; 0 skipped; finished in 69.27ms (4.04ms CPU time)\n```\n\n### Impact\n\n* Operational: Every root change forces all still-eligible participants to obtain a new proof before claiming.\n* Timing risk: If root updates occur between reaching threshold and claiming, legitimate claims can fail until new proofs are distributed.\n* User experience: Users unaware of the root update may face unexpected `InvalidProof` errors.\n\n### Recommendations\n\n1. Document this behavior in the admin/operator playbook so off-chain systems automatically re-generate and distribute proofs upon root update.\n   or\n2. Consider keyed Merkle tree or index-stable design (e.g., sparse Merkle tree with address-based leaves) to minimize proof regeneration cost, though root changes will still invalidate old proofs.\n   or\n3. Optionally store previous root(s) temporarily and accept them for a grace period to reduce operational friction.\n   or\n4. A stricter on-chain safeguard could block `setTreeParams` when `isReferralProgramSeasonActive == true`, preventing mid-season root updates entirely — but this would significantly restrict operational flexibility (e.g., urgent malicious address removal) and may not be desirable in practice.\n\n---\n\n",
+    "summary": "",
+    "report_date": "2025-08-27T00:00:00.000Z",
+    "contest_prize_txt": "103500",
+    "contest_link": "https://code4rena.com/reports/2025-07-lido-finance",
+    "sponsor_name": "Lido Finance",
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://code4rena.com/reports/2025-07-lido-finance",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "516",
+    "slug": "l-02-mid-season-merkle-root-update-invalidates-previously-valid-proofs-code4rena-lido-finance-lido-finance-git",
+    "firm_name": "Code4rena",
+    "firm_logo_square": "code4rena_square.png",
+    "protocol_name": "Lido Finance",
+    "bookmarked": false,
+    "read": false,
+    "auditfirms_auditfirm": {
+        "name": "Code4rena",
+        "logo_square": "code4rena_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Lido Finance",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

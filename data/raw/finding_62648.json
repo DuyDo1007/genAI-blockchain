@@ -1,0 +1,55 @@
+{
+    "id": 62648,
+    "kind": "PDF",
+    "auditfirm_id": 6,
+    "impact": "MEDIUM",
+    "finders_count": 3,
+    "protocol_id": 3430,
+    "title": "The assignTeam modifier does not revert on a mismatching team",
+    "content": "## Severity: Medium Risk\n\n## Context\n- Copium.sol#L57-L64\n- Copium.sol#L102-L116\n\n## Summary\nThe `assignTeam` modifier does not revert when a user specifies a `different_team` than the one they were initially assigned to. This can lead to incorrect deposit accounting in the `createYeet` method, where `teamDeposits` is credited to the wrong team.\n\n## Finding Description\nThe `assignTeam` modifier is intended to assign a user to a team if they have not already been assigned. However, it does not validate that the `_team` parameter matches the user's existing team in `userTeams`. As a result, when a user calls `createYeet` with a different `_team`, the deposit is credited to the new team, even though the user's `userTeams` mapping remains unchanged.\n\n## Impact Explanation\n1. **Incorrect deposit tracking:** Deposits are credited to the wrong team, leading to inconsistencies in the `teamDeposits` mapping.\n2. **Potential exploitation:** A malicious user could manipulate team deposit totals by repeatedly calling `createYeet` with different `_team` values.\n\n## Likelihood Explanation\nIt requires minimal effort for a user to specify a `different_team` in the `createYeet` method, which can originate from a mistake or malicious intent.\n\n## Recommendation\nIt is recommended to update the `assignTeam` modifier to revert if the user specifies a `_team` that differs from their already assigned team:\n\n```solidity\nmodifier assignTeam(address _user, Team _team) {\n    if (_team == Team.None) revert InvalidTeam();\n    if (userTeams[_user] == Team.None) {\n        userTeams[_user] = _team;\n        addressByTeam[_team].push(_user);\n    } else if (userTeams[_user] != _team) {\n        revert TeamAlreadyAssigned();\n    }\n    _;\n}\n```\n\n## Semantic Layer\nFixed in PR 1.\n\n## Spearbit\nFix verified.",
+    "summary": "\nThis report discusses a bug in the Copium smart contract that can cause incorrect deposit tracking and potential exploitation. The `assignTeam` modifier, which assigns a user to a team, does not check if the specified team matches the user's existing team. As a result, when a user calls the `createYeet` method with a different team, the deposit is credited to the new team instead of the user's original team. This can be easily exploited by a malicious user, and it is recommended to update the `assignTeam` modifier to revert if the specified team differs from the user's assigned team. The bug has been fixed in a pull request and verified by Spearbit.",
+    "report_date": "2025-07-27T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Semantic-Layer-Spearbit-Security-Review-May-2025.pdf",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Semantic-Layer-Spearbit-Security-Review-May-2025.pdf",
+    "github_link": "",
+    "pdf_link": "https://solodit-bucket.s3.amazonaws.com/storage/reports/spearbit/Semantic-Layer-Spearbit-Security-Review-May-2025.pdf",
+    "pdf_page_from": 13,
+    "contest_id": "",
+    "slug": "the-assignteam-modifier-does-not-revert-on-a-mismatching-team-spearbit-none-semantic-layer-pdf",
+    "firm_name": "Spearbit",
+    "firm_logo_square": "spearbit_square.png",
+    "protocol_name": "Semantic Layer",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Tnch"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Mario Poneder"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Noah Marconi"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Spearbit",
+        "logo_square": "spearbit_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Semantic Layer",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

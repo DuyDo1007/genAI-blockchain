@@ -1,0 +1,38 @@
+{
+    "id": 62537,
+    "kind": "GIT",
+    "auditfirm_id": 2,
+    "impact": "LOW",
+    "finders_count": 0,
+    "protocol_id": 3373,
+    "title": "[05] Non-utilized `isPrivateDepositPoolAdded` variable in the Distributor contract",
+    "content": "\nIn the Distributor contract, there is a `isPrivateDepositPoolAdded` variable that is supposed to track if a reward pool index attached to private deposit pools is known in the contract i.e, it’s the same emulator for the `_onlyExistedDepositPool` function but specifically for private deposit pools in this case.\n\n<https://github.com/code-423n4/2025-08-morpheus/blob/main/contracts/capital-protocol/Distributor.sol# L39>\n```\n\nmapping(uint256 => uint128) public rewardPoolLastCalculatedTimestamp;\n    // @audit QA un-used variable\n@>    mapping(uint256 => bool) public isPrivateDepositPoolAdded;\n```\n\nSince, this variable is not being used in the Distributor contract at this time, it should be removed.\n\n---\n\n",
+    "summary": "",
+    "report_date": "2025-09-11T00:00:00.000Z",
+    "contest_prize_txt": "20000",
+    "contest_link": "https://code4rena.com/reports/2025-08-morpheus",
+    "sponsor_name": "Morpheus",
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://code4rena.com/reports/2025-08-morpheus",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "520",
+    "slug": "05-non-utilized-isprivatedepositpooladded-variable-in-the-distributor-contract-code4rena-morpheus-morpheus-git",
+    "firm_name": "Code4rena",
+    "firm_logo_square": "code4rena_square.png",
+    "protocol_name": "Morpheus",
+    "bookmarked": false,
+    "read": false,
+    "auditfirms_auditfirm": {
+        "name": "Code4rena",
+        "logo_square": "code4rena_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Morpheus",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

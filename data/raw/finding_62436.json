@@ -1,0 +1,45 @@
+{
+    "id": 62436,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 34,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3407,
+    "title": "[ZLS1-7] Redundant check of the NFT owner in the stakeNFT() function",
+    "content": "**Severity:** Informational\n\n**Path:** contracts/ZealousSwapNFTStaking.sol#L310-L313\n\n**Description:** In the `ZealousSwapNFTStaking` contract, this owner check of the NFT from line 310 to 313 in the `stakeNFT()` function is redundant:\n```\nrequire(\n    IERC721(nftContract).ownerOf(nftID) == msg.sender,\n    \"ZealousSwapNFTStaking: Not token owner\"\n);\n```\nThis is because the function already checks the NFT's owner before and after the transfer, as shown in line 325.\n```\naddress beforeOwner = IERC721(nftContract).ownerOf(nftID);\nIERC721(nftContract).transferFrom(msg.sender, address(this), nftID);\naddress afterOwner = IERC721(nftContract).ownerOf(nftID);\nrequire(\n    afterOwner == address(this) && beforeOwner == msg.sender,\n    \"ZealousSwapNFTStaking: NFT transfer failed\"\n);\n```\n\n**Remediation:**  Remove the redundant check.\n\n**Status:** Fixed\n\n- - -",
+    "summary": "",
+    "report_date": "2025-05-26T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/solodit/solodit_content/blob/main/reports/Hexens/2025-05-26-Zealous.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "zls1-7-redundant-check-of-the-nft-owner-in-the-stakenft-function-hexens-none-zealous-markdown",
+    "firm_name": "Hexens",
+    "firm_logo_square": "Hexens_square.png",
+    "protocol_name": "Zealous",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Hexens"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Hexens",
+        "logo_square": "Hexens_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Zealous",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

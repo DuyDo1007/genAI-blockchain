@@ -1,0 +1,55 @@
+{
+    "id": 62294,
+    "kind": "PDF",
+    "auditfirm_id": 6,
+    "impact": "MEDIUM",
+    "finders_count": 3,
+    "protocol_id": 3396,
+    "title": "getCurrentInterestRates() does not calculate the interests correctly",
+    "content": "## Severity: Medium Risk\n\n## Context\n- `PiReserveInterestRateStrategy.sol#L97-L100`\n- `MiniPoolPiReserveInterestRateStrategy.sol#L131-L133`\n\n## Description\nThe current borrow rate in `getCurrentInterestRates()` is calculated as:\n\n```solidity\n// borrow rate\nuint256 currentVariableBorrowRate = transferFunction(getControllerError(getNormalizedError(utilizationRate)));\n```\n\nThis does not take into consideration the following storage update for `_errI`, which is used in `getControllerError`:\n\n```solidity\n_errI += int256(_ki).rayMulInt(err * int256(block.timestamp - _lastTimestamp));\nif (_errI < _maxErrIAmp) _errI = _maxErrIAmp; // Limit _errI negative accumulation.\n```\n\nThe NatSpec for `getCurrentInterestRates()` mentions:\n\n```solidity\n/**\n* @notice The view version of `calculateInterestRates()`.\n* @dev Returns the current interest rates without modifying state.\n...\n*/\n```\n\n## Recommendation\n1. Make sure the current value of `_errI` is used in the derivation of `currentVariableBorrowRate`.\n2. Ensure the `availableLiquidity` for mini pools follows the same formula used in `calculateInterestRates()`, which currently includes taking into account the unused flows for tranched reserves in the mini pool. Use:\n\n```solidity\nint256 err = getNormalizedError(utilizationRate);\nint256 currentControllerError = (\n    _errI + int256(_ki).rayMulInt(err * int256(block.timestamp - _lastTimestamp))\n);\nif (currentControllerError < _maxErrIAmp) currentControllerError = _maxErrIAmp; // Limit _errI negative accumulation.\ncurrentControllerError += int256(_kp).rayMulInt(err);\n\n// borrow rate\nuint256 currentVariableBorrowRate = transferFunction(currentControllerError);\n```\n\nThe above logic can be refactored by a utility function that can be shared between `calculateInterestRates`, `getCurrentInterestRates`, and `getAvailableLiquidity()`.\n\n## Astera\nAcknowledged.\n\n## Spearbit\nAcknowledged.",
+    "summary": "\nThe report discusses a bug in the code of `PiReserveInterestRateStrategy.sol` and `MiniPoolPiReserveInterestRateStrategy.sol`. The current borrow rate is calculated incorrectly, as it does not take into consideration the storage update for `_errI`. The recommendation is to make sure the current value of `_errI` is used in the derivation of `currentVariableBorrowRate` and to ensure that the `availableLiquidity` for mini pools follows the same formula used in `calculateInterestRates()`. This can be done by using a utility function that can be shared between `calculateInterestRates`, `getCurrentInterestRates`, and `getAvailableLiquidity()`. The bug has been acknowledged by Astera and Spearbit.",
+    "report_date": "2025-08-29T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Astera-Spearbit-Security-Review-December-2024.pdf",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Astera-Spearbit-Security-Review-December-2024.pdf",
+    "github_link": "",
+    "pdf_link": "https://solodit-bucket.s3.amazonaws.com/storage/reports/spearbit/Astera-Spearbit-Security-Review-December-2024.pdf",
+    "pdf_page_from": 28,
+    "contest_id": "",
+    "slug": "getcurrentinterestrates-does-not-calculate-the-interests-correctly-spearbit-none-astera-pdf",
+    "firm_name": "Spearbit",
+    "firm_logo_square": "spearbit_square.png",
+    "protocol_name": "Astera",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Saw-mon and Natalie"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Cergyk"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Jonatas Martins"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Spearbit",
+        "logo_square": "spearbit_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Astera",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

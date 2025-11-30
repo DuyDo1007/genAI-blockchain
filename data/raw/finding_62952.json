@@ -1,0 +1,45 @@
+{
+    "id": 62952,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 16,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3464,
+    "title": "[L-06] Incorrect variable in `liquidityRemoved` event",
+    "content": "\n_Resolved_\n\nIn the `_removeLiquidity` function, the `LiquidityRemoved` event emits the variable `liquidity`, which is a storage variable. However, the actual liquidity removed is obtained dynamically via:\n\n```solidity\n(,,,,,,, uint128 currentLiquidity,,,,) = positionManager.positions(tokenId);\n...\nemit LiquidityRemoved(vaultAddress, address(pool), tokenId, liquidity, amount0, amount1);\n```\n\nThis `currentLiquidity` value is then passed to `decreaseLiquidity`, making it the accurate representation of the removed liquidity.\n\nUsing the storage `liquidity` variable in the event may result in discrepancies between the event log and the actual action, especially if the storage variable is outdated or out of sync with the real-time position state. While in most cases they will match, any deviation could mislead off-chain systems relying on accurate event data (e.g., indexers, dashboards).\n\n\n\n",
+    "summary": "",
+    "report_date": "2025-10-13T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/pashov/audits/blob/master/team/md/Saffron-security-review_2025-07-31.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "l-06-incorrect-variable-in-liquidityremoved-event-pashov-audit-group-none-saffron_2025-07-31-markdown",
+    "firm_name": "Pashov Audit Group",
+    "firm_logo_square": "Pashov_square.png",
+    "protocol_name": "Saffron_2025-07-31",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Pashov Audit Group"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Pashov Audit Group",
+        "logo_square": "Pashov_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Saffron_2025-07-31",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

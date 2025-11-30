@@ -1,0 +1,45 @@
+{
+    "id": 62656,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 23,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 875,
+    "title": "Validator Exit Status and `valIndex` Not Verified",
+    "content": "##### Description\nThe `validateExitRequests` function in `SubmitExitRequestHashesUtils` verifies many aspects of an exit request—such as module and node operator ID ranges, public key length, and duplicate keys. However, it does not check whether the validator has already exited from the beacon chain or is otherwise inactive.\n\nThis creates a risk where an exit request could be redundantly submitted for a validator that has already exited, leading to wasted motion execution or unexpected behavior downstream.\n\nThere is also a missing check for the `valIndex` values in the `ExitRequestInput[]` array. Validator exit requests should be sorted in an ascending order by the `valIndex` in order to be accepted by the `ValidatorsExitBusOracle`.\n\n##### Recommendation\nWe recommend adding an explicit check in `validateExitRequests` function to ensure that the validator associated with the exit request is active. We also recommend changing the check for duplicates. It is better to reduce the current check complexity by removing the logic associated with the `valPubkey` and checking instead that `valIndex` values in exit requests array are placed in a strictly ascending order - this will ensure that there are no duplicates. \n\n> **Client's Commentary:**\n> Client: We simplified the check based on the recommendation, but skipped the proposal for validation of the validator's index and CL status. Here’s why:\n> - A validator's status may change while the objection window is still open. This can cause the enactment transaction to revert on execution. The protocol assumes that validators can be requested again for exit even if the validator has already exited.\n> - Providing CL proofs is expensive and complex. This significantly reduces the number of validators that can be included in a single batch request.\n> - The Validator Ejector (an off-chain tool hosted by Node Operators) strictly verifies all fields in the event. If any data is invalid, it ignores the event. This mechanism protects us from unchecked data that cannot be easily verified on-chain.\n>\n> \n> MixBytes: We ensured the correctness of the `_exitRequests` sorting check implemented in commit `a4bbe78934bdec534c4b78871f0bdce57467eab1`, which takes into account the `moduleId`, `nodeOpId`, and `valIndex` parameters, and confirmed that this check matches the implementation in the `ValidatorsExitBusOracle._processExitRequestsList` function.\n",
+    "summary": "",
+    "report_date": "2025-09-16T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/mixbytes/audits_public/blob/master/Lido/Easy%20Track%20(3)/README.md#1-validator-exit-status-and-valindex-not-verified",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "validator-exit-status-and-valindex-not-verified-mixbytes-none-lido-markdown",
+    "firm_name": "MixBytes",
+    "firm_logo_square": "mixbytes_square.png",
+    "protocol_name": "Lido",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "MixBytes"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "MixBytes",
+        "logo_square": "mixbytes_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Lido",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

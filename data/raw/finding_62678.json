@@ -1,0 +1,45 @@
+{
+    "id": 62678,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 23,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3435,
+    "title": "Inconsistent Share Allocation Due to Exchange Rate Fluctuations Within Margin",
+    "content": "##### Description\nThis issue has been identified within the `collectFeeOrYield` function of the `SelfPeggingAsset` contract. \n\nWhen the exchange rate fluctuates within the defined margin (`feeErrorMargin` or `yieldErrorMargin`), small decreases in the invariant `D` are ignored, and no adjustment is made to the total supply. However, if the rate subsequently increases beyond the old value (`newD > oldD`), the function triggers `pool.addTotalSupply`, increasing the total supply and thus inflating the `LPToken` share price. This behavior leads to an unintended and inconsistent increase of `LPToken` total supply, potentially skewing the pool’s economic balance.\n\nThe issue is classified as **low** severity because it may cause small, unintended increases in the total supply under specific conditions, but it does not directly result in significant financial loss or major operational disruptions, due to limited margin value.\n\n##### Recommendation\nWe recommend revising the logic in `collectFeeOrYield` to handle exchange rate fluctuations more consistently, such as by tracking cumulative changes over time or dynamically adjusting the margin based on historical volatility, to prevent unintended supply increases.",
+    "summary": "",
+    "report_date": "2025-09-19T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/mixbytes/audits_public/blob/master/NUTS%20Finance/Tapio/README.md#8-inconsistent-share-allocation-due-to-exchange-rate-fluctuations-within-margin",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "inconsistent-share-allocation-due-to-exchange-rate-fluctuations-within-margin-mixbytes-none-nuts-finance-markdown",
+    "firm_name": "MixBytes",
+    "firm_logo_square": "mixbytes_square.png",
+    "protocol_name": "NUTS Finance",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "MixBytes"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "MixBytes",
+        "logo_square": "mixbytes_square.png"
+    },
+    "protocols_protocol": {
+        "name": "NUTS Finance",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

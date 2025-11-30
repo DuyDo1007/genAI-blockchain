@@ -1,0 +1,60 @@
+{
+    "id": 62138,
+    "kind": "PDF",
+    "auditfirm_id": 6,
+    "impact": "LOW",
+    "finders_count": 4,
+    "protocol_id": 3380,
+    "title": "UserOpMultiSigVerifier::validateData() fails with more than 256 signatures",
+    "content": "## Security Report\n\n**Severity**: Low Risk\n\n**Context**: \n- UserOpMultiSigVeriﬁer.sol#L28 \n- UserOpMultiSigVeriﬁer.sol#L44-L53\n\n**Description**: \nIf `signatures.length` is larger than 256, then potentially valid or invalid can be increased to a value that no longer fits in a `uint8`.\n\n**Recommendation**: \nConsider checking `signatures.length() <= type(uint8).max`.\n\n**Stackup**: \nFixed in PR 45.\n\n**Spearbit**: \nFix verified.",
+    "summary": "",
+    "report_date": "2025-08-18T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Stackup-Spearbit-Security-Review-July-2025.pdf",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Stackup-Spearbit-Security-Review-July-2025.pdf",
+    "github_link": "",
+    "pdf_link": "https://solodit-bucket.s3.amazonaws.com/storage/reports/spearbit/Stackup-Spearbit-Security-Review-July-2025.pdf",
+    "pdf_page_from": 9,
+    "contest_id": "",
+    "slug": "useropmultisigverifiervalidatedata-fails-with-more-than-256-signatures-spearbit-none-stackup-keystore-pdf",
+    "firm_name": "Spearbit",
+    "firm_logo_square": "spearbit_square.png",
+    "protocol_name": "Stackup Keystore",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Tnch"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Kaden"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Hake"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Gerard Persoon"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Spearbit",
+        "logo_square": "spearbit_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Stackup Keystore",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

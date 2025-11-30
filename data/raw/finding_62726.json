@@ -1,0 +1,80 @@
+{
+    "id": 62726,
+    "kind": "GIT",
+    "auditfirm_id": 3,
+    "impact": "MEDIUM",
+    "finders_count": 8,
+    "protocol_id": 3324,
+    "title": "M-3: Migrator severily underestimates slippage by using underlying instead of shares",
+    "content": "\nSource: https://github.com/sherlock-audit/2025-07-malda-judging/issues/91 \n\n## Found by \n10ap17, Angry\\_Mustache\\_Man, LeFy, WillyCode20, cergyk, elolpuer, pashap9990, vangrim\n\n### Description\n\n`Migrator.sol` implements a slippage protection:\n\n[Migrator.sol#L90-L100](https://github.com/sherlock-audit/2025-07-malda/blob/main/malda-lending/src/migration/Migrator.sol#L90-L100):\n```solidity\n    // 2. Mint mTokens in all v2 markets\n    for (uint256 i; i < posLength; ++i) {\n        Position memory position = positions[i];\n        if (position.collateralUnderlyingAmount > 0) {\n            //@audit compute slippage value\n            uint256 minCollateral =\n                position.collateralUnderlyingAmount - (position.collateralUnderlyingAmount * 1e4 / 1e5);\n            ImErc20Host(position.maldaMarket).mintOrBorrowMigration(\n                true, position.collateralUnderlyingAmount, msg.sender, address(0), minCollateral\n            );\n        }\n    }\n```\n\nUnfortunately, the slippage value computed uses underlying tokens, whereas the shares amount should be used. Since exchange rate should be close to 0.02, the slippage parameter is wrong by at least an order of magnitude.\n\n### Recommendation\n\nUnderlying amount should be divided by exchange rate to have a correct slippage value:\n[Migrator.sol#L90-L100](https://github.com/sherlock-audit/2025-07-malda/blob/main/malda-lending/src/migration/Migrator.sol#L90-L100):\n```diff\n    // 2. Mint mTokens in all v2 markets\n    for (uint256 i; i < posLength; ++i) {\n        Position memory position = positions[i];\n        if (position.collateralUnderlyingAmount > 0) {\n-            uint256 minCollateral =\n-                position.collateralUnderlyingAmount - (position.collateralUnderlyingAmount * 1e4 / 1e5);\n+            uint256 minCollateral =\n+                div_(position.collateralUnderlyingAmount - (position.collateralUnderlyingAmount * 1e4 / 1e5), _exchangeRate);\n            ImErc20Host(position.maldaMarket).mintOrBorrowMigration(\n                true, position.collateralUnderlyingAmount, msg.sender, address(0), minCollateral\n            );\n        }\n    }\n```\n\n\n## Discussion\n\n**sherlock-admin2**\n\nThe protocol team fixed this issue in the following PRs/commits:\nhttps://github.com/malda-protocol/malda-lending/pull/120\n\n\n**CergyK**\n\nFix looks good, underlying was converted to shares using exchangeRate\n\n\n\n",
+    "summary": "\nThis bug report is about a slippage protection issue in the `Migrator.sol` file of the Malda lending protocol. The issue was found by a group of users and is caused by a mistake in the code that computes the slippage value. The code uses underlying tokens instead of shares, resulting in a wrong slippage parameter by at least an order of magnitude. The recommendation is to divide the underlying amount by the exchange rate to get the correct slippage value. The protocol team has already fixed this issue in their latest update. ",
+    "report_date": "2025-08-14T17:00:00.000Z",
+    "contest_prize_txt": "80000 USDC",
+    "contest_link": "https://app.sherlock.xyz/audits/contests/1029",
+    "sponsor_name": "",
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "",
+    "github_link": "https://github.com/sherlock-audit/2025-07-malda-judging/issues/91",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "1029",
+    "slug": "m-3-migrator-severily-underestimates-slippage-by-using-underlying-instead-of-shares-sherlock-malda-git",
+    "firm_name": "Sherlock",
+    "firm_logo_square": "sherlock_square.png",
+    "protocol_name": "Malda",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "cergyk"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "elolpuer"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "LeFy"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "10ap17"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "pashap9990"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Angry\\_Mustache\\_Man"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "WillyCode20"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "vangrim"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Sherlock",
+        "logo_square": "sherlock_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Malda",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

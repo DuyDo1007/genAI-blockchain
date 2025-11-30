@@ -1,0 +1,55 @@
+{
+    "id": 62287,
+    "kind": "PDF",
+    "auditfirm_id": 6,
+    "impact": "MEDIUM",
+    "finders_count": 3,
+    "protocol_id": 3396,
+    "title": "Wrong oracle timeout value is used for Oracle.getAssetPrice",
+    "content": "## Severity: Medium Risk\n\n## Context\n`Oracle.sol#L153`\n\n## Description\n`Oracle.getAssetPrice` uses a mapping of oracle addresses and timeouts per asset. These are being initialized alongside each other when calling `_setAssetsSources`:\n\n```solidity\nfunction _setAssetsSources(\n    address[] memory assets,\n    address[] memory sources,\n    uint256[] memory timeouts\n) internal {\n    require(assets.length == sources.length, Errors.O_INCONSISTENT_PARAMS_LENGTH);\n    for (uint256 i = 0; i < assets.length; i++) {\n        _assetsSources[assets[i]] = IChainlinkAggregator(sources[i]); // <<<\n        _assetToTimeout[assets[i]] = timeouts[i] == 0 ? type(uint256).max : timeouts[i]; // <<<\n        emit AssetSourceUpdated(assets[i], sources[i]);\n    }\n}\n```\n\nHowever, when calling `getAssetPrice`, different mapping entries will be used for tranched tokens:\n\n```solidity\nfunction getAssetPrice(address asset) public view override returns (uint256) {\n    address underlying;\n    // Check if `asset` is an aToken.\n    try ATokenNonRebasing(asset).UNDERLYING_ASSET_ADDRESS{gas: 4000}() returns (\n        address underlying_\n    ) {\n        underlying = underlying_;\n    } catch {\n        underlying = asset;\n    }\n    IChainlinkAggregator source = _assetsSources[underlying]; // <<<\n    uint256 finalPrice;\n    if (underlying == BASE_CURRENCY) {\n        finalPrice = BASE_CURRENCY_UNIT;\n    } else if (address(source) == address(0)) {\n        finalPrice = _fallbackOracle.getAssetPrice(underlying);\n    } else {\n        (uint80 roundId, int256 price, uint256 startedAt, uint256 timestamp,) =\n        IChainlinkAggregator(source).latestRoundData();\n        // Chainlink integrity checks.\n        if (\n            roundId == 0 ||\n            timestamp == 0 ||\n            timestamp > block.timestamp ||\n            price <= 0 ||\n            startedAt == 0 ||\n            //@audit _assetToTimeout[asset] is used instead of _assetToTimeout[underlying]\n            block.timestamp - timestamp > _assetToTimeout[asset] // <<<\n        ) {\n            require(address(_fallbackOracle) != address(0), Errors.O_PRICE_FEED_INCONSISTENCY);\n            finalPrice = _fallbackOracle.getAssetPrice(underlying);\n        } else {\n            finalPrice = uint256(price);\n        }\n    }\n    // If `asset` is an aToken then convert the price from asset to share.\n    if (asset != underlying) {\n        return ATokenNonRebasing(asset).convertToAssets(finalPrice);\n    } else {\n        return finalPrice;\n    }\n}\n```\n\n## Impact\nThis will lead to invalidation of valid oracle data (in case the timeout is not set for the asset).\n\n## Recommendation\nUse underlying entry for `_assetToTimeout`:\n```solidity\n// Chainlink integrity checks.\nif (\n    roundId == 0 ||\n    timestamp == 0 ||\n    timestamp > block.timestamp ||\n    price <= 0 ||\n    startedAt == 0 ||\n    - block.timestamp - timestamp > _assetToTimeout[asset]\n    + block.timestamp - timestamp > _assetToTimeout[underlying]\n) {\n    require(address(_fallbackOracle) != address(0), Errors.O_PRICE_FEED_INCONSISTENCY);\n    finalPrice = _fallbackOracle.getAssetPrice(underlying);\n} else {\n    finalPrice = uint256(price);\n}\n```\n\n## Astera\nFixed in commit `d73865d3`.\n\n## Spearbit\nFix verified.",
+    "summary": "\nThis report discusses a bug in a code written in a programming language called Solidity. The code is used for a platform called Oracle, which helps in getting the price of different assets. The bug is in a function called `Oracle.getAssetPrice`, which uses a mapping of oracle addresses and timeouts per asset. This mapping is created when another function called `_setAssetsSources` is called. However, when calling `getAssetPrice`, different mapping entries are used for tranched tokens. This leads to invalidation of valid oracle data. To fix this, the recommendation is to use the underlying entry for `_assetToTimeout`. This bug has been fixed in a commit called `d73865d3`.",
+    "report_date": "2025-08-29T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Astera-Spearbit-Security-Review-December-2024.pdf",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Astera-Spearbit-Security-Review-December-2024.pdf",
+    "github_link": "",
+    "pdf_link": "https://solodit-bucket.s3.amazonaws.com/storage/reports/spearbit/Astera-Spearbit-Security-Review-December-2024.pdf",
+    "pdf_page_from": 21,
+    "contest_id": "",
+    "slug": "wrong-oracle-timeout-value-is-used-for-oraclegetassetprice-spearbit-none-astera-pdf",
+    "firm_name": "Spearbit",
+    "firm_logo_square": "spearbit_square.png",
+    "protocol_name": "Astera",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Saw-mon and Natalie"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Cergyk"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Jonatas Martins"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Spearbit",
+        "logo_square": "spearbit_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Astera",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

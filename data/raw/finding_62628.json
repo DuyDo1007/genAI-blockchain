@@ -1,0 +1,45 @@
+{
+    "id": 62628,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 16,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3422,
+    "title": "[L-07] Ineffective token burning mechanism in fee handling",
+    "content": "\n_Resolved_\n\nThe bug occurs when attempting to \"burn\" tokens by transferring them to `address(0)` instead of properly reducing the total supply, which fails to achieve true burning and merely relocates inaccessible tokens while keeping the reported total supply inflated.\n\nTransferring ERC20 tokens to `address(0)` (or any dead address) moves them to an inaccessible balance without calling a proper `burn` function, so `totalSupply` remains unchanged (e.g., 1,000 total stays 1,000 even after \"burning\" 100), unlike true burns that reduce it (to 900). This is not actual burning—tokens count toward supply metrics but are stuck.\n\nThe issue is in the internal `addToClaimer` function, specifically the line `IERC20(token).safeTransfer(address(0), amount);` within the `if(claimer == address(0))` conditional block, invoked from `claimProtocolFees`.\n\nIt triggers if `protocolFeeClaimer` or a pool's `claimer` is configured to `address(0)` (possible via future upgrades, admin setters, or logic changes), during `claimProtocolFees` when splitting fees, causing improper transfers instead of burns.\n\nOne clear impact of it will be enabling potential unintended recovery from `address(0)`, while native ETH (`token == address(0)`) silently fails without burning or reverting, leaving funds unaccounted.\n\nThis inconsistency with `burnToken`'s 0xdead address handling undermines tokenomics and risks supply integrity in fee management.\n\nRecommendation is to refactor the zero-claimer branch to use a consistent dead address (e.g., 0x000...dEaD) for pseudo-burns, add explicit reversion for native ETH (`if (token == address(0)) revert;`), and prevent zero claimers via validations or immutable setters. If tokens support it, prefer calling `burn(amount)` for true supply reduction.\n\n\n\n",
+    "summary": "",
+    "report_date": "2025-09-12T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/pashov/audits/blob/master/team/md/Funnel-security-review_2025-08-27.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "l-07-ineffective-token-burning-mechanism-in-fee-handling-pashov-audit-group-none-funnel_2025-08-27-markdown",
+    "firm_name": "Pashov Audit Group",
+    "firm_logo_square": "Pashov_square.png",
+    "protocol_name": "Funnel_2025-08-27",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Pashov Audit Group"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Pashov Audit Group",
+        "logo_square": "Pashov_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Funnel_2025-08-27",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

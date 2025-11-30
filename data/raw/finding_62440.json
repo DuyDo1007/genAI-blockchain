@@ -1,0 +1,45 @@
+{
+    "id": 62440,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 34,
+    "impact": "HIGH",
+    "finders_count": 1,
+    "protocol_id": 3408,
+    "title": "[UFARM1-9] Investor withdrawals may not function with a nonzero withdrawalLockupPeriod",
+    "content": "**Severity:** High\n\n**Path:** contracts/main/contracts/pool/UFarmPool.sol#L517\n\n**Description:** `UFarmPool::withdraw` allows for a permissionless two-step withdrawal process for non-member investors if a nonzero `withdrawalLockupPeriod` is set in the pool’s config. In this case, \n`_withdrawalRequests` parameters are first validated before a uniqueness check is performed on the request’s hash. If the hash is unique, then the hash and current `block.timestamp` are saved in the `pendingWithdrawalsRequests` mapping in the first call to withdraw. On the second call, the request’s unlock time is calculated. If the unlock time has passed, the pool’s status is changed to deactivating. \n\nBy design, in either step of the withdrawal, the function will return before the withdrawal request is added to the withdrawal queue and `sendQuexRequest` is called. `ARCHITECTURE.md` states that after this, ”the actual withdrawal will be queued on a subsequent call or by the fund manager once assets are ready”.\n\nHowever, this means that as long as `config.withdrawalLockupPeriod` is above zero, an investor’s withdrawal calls will always return before the request contents are queued. As `withdrawQueue.push` on line 537 can never be reached, the investor’s actual withdrawal request values are never recorded. This effectively prevents investors from withdrawing if `config.withdrawalLockupPeriod > 0`, requiring the pool’s config to be manually changed.\n```\n//contracts/main/contracts/pool/UFarmPool.sol#L496-L540\n...\n    function withdraw(\n        SignedWithdrawalRequest calldata _withdrawalRequest\n    ) external override ufarmIsNotPaused nonReentrant {\n        _checkStatusForFinancing(false);\n        IPoolAdmin.PoolConfig memory config = IPoolAdmin(poolAdmin).getConfig();\n\n        if (msg.sender == ufarmFund) {\n            withdrawQueue.push(\n                QueueItem(\n                    _withdrawalRequest.body.sharesToBurn,\n                    keccak256(abi.encode(blockhash(block.number), totalSupply())),\n                    msg.sender,\n                    valueToken\n                )\n            );\n        } else {\n            uint256 sharesToBurn;\n            address investor;\n            bytes32 withdrawalRequestHash;\n            (investor, sharesToBurn, withdrawalRequestHash) = validateWithdrawalRequest(_withdrawalRequest);\n\n            if (config.withdrawalLockupPeriod > 0) {\n                if (pendingWithdrawalsRequests[withdrawalRequestHash] == 0) {\n                    // Set the withdrawal request timestamp\n                    pendingWithdrawalsRequests[withdrawalRequestHash] = block.timestamp;\n                    emit WithdrawRequestReceived(investor, withdrawalRequestHash, block.timestamp);\n                } else {\n                    // Check if the lockup period has passed\n                    uint256 unlockTime = pendingWithdrawalsRequests[withdrawalRequestHash] +\n                        config.withdrawalLockupPeriod;\n                    if (block.timestamp < unlockTime) {\n                        // Safe because of the check above\n                        revert LockupPeriodNotPassed(unlockTime);\n                    } else {\n                        _changeStatus(PoolStatus.Deactivating);\n                    }\n                }\n                return;\n            }\n\n            withdrawQueue.push(QueueItem(sharesToBurn, withdrawalRequestHash, investor, valueToken));\n        }\n\n        sendQuexRequest();\n    }\n...\n```\n\n\n**Remediation:**  As withdrawals are permitted regardless of pool status and the first investor to pass the unlock time changes the pool’s overall status to deactivating, consider either of the following mitigations:\n\nTo preserve the 2-step nature of investor withdrawals after a pool status has been set to deactivating, consider queueing the withdrawal if the pool status is already deactivating on the second call with withdrawal, similar to the following:\n```\n//contracts/main/contracts/pool/UFarmPool.sol#L496-L540\n...\n    function withdraw(\n        SignedWithdrawalRequest calldata _withdrawalRequest\n    ) external override ufarmIsNotPaused nonReentrant {\n        ...\n            if (config.withdrawalLockupPeriod > 0) {\n               ...\n                    if (block.timestamp < unlockTime) {\n                        // Safe because of the check above\n                        revert LockupPeriodNotPassed(unlockTime);\n                    } else {\n++                      if (status == PoolStatus.Deactivating) {\n++                          withdrawQueue.push(QueueItem(sharesToBurn, withdrawalRequestHash, investor, valueToken));\n++                          sendQuexRequest();\n++                      }\n++                      else {\n++                          _changeStatus(PoolStatus.Deactivating);\n                        }  \n                    }\n                }\n                return;\n            }\n            withdrawQueue.push(QueueItem(sharesToBurn, withdrawalRequestHash, investor, valueToken));\n        }\n\n        sendQuexRequest();\n    }\n...\n```\nAlternatively, only execute the two-step check if the pool’s status is not deactivating given a lockup period. Note that this will effectively nullify other investor unlock times once the pool is in deactivation mode.\n```\n//contracts/main/contracts/pool/UFarmPool.sol#L496-L540\n...\n    function withdraw(\n        SignedWithdrawalRequest calldata _withdrawalRequest\n    ) external override ufarmIsNotPaused nonReentrant {\n        ...\n--            if (config.withdrawalLockupPeriod > 0) {\n++            if (config.withdrawalLockupPeriod > 0 && (status != PoolStatus.Deactivating)) {\n              ...\n              }\n              return;\n            }\n\n            withdrawQueue.push(QueueItem(sharesToBurn, withdrawalRequestHash, investor, valueToken));\n        }\n\n        sendQuexRequest();\n    }\n...\n```\n\n**Status:**   Fixed\n\n\n- - -",
+    "summary": "\nThis bug report is about a problem in the code that allows investors to withdraw their funds without following the correct steps. This can only happen if a certain condition is met, and it prevents investors from withdrawing their funds. The report suggests two ways to fix this issue and mentions that the problem has been resolved.",
+    "report_date": "2025-06-10T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/solodit/solodit_content/blob/main/reports/Hexens/2025-06-10-Ufarm.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "ufarm1-9-investor-withdrawals-may-not-function-with-a-nonzero-withdrawallockupperiod-hexens-none-ufarm-markdown",
+    "firm_name": "Hexens",
+    "firm_logo_square": "Hexens_square.png",
+    "protocol_name": "Ufarm",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Hexens"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Hexens",
+        "logo_square": "Hexens_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Ufarm",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

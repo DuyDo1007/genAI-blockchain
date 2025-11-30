@@ -1,0 +1,55 @@
+{
+    "id": 62268,
+    "kind": "PDF",
+    "auditfirm_id": 6,
+    "impact": "LOW",
+    "finders_count": 3,
+    "protocol_id": 3395,
+    "title": "Prevent or at least document the creation of proposal with empty actions",
+    "content": "## Security Analysis Report\n\n## Severity\n**Low Risk**\n\n## Context\n`LockToVotePlugin.sol#L79`\n\n## Description\nThe current implementation of the `LockToVotePlugin` allows the caller to create proposals that do not contain any actions. If the proposal passes and it is executed, the `PluginUUPSUPgradeable._execute` function will invoke `IExecutor.execute(bytes32 _callId, Action[] memory _actions, uint256 _allowFailureMap)` in call or delegatecall mode (see `PluginUUPSUpgradeable.sol#L171-L216`). As far as we can see, there's no point in allowing the creation of a proposal that will possibly lock the user's tokens for no real reason.\n\n## Recommendation\nAragon should revert the `createProposal` function when `_actions.length == 0`.\n\n## Client Acknowledgment\nThe client has acknowledged the issue with the following statement:\n\n**Aragon**: Some DAOs use governance plugins to get feedback from the community by creating \"signaling\" proposals. This is a way for protocol teams, curators, etc., to do a temperature check before committing to a specific, binding set of actions to submit. We acknowledge the risk of a user locking tokens to vote on a signaling proposal with LockToVote.\n\n**Spearbit**: Acknowledged.",
+    "summary": "",
+    "report_date": "2025-08-28T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Aragon-Spearbit-Security-Review-July-2025.pdf",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Aragon-Spearbit-Security-Review-July-2025.pdf",
+    "github_link": "",
+    "pdf_link": "https://solodit-bucket.s3.amazonaws.com/storage/reports/spearbit/Aragon-Spearbit-Security-Review-July-2025.pdf",
+    "pdf_page_from": 19,
+    "contest_id": "",
+    "slug": "prevent-or-at-least-document-the-creation-of-proposal-with-empty-actions-spearbit-none-aragon-dao-gov-plugin-pdf",
+    "firm_name": "Spearbit",
+    "firm_logo_square": "spearbit_square.png",
+    "protocol_name": "Aragon DAO Gov Plugin",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Om Parikh"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Emanuelle Ricci"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Patrick Drotleff"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Spearbit",
+        "logo_square": "spearbit_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Aragon DAO Gov Plugin",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

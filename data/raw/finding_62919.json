@@ -1,0 +1,60 @@
+{
+    "id": 62919,
+    "kind": "PDF",
+    "auditfirm_id": 6,
+    "impact": "MEDIUM",
+    "finders_count": 4,
+    "protocol_id": 3462,
+    "title": "Share to asset exchange rate can be skewed when totalSupply = 0 and totalAssets != 0",
+    "content": "## Severity: Medium Risk\n\n## Context\n(No context files were provided by the reviewer)\n\n## Description\nIn ERC4626-like implementation of shares to asset conversion of VaultV2, it is possible to reach a state where `totalSupply = 0` and `totalAssets != 0` given the following conditions:\n- Management and performance fees must be zero.\n- `RealTotalAssets` (considering IR delta) > `totalAssets` such that if everyone withdraws, and all assets are deallocated from all adapters, the vault will reach `totalSupply = 0` but `totalAssets != 0`.\n\nWhen this state is reached, one can mint 1 wei of share for 1 wei of asset and also supply assets externally on behalf of the adapter, which can be deallocated. This causes the new exchange rate to become:\n\n```\nnew_exchange_rate = (totalAssets + 1) / (newTotalSupply + 1) = (totalAssets + 1) / 1\n```\n\nThis skews the exchange rate and may make the vault unusable since `previewDeposit` would return zero for quoted assets if the assets being deposited are less than `totalAssets`.\n\n## Proof of Concept\n```solidity\n// SPDX-License-Identifier: GPL-2.0-or-later\npragma solidity ^0.8.0;\n\nimport \"../lib/forge-std/src/Test.sol\";\nimport {BaseTest} from \"./BaseTest.sol\";\nimport {console} from \"forge-std/console.sol\";\nimport {ERC20Mock} from \"./mocks/ERC20Mock.sol\";\nimport {IERC20} from \"../src/interfaces/IERC20.sol\";\nimport {IVaultV2} from \"../src/interfaces/IVaultV2.sol\";\nimport {IERC4626} from \"../src/interfaces/IERC4626.sol\";\nimport {IMorpho, MarketParams} from \"../lib/morpho-blue/src/interfaces/IMorpho.sol\";\nimport {MorphoBlueAdapter} from \"../src/adapters/MorphoBlueAdapter.sol\";\nimport {MorphoBlueAdapterFactory} from \"../src/adapters/MorphoBlueAdapterFactory.sol\";\nimport {MetaMorphoAdapter} from \"../src/adapters/MetaMorphoAdapter.sol\";\nimport {MetaMorphoAdapterFactory} from \"../src/adapters/MetaMorphoAdapterFactory.sol\";\nimport {MarketParamsLib} from \"../lib/morpho-blue/src/libraries/MarketParamsLib.sol\";\nimport {MorphoBalancesLib} from \"../lib/morpho-blue/src/libraries/periphery/MorphoBalancesLib.sol\";\n\ncontract POC is BaseTest {\n    using MorphoBalancesLib for IMorpho;\n    using MarketParamsLib for MarketParams;\n\n    uint256 public fork;\n    uint256 public forkBlock = 22533000;\n    IERC20 public usdc = IERC20(0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48);\n    IMorpho public morpho = IMorpho(0xBBBBBbbBBb9cC5e90e3b3Af64bdAF62C37EEFFCb);\n    MorphoBlueAdapterFactory mbAdapterFactory;\n    MorphoBlueAdapter mbAdapter;\n    uint256 public apy;\n    bytes32 marketId = bytes32(0xb323495f7e4148be5643a4ea4a8221eef163e4bccfdedc2a6f4696baacbc86cc);\n    MarketParams public marketParams = MarketParams({\n        loanToken: address(usdc),\n        collateralToken: address(0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0),\n        oracle: address(0x48F7E36EB6B826B2dF4B2E630B62Cd25e89E40e2),\n        irm: address(0x870aC11D48B15DB9a138Cf899d20F13F79Ba00BC),\n        lltv: 86e16\n    });\n\n    function _setAbsoluteCap(bytes memory idData, uint256 absoluteCap) internal {\n        vm.prank(curator);\n        vault.submit(abi.encodeCall(IVaultV2.increaseAbsoluteCap, (idData, absoluteCap)));\n        vault.increaseAbsoluteCap(idData, absoluteCap);\n    }\n\n    function _setRelativeCap(bytes memory idData, uint256 relativeCap) internal {\n        vm.prank(curator);\n        vault.submit(abi.encodeWithSelector(IVaultV2.increaseRelativeCap.selector, idData, relativeCap));\n        vault.increaseRelativeCap(idData, relativeCap);\n    }\n\n    function setUp() public override {\n        fork = vm.createFork(vm.rpcUrl(\"mainnet\"), forkBlock);\n        vm.selectFork(fork);\n        underlyingToken = ERC20Mock(address(usdc));\n        super.setUp();\n        mbAdapterFactory = new MorphoBlueAdapterFactory(address(morpho));\n        mbAdapter = MorphoBlueAdapter(mbAdapterFactory.createMorphoBlueAdapter(address(vault)));\n        vm.startPrank(curator);\n        vault.submit(abi.encodeCall(IVaultV2.setManagementFee, (0)));\n        vault.submit(abi.encodeCall(IVaultV2.setPerformanceFee, (0)));\n        vault.submit(abi.encodeCall(IVaultV2.setIsAdapter, (address(mbAdapter), true)));\n        vm.stopPrank();\n        vault.setManagementFee(0);\n        vault.setPerformanceFee(0);\n        vault.setIsAdapter(address(mbAdapter), true);\n        vm.startPrank(allocator);\n        vault.setLiquidityAdapter(address(mbAdapter));\n        vault.setLiquidityData(abi.encode(marketParams));\n        vm.stopPrank();\n        _setAbsoluteCap(abi.encode(\"adapter\", address(mbAdapter)), type(uint256).max);\n        _setAbsoluteCap(abi.encode(\"collateralToken\", marketParams.collateralToken), type(uint256).max);\n        _setAbsoluteCap(abi.encode(\"collateralToken/oracle/lltv\", marketParams.collateralToken, marketParams.oracle, marketParams.lltv), type(uint256).max);\n        _setRelativeCap(abi.encode(\"adapter\", address(mbAdapter)), 1e18);\n        _setRelativeCap(abi.encode(\"collateralToken\", marketParams.collateralToken), 1e18);\n        _setRelativeCap(abi.encode(\"collateralToken/oracle/lltv\", marketParams.collateralToken, marketParams.oracle, marketParams.lltv), 1e18);\n    }\n\n    function testActualAccruedGtVicReportedUnaccounted() public {\n        // @note: interest(VIC ~= 6.3%) < interest(Acutual ~= 7.22%)\n        apy = 1;\n        vm.startPrank(allocator);\n        vic.setInterestPerSecond(apy);\n        vm.stopPrank();\n        \n        uint256 amount = 500000e6;\n        address user = makeAddr(\"alice\");\n        deal(address(usdc), user, amount);\n        \n        vm.startPrank(user);\n        usdc.approve(address(vault), type(uint256).max);\n        vault.deposit(amount, user);\n        console.log(\"after supplying: \");\n        console.log(\"ta\", vault.totalAssets());\n        console.log(\"ts\", vault.totalSupply());\n        console.log(\"supplied\", morpho.expectedSupplyAssets(marketParams, address(mbAdapter)));\n        skip(365 days);\n        console.log(\"after 1yr: \");\n        console.log(\"supplied\", morpho.expectedSupplyAssets(marketParams, address(mbAdapter)));\n        console.log(\"interest accrued\", vic.interestPerSecond(0, 0) * 365 days);\n        assertEq(vault.totalSupply(), vault.balanceOf(user));\n        vault.redeem(vault.balanceOf(user), user, user);\n        console.log(\"after withdraw: \");\n        console.log(\"ta\", vault.totalAssets());\n        console.log(\"ts\", vault.totalSupply());\n        console.log(\"supplied\", morpho.expectedSupplyAssets(marketParams, address(mbAdapter)));\n        vm.stopPrank();\n        \n        // @note: shares are 0 but assets are non-zero (plus there are unreported assets in adapter)\n        // deallocating max from adapter doesn't increase (will stay same as previous) totalAssets so net interest,\n        // profit delta stays unreported/unaccounted\n        vm.startPrank(allocator);\n        vault.deallocate(address(mbAdapter), abi.encode(marketParams), morpho.expectedSupplyAssets(marketParams, address(mbAdapter)));\n        console.log(\"after max deallocation:\");\n        vm.stopPrank();\n        console.log(\"ta\", vault.totalAssets());\n        console.log(\"ts\", vault.totalSupply());\n    }\n}\n```\n\n**after supplying:**\n```\nta 500000000000\nts 500000000000\nsupplied 499999999999\n```\n**after 1yr:**\n```\nsupplied 514593783944\ninterest accrued 31536000\n```\n**after withdraw:**\n```\nta 1\nts 0\nsupplied 14562247945\n```\n**after max deallocation:**\n```\nta 1\nts 0\n```\n\n## Recommendation\n- In the constructor, mint some shares to the dead/burn address which prevents totalSupply from reaching zero.\n- After deployment, the deployer must ensure to mint some shares and lock/hold them forever to prevent supply from reaching zero.\n- `totalSupply` and `totalAssets` should be initialized to non-zero values, such as 10 ** decimals, so that explicit minting/burning is not required.\n\nAlso, since an FV setup exists, it would be good to prove this invariant holds.\n\n**Morpho**: Fixed by adding decimal offset in PR 497 and this comment in PR 524.  \n**Spearbit**: Verified.",
+    "summary": "",
+    "report_date": "2025-10-13T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Morpho-Vaults-v2-Spearbit-Security-Review-May-2025.pdf",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Morpho-Vaults-v2-Spearbit-Security-Review-May-2025.pdf",
+    "github_link": "",
+    "pdf_link": "https://solodit-bucket.s3.amazonaws.com/storage/reports/spearbit/Morpho-Vaults-v2-Spearbit-Security-Review-May-2025.pdf",
+    "pdf_page_from": 8,
+    "contest_id": "",
+    "slug": "share-to-asset-exchange-rate-can-be-skewed-when-totalsupply-0-and-totalassets-0-spearbit-none-morpho-vaults-v2-pdf",
+    "firm_name": "Spearbit",
+    "firm_logo_square": "spearbit_square.png",
+    "protocol_name": "Morpho Vaults v2",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Saw-mon and Natalie"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Om Parikh"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Jonatas Martins"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Emmanuele Ricci"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Spearbit",
+        "logo_square": "spearbit_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Morpho Vaults v2",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

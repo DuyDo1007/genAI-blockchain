@@ -1,0 +1,45 @@
+{
+    "id": 62317,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 30,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3397,
+    "title": "[L-02] Use `safeMint()` Instead of `mint()`",
+    "content": "\n## Severity\n\nLow Risk\n\n## Description\n\nThe contract was using the `_mint()` function to mint new tokens. OpenZeppelin also defines a function called `_safeMint()` that prevents someone from minting ERC721 to a contract that does not support ERC721 transfers.\n\nThe `_safeMint()` flavour of minting causes the recipient of the tokens, if it is a smart contract, to react upon receipt of the tokens.\n\n## Location of Affected Code\n\nFile: [contracts/BeetleCards.sol#L144](https://github.com/rshtirmer/BeetleGame-Contracts/blob/4ab13a82a1f9b7228d5c0ad3a085518a60459036/contracts/BeetleCards.sol#L144)\n\n```solidity\nfunction _mintCardWithId(address _to, uint256 _tokenId, uint256 _cardTypeId) internal {\n  cardTypeIds[_tokenId] = _cardTypeId;\n\n  _mint(_to, _tokenId);\n\n  emit CardMinted(_to, _tokenId, _cardTypeId, msg.value);\n}\n```\n\n## Impact\n\nNFTs may be irretrievable if minted to contracts that do not support ERC721 transfers.\n\n## Recommendation\n\nIt is recommended to use `_safeMint()` instead of `_mint()` depending on the contract’s requirements.\n\n## Team Response\n\nFixed.\n\n",
+    "summary": "",
+    "report_date": "2025-08-30T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 5,
+    "general_score": 0,
+    "source_link": "https://github.com/shieldify-security/audits-portfolio-md/blob/main/Beetle-Security-Review.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "l-02-use-safemint-instead-of-mint-shieldify-none-beetle-markdown",
+    "firm_name": "Shieldify",
+    "firm_logo_square": "Shieldify_square.png",
+    "protocol_name": "Beetle",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Shieldify Security"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Shieldify",
+        "logo_square": "Shieldify_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Beetle",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

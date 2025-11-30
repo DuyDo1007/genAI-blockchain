@@ -1,0 +1,45 @@
+{
+    "id": 62756,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 16,
+    "impact": "HIGH",
+    "finders_count": 1,
+    "protocol_id": 3443,
+    "title": "[H-01] Pending withdrawals in `YuzuILP` contract are not considered in totalAssets calculation",
+    "content": "\n_Resolved_\n\n## Severity\n\n**Impact:** Medium\n\n**Likelihood:** High  \n\n## Description\n\nIn `YuzuILP`, when a user creates a redeem order, the contract calculates and records the asset amount they are entitled to based on the vault price at that moment. \n\n```Solidity\n    // from YuzuOrderBook file\n    function createRedeemOrder(uint256 tokens, address receiver, address owner)\n        public\n        virtual\n        returns (uint256, uint256)\n    {\n        if (receiver == address(0)) {\n            revert InvalidZeroAddress();\n        }\n        uint256 maxTokens = maxRedeemOrder(owner);\n        if (tokens > maxTokens) {\n            revert ExceededMaxRedeemOrder(owner, tokens, maxTokens);\n        }\n\n        uint256 assets = previewRedeemOrder(tokens);\n        address caller = _msgSender();\n        uint256 orderId = _createRedeemOrder(caller, receiver, owner, tokens, assets);\n\n        emit CreatedRedeemOrder(caller, receiver, owner, orderId, assets, tokens);\n\n        return (orderId, assets);\n    }\n```\n\nHowever, the tokens being withdrawn are not excluded from vault accounting and remain part of `totalAssets()` and `totalSupply()` until the order is finalized. This means that while the user’s redemption value is fixed, the tokens continue to accrue yield within the vault. When the user later finalizes the order, only the originally recorded asset amount is transferred, **while the yield that accumulated during the pending period remains in the vault**. This causes the withdrawing user to lose a portion of their rightful profits, and those profits are instead redistributed to the remaining participants.\n\n## Recommendations\n\nThe vault should prevent pending withdrawals from accruing additional yield. This can be achieved by adjusting accounting to exclude them from `totalAssets()` and `totalSupply()` as soon as the redeem order is created.\n\n\n\n",
+    "summary": "\nYuzuILP is a contract that calculates and records the asset amount a user is entitled to when creating a redeem order. However, a bug has been identified where the tokens being withdrawn are not excluded from vault accounting, causing the user to lose a portion of their rightful profits. The recommended solution is for the vault to prevent pending withdrawals from accruing additional yield by adjusting accounting to exclude them from totalAssets() and totalSupply() as soon as the redeem order is created.",
+    "report_date": "2025-09-28T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/pashov/audits/blob/master/team/md/YuzuUSD-security-review_2025-08-28.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "h-01-pending-withdrawals-in-yuzuilp-contract-are-not-considered-in-totalassets-calculation-pashov-audit-group-none-yuzuusd_2025-08-28-markdown",
+    "firm_name": "Pashov Audit Group",
+    "firm_logo_square": "Pashov_square.png",
+    "protocol_name": "YuzuUSD_2025-08-28",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Pashov Audit Group"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Pashov Audit Group",
+        "logo_square": "Pashov_square.png"
+    },
+    "protocols_protocol": {
+        "name": "YuzuUSD_2025-08-28",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

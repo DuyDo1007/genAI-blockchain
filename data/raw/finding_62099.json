@@ -1,0 +1,90 @@
+{
+    "id": 62099,
+    "kind": "GIT",
+    "auditfirm_id": 3,
+    "impact": "MEDIUM",
+    "finders_count": 10,
+    "protocol_id": 3050,
+    "title": "M-1: Attacker will manipulate voting power calculations as `getOperatorVotingPower()` and `getOperatorVotingPowerAt()` functions lack vault validation",
+    "content": "\nSource: https://github.com/sherlock-audit/2025-06-symbiotic-relay-judging/issues/196 \n\nThis issue has been acknowledged by the team but won't be fixed at this time.\n\n## Found by \n0xapple, 0xmaverick, Drynooo, Jeffy, PASCAL, Ziusz, katz, patitonar, roshark, zark\n\n### Summary\n\nThe missing vault validation in `VotingPowerProvider::getOperatorVotingPower()` and `VotingPowerProvider::getOperatorVotingPowerAt()` functions that receives the `vault` external parameter will cause incorrect voting power calculations as an attacker can provide unregistered or invalid vault addresses to gain unauthorized voting influence\n\n### Root Cause\n\nIn `VotingPowerProviderLogic::getOperatorVotingPower(address operator, address vault, bytes memory extraData)` and `VotingPowerProviderLogic::getOperatorVotingPowerAt(address operator, address vault, bytes memory extraData, uint48 timestamp, bytes memory hints)` the `vault` parameter is not validated to be a registered vault before processing voting power calculations.\n\nhttps://github.com/sherlock-audit/2025-06-symbiotic-relay/blob/main/middleware-sdk/src/contracts/modules/voting-power/VotingPowerProvider.sol#L273-L295\n\nThe functions only validate that the vault's collateral token is registered via `isTokenRegistered(IVault(vault).collateral())`, but they do not verify that the vault itself is properly registered in the system.\n\nA vault can be unregistered by:\n- SharedVaults::unregisterSharedVault()\n- OperatorVaults::unregisterOperatorVault()\n\n### Internal Pre-conditions\n\nA vault with valid collateral token exists but is not registered in the `VotingPowerProvider` contract, OR the vault was registered but unregistered later.\n\n### External Pre-conditions\n\nN/A\n\n### Attack Path\n\n1. Attacker identifies an unregistered vault that has a registered collateral token\n2. Attacker calls some contract that calls `VotingPowerProvider::getOperatorVotingPower()` with the unregistered vault address\n3. Function calculates voting power using the retrieved stake and returns it as valid voting power\n4. Attacker uses this voting power, gaining influence they should not have\n\n### Impact\n\nThe protocol using `VotingPowerProvider` suffers incorrect voting power calculations as attackers gain unauthorized voting influence through unregistered vaults.\n\n### PoC\n\n_No response_\n\n### Mitigation\n\nAdd vault validation to both `getOperatorVotingPower()` and `getOperatorVotingPowerAt()` functions by checking if the vault is registered before processing voting power calculations:\n\n```solidity\n// Add vault validation\nif (!isSharedVaultRegistered(vault) && !isOperatorVaultRegistered(vault)) {\n    return 0;\n}\n```\n\n",
+    "summary": "\nThis bug report discusses an issue with the `VotingPowerProvider` contract that can lead to incorrect voting power calculations. The problem is caused by missing validation for the `vault` parameter, which can allow an attacker to provide an unregistered or invalid vault address and gain unauthorized voting influence. This issue has been acknowledged by the team, but will not be fixed at this time. The report suggests adding vault validation to the affected functions to prevent this vulnerability.",
+    "report_date": "2025-07-10T15:00:00.000Z",
+    "contest_prize_txt": "100000 USDC",
+    "contest_link": "https://app.sherlock.xyz/audits/contests/967",
+    "sponsor_name": "",
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "",
+    "github_link": "https://github.com/sherlock-audit/2025-06-symbiotic-relay-judging/issues/196",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "967",
+    "slug": "m-1-attacker-will-manipulate-voting-power-calculations-as-getoperatorvotingpower-and-getoperatorvotingpowerat-functions-lack-vault-validation-sherlock-symbiotic-relay-git",
+    "firm_name": "Sherlock",
+    "firm_logo_square": "sherlock_square.png",
+    "protocol_name": "Symbiotic Relay",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "patitonar"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "zark"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "0xapple"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "roshark"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "katz"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Drynooo"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Jeffy"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "PASCAL"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Ziusz"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "0xmaverick"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Sherlock",
+        "logo_square": "sherlock_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Symbiotic Relay",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

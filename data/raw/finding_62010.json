@@ -1,0 +1,55 @@
+{
+    "id": 62010,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 37,
+    "impact": "HIGH",
+    "finders_count": 3,
+    "protocol_id": 3363,
+    "title": "Staker Address Update Does Not Transfer Staker's Balance",
+    "content": "**Update**\nThe client fixed the issue in commit `f797e3043714ac28f58aed6bdb059f3398368f91` and provided the following explanation:\n\n> This was already fixed on Apr 4 by not allowing setting staker when the staker was already set\n\n**File(s) affected:**`contracts/LT.vy`\n\n**Description:** If the `set_staker()` function is called and the `staker` address is updated without transferring the previous staker's `balanceOf` to the new staker, the following issues could arise:\n\n1.   The previous staker's balance would remain with the old staker's address, leaving the new staker with a zero balance. This could lead to a situation where the new staker cannot perform any operations that require a balance, such as withdrawing staked tokens.\n2.   Incorrect calculations of staked tokens would result in the `_calculate_values()` function producing different values than expected.\n\n**Recommendation:** When the `set_staker()` function is executed, transfer the previous staker's balance to the new staker. Otherwise, consider implementing functionality to pause the protocol to prevent users from depositing or withdrawing while the staker is being updated and the old staker's balance is transferred to the new staker.",
+    "summary": "\nThis bug report discusses an issue with the `set_staker()` function in the `LT.vy` file. If this function is called and the `staker` address is updated without transferring the previous staker's balance to the new staker, it can cause problems such as the new staker having a zero balance and incorrect calculations of staked tokens. The recommendation is to transfer the previous staker's balance to the new staker or pause the protocol to prevent further issues.",
+    "report_date": "2025-08-14T16:12:11.589Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://certificate.quantstamp.com/full/yield-basis/e07ecad3-524c-4609-b4f6-71ed7fdc3281/index.html",
+    "sponsor_name": "",
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://certificate.quantstamp.com/full/yield-basis/e07ecad3-524c-4609-b4f6-71ed7fdc3281/index.html",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "staker-address-update-does-not-transfer-stakers-balance-quantstamp-yield-basis-markdown",
+    "firm_name": "Quantstamp",
+    "firm_logo_square": "quantstamp_square.png",
+    "protocol_name": "Yield Basis",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Gereon Mendler"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Cameron Biniamow"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Jonathan Mevs"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Quantstamp",
+        "logo_square": "quantstamp_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Yield Basis",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

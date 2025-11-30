@@ -1,0 +1,60 @@
+{
+    "id": 62152,
+    "kind": "PDF",
+    "auditfirm_id": 6,
+    "impact": "MEDIUM",
+    "finders_count": 4,
+    "protocol_id": 3384,
+    "title": "_isEnoughIMStrict might not be strong enough",
+    "content": "## Security Assessment Report\n\n## Severity\n**Medium Risk**\n\n## Context\n`MarginManager.sol#L229-L232`\n\n## Description\nIn the case that `critHR Hf` is greater than 1 wad, the check in `_isEnoughIMStrict` is not strong enough to guarantee that the health ratio would not be less than `Hf`. Based on the Boros research paper and its Finding 1, we know that (the 1st inequality comes from the strict IM check):\n\n```\nvu(t) ≥ IMu(t) ≥ ku\nIM (t)\nku\nMM (t)MMu(t)\n```\n\nTo ensure that the strict IM check implies the health ratio is not less than `Hf`, the following conditions are needed:\n\n1. At all times, \n   ```\n   ku\n   IM (t)\n   ku\n   MM (t) ≥ 1.\n   ```\n2. \n   ```\n   vu(t) ≥ IMu(t) · max(1, Hf, Hc) \n   ```\n   (added `Hc` to the maximum since this is also the value used in the example in the Boros research paper).\n\n## Recommendation\n1. The admins need to ensure that \n   ```\n   ku\n   IM (t)\n   ku\n   MM (t) ≥ 1 \n   ```\n   is always satisfied for all users.\n2. Change the `_isEnoughIMStrict` implementation to check:\n   ```\n   return totalValue + cash >= totalMargin.Int().mulCeil(IONE.max(critHR).max(riskyThresHR))\n   ```\n   Alternatively, the market managers can ensure that \n   ```\n   ku\n   IM (t)\n   ku\n   MM (t) ≥ max(1, Hf, Hc).\n   ```\n\n## Acknowledgments\n- **Pendle Finance**: Acknowledged.\n- **Spearbit**: Acknowledged.",
+    "summary": "\nThis is a report of a security assessment that has found a medium risk bug in the `MarginManager.sol` code. The bug is located in line 229-232, where the check in `_isEnoughIMStrict` is not strong enough to guarantee that the health ratio would not be less than `Hf` in certain cases. To fix this, the admins need to ensure that certain conditions are always satisfied for all users, or the code in `_isEnoughIMStrict` needs to be changed. The bug has been acknowledged by Pendle Finance and Spearbit.",
+    "report_date": "2025-08-22T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Pendle-Spearbit-Security-Review-August-2025.pdf",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Pendle-Spearbit-Security-Review-August-2025.pdf",
+    "github_link": "",
+    "pdf_link": "https://solodit-bucket.s3.amazonaws.com/storage/reports/spearbit/Pendle-Spearbit-Security-Review-August-2025.pdf",
+    "pdf_page_from": 36,
+    "contest_id": "",
+    "slug": "isenoughimstrict-might-not-be-strong-enough-spearbit-none-pendle-core-v3-pdf",
+    "firm_name": "Spearbit",
+    "firm_logo_square": "spearbit_square.png",
+    "protocol_name": "Pendle Core v3",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Saw-mon and Natalie"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Ethan"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Desmond Ho"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "RustyRabbit"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Spearbit",
+        "logo_square": "spearbit_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Pendle Core v3",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

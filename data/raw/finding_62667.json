@@ -1,0 +1,45 @@
+{
+    "id": 62667,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 23,
+    "impact": "MEDIUM",
+    "finders_count": 1,
+    "protocol_id": 3435,
+    "title": "Syncing Issue During Ramping",
+    "content": "##### Description\nThis issue has been identified within the `syncRamping` modifier of the `SelfPeggingAsset` contract.\n\nIf the `syncRamping` modifier is triggered between the start and end of an `A` value ramping period, the `A` value may not be updated as intended, leading to inconsistencies in the pool’s state. A similar problem could occur if the `rampAController` address is changed, as the modifier does not account for such transitions. \n\nThe issue is classified as **medium** severity because it could disrupt the intended ramping mechanism, potentially affecting pool stability and user expectations, though it requires specific timing to take effect.\n##### Recommendation\nWe recommend revising the `syncRamping` modifier to always fetch the current `A` value from the `rampAController` using `getCurrentA()` and compare it with the stored value. This ensures proper synchronization and updates to the `A` parameter, regardless of when the sync occurs or if the controller changes.",
+    "summary": "\nThe `syncRamping` modifier in the `SelfPeggingAsset` contract has a bug that can cause inconsistencies in the pool's state. This can happen if the modifier is triggered while an `A` value is being ramped up or down, or if the `rampAController` address is changed. This bug is classified as medium severity because it could disrupt the intended ramping mechanism and affect pool stability and user expectations. To fix this bug, the `syncRamping` modifier should be revised to always fetch the current `A` value from the `rampAController` using `getCurrentA()` and compare it with the stored value. This will ensure that the `A` parameter is properly synchronized and updated, regardless of when the sync occurs or if the controller changes.",
+    "report_date": "2025-09-19T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/mixbytes/audits_public/blob/master/NUTS%20Finance/Tapio/README.md#4-syncing-issue-during-ramping",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "syncing-issue-during-ramping-mixbytes-none-nuts-finance-markdown",
+    "firm_name": "MixBytes",
+    "firm_logo_square": "mixbytes_square.png",
+    "protocol_name": "NUTS Finance",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "MixBytes"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "MixBytes",
+        "logo_square": "mixbytes_square.png"
+    },
+    "protocols_protocol": {
+        "name": "NUTS Finance",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

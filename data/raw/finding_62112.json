@@ -1,0 +1,360 @@
+{
+    "id": 62112,
+    "kind": "GIT",
+    "auditfirm_id": 3,
+    "impact": "MEDIUM",
+    "finders_count": 63,
+    "protocol_id": 3135,
+    "title": "M-1: Flawed Logic in `ShareManager` Inverts Transfer Whitelist Behavior",
+    "content": "\nSource: https://github.com/sherlock-audit/2025-07-mellow-flexible-vaults-judging/issues/26 \n\n## Found by \n0rpse, 0x23r0, 0xDLG, 0xShoonya, 0xc0ffEE, 0xloophole, 0xpetern, 7, ARMoh, Arav, Brene, Cybrid, DeveloperX, Etherking, Greed, GypsyKing18, HeckerTrieuTien, KupiaSec, Mishkat6451, PratRed, SilentVoice-dev, Sparrow\\_Jac, TopStar, ZanyBonzy, algiz, axelot, bXiv, bam0x7, blockace, boredpukar, bughuntoor, coin2own, dan\\_\\_vinci, davies0212, dimulski, edger, elyas, holtzzx, illoy\\_sci, jah, joicygiore, jolyon, ke1caM, klaus, lazyrams352, lodelux, maigadoh, natachi, odessos42, pollersan, rbd3, reedai, silver\\_eth, slavina, snapishere, t.aksoy, taticuvostru, teoslaf1, v1c7, who\\_is\\_rp, wickie, x0rc1ph3r, zxriptor\n\n### Summary\n\nThe `updateChecks` function in `ShareManager.sol:L139` contains flawed logic that inverts the intended behavior of the transfer whitelist feature. Instead of allowing transfers from whitelisted accounts, the code incorrectly blocks them, rendering the security feature unusable and creating behavior that is opposite to the documentation.\n\n### Vulnerability Detail\n\nThe `updateChecks` function is responsible for enforcing security policies before any share modification. When the `hasTransferWhitelist` flag is enabled, it is supposed to check if a transfer is permitted. The logic for this check is as follows:\n\nhttps://github.com/sherlock-audit/2025-07-mellow-flexible-vaults/blob/main/flexible-vaults/src/managers/ShareManager.sol#L139\n\nHere, `info` represents the sender's account data. The code reverts if the sender's `canTransfer` flag is `true`. This is a direct contradiction of the feature's documented intent in the `IShareManager.sol` interface:\n\n```solidity\n/// @notice Whether the account is allowed to transfer (send or receive) shares when the `hasTransferWhitelist` flag is active.\nbool canTransfer;\n```\n\nThe documentation clearly states that `canTransfer: true` should **allow** an account to send or receive shares. The current implementation enforces the opposite, blocking whitelisted senders. Furthermore, the project's test suite (`ShareManager.t.sol`) confirms this flawed logic by explicitly expecting a revert when a whitelisted address attempts to send shares.\n\n#PoC\n\n```javascript\nfunction testUpdateChecks_TransferWhitelist_Inclusive() external {\n        // --- Setup ---\n        Deployment memory deployment = createVault(vaultAdmin, vaultProxyAdmin, assetsDefault);\n        ShareManager manager = deployment.shareManager;\n        address from = vm.createWallet(\"from\").addr;\n        address to = vm.createWallet(\"to\").addr;\n\n        vm.startPrank(deployment.vaultAdmin);\n\n        // Enable the transfer whitelist\n        manager.setFlags(\n            IShareManager.Flags({\n                hasMintPause: false,\n                hasBurnPause: false,\n                hasWhitelist: false,\n                hasTransferPause: false,\n                hasTransferWhitelist: true, // <-- Feature is ON\n                globalLockup: 0, // No lockup\n                targetedLockup: 0 // No lockup\n            })\n        );\n\n        // Case 1: Neither is whitelisted. SHOULD REVERT. This is correct behavior.\n         manager.setAccountInfo(from, IShareManager.AccountInfo({canDeposit: true, canTransfer: false, isBlacklisted: false, lockedUntil: 0}));\n         manager.setAccountInfo(to, IShareManager.AccountInfo({canDeposit: true, canTransfer: false, isBlacklisted: false, lockedUntil: 0}));\n         vm.expectRevert(abi.encodeWithSelector(IShareManager.TransferNotAllowed.selector, from, to));\n         manager.updateChecks(from, to);\n\n         // Case 2: Sender is whitelisted, Receiver is not. SHOULD PASS, BUT REVERTS. This proves the bug.\n         manager.setAccountInfo(from, IShareManager.AccountInfo({canDeposit: true, canTransfer: true, isBlacklisted: false, lockedUntil: 0}));\n         manager.setAccountInfo(to, IShareManager.AccountInfo({canDeposit: true, canTransfer: false, isBlacklisted: false, lockedUntil: 0}));\n         vm.expectRevert(abi.encodeWithSelector(IShareManager.TransferNotAllowed.selector, from, to));\n         manager.updateChecks(from, to);\n\n         // Case 3: Sender is not, Receiver is whitelisted. SHOULD PASS. This case correctly passes.\n         manager.setAccountInfo(from, IShareManager.AccountInfo({canDeposit: true, canTransfer: false, isBlacklisted: false, lockedUntil: 0}));\n         manager.setAccountInfo(to, IShareManager.AccountInfo({canDeposit: true, canTransfer: true, isBlacklisted: false, lockedUntil: 0}));\n         manager.updateChecks(from, to); // No expectRevert, this succeeds as intended.\n\n         // Case 4: Both are whitelisted. SHOULD PASS, BUT REVERTS. This also proves the bug.\n         manager.setAccountInfo(from, IShareManager.AccountInfo({canDeposit: true, canTransfer: true, isBlacklisted: false, lockedUntil: 0}));\n         manager.setAccountInfo(to, IShareManager.AccountInfo({canDeposit: true, canTransfer: true, isBlacklisted: false, lockedUntil: 0}));\n         vm.expectRevert(abi.encodeWithSelector(IShareManager.TransferNotAllowed.selector, from, to));\n         manager.updateChecks(from, to);\n\n        vm.stopPrank();\n    }\n```\n\n### Impact\n\nThe primary impact is the complete failure of the transfer whitelist feature. A vault operator who enables this feature and whitelists accounts by setting `canTransfer` to `true` will find that these accounts are unexpectedly blocked from making transfers. This subverts the intended security model and can disrupt the vault's operations. Because the code behaves in the exact opposite manner of its documentation, this is an issue that can lead to confusion and operational failure.\n\n### Recommendation\n\nTo fix the inverted logic, the `updateChecks` function should only revert if **both** the sender and receiver are **not** whitelisted. This aligns the implementation with the documented behavior.\n\nThe flawed line:\n```diff\nfunction updateChecks(/*params*/) public view {\n    // code\n    .\n    .\n-   if (info.canTransfer || !$.accounts[to].canTransfer) {\n+   if (!info.canTransfer && !$.accounts[to].canTransfer) {\n    // rest of code\n```\n\n\n\n## Discussion\n\n**sherlock-admin2**\n\nThe protocol team fixed this issue in the following PRs/commits:\nhttps://github.com/mellow-finance/flexible-vaults/pull/3\n\n\n\n\n",
+    "summary": "\nSummary:\n\nThis bug report discusses a flaw in the `updateChecks` function in the `ShareManager` smart contract. This function is responsible for enforcing security policies, but due to a coding error, it incorrectly blocks transfers from whitelisted accounts instead of allowing them. This renders the transfer whitelist feature unusable and creates behavior that is opposite to the documentation. The impact of this bug is the failure of the intended security model and potential disruption of the vault's operations. The recommendation is to fix the inverted logic in the code to align it with the documented behavior. The protocol team has already addressed this issue in a recent pull request.",
+    "report_date": "2025-07-28T15:00:00.000Z",
+    "contest_prize_txt": "70000 USDC",
+    "contest_link": "https://app.sherlock.xyz/audits/contests/964",
+    "sponsor_name": "",
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "",
+    "github_link": "https://github.com/sherlock-audit/2025-07-mellow-flexible-vaults-judging/issues/26",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "964",
+    "slug": "m-1-flawed-logic-in-sharemanager-inverts-transfer-whitelist-behavior-sherlock-mellow-flexible-vaults-git",
+    "firm_name": "Sherlock",
+    "firm_logo_square": "sherlock_square.png",
+    "protocol_name": "Mellow Flexible Vaults",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "illoy\\_sci"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "v1c7"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "0xpetern"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "HeckerTrieuTien"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "natachi"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "odessos42"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Brene"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "klaus"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "0xloophole"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "x0rc1ph3r"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "axelot"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Greed"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Arav"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "silver\\_eth"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "zxriptor"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "wickie"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "ZanyBonzy"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "0xShoonya"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "0x23r0"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "ke1caM"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "dan\\_\\_vinci"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "bXiv"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "snapishere"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "jah"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "KupiaSec"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "ARMoh"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "who\\_is\\_rp"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "blockace"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "taticuvostru"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "DeveloperX"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "elyas"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "slavina"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "7"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "davies0212"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Mishkat6451"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "maigadoh"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "SilentVoice-dev"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "reedai"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "jolyon"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "pollersan"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "boredpukar"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "edger"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "rbd3"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "0rpse"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "bam0x7"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "dan\\_\\_vinci"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "holtzzx"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "t.aksoy"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Etherking"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "0xDLG"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "GypsyKing18"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "TopStar"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "PratRed"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "dimulski"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "lodelux"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "bughuntoor"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "joicygiore"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Cybrid"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "teoslaf1"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "0xc0ffEE"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Sparrow\\_Jac"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "lazyrams352"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "coin2own"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "algiz"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Sherlock",
+        "logo_square": "sherlock_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Mellow Flexible Vaults",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

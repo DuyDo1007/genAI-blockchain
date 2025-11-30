@@ -1,0 +1,45 @@
+{
+    "id": 62740,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 30,
+    "impact": "MEDIUM",
+    "finders_count": 1,
+    "protocol_id": 3440,
+    "title": "[M-01] Join Signature Lacks Domain Separation Leading to Cross-Deployment/Chain Replay",
+    "content": "\n## Severity\n\nMedium Risk\n\n## Description\n\nIn the `joinGame()` function in `Revolver`, the signed payload omits any domain/session fields:\n\n```solidity\n// Verify signature - hash uid with msg.sender address (signature format unchanged)\nbytes32 messageHash = keccak256(\n    abi.encodePacked(uid, msg.sender, cellId)\n);\n\nbytes32 ethSignedMessageHash = MessageHashUtils.toEthSignedMessageHash(messageHash);\naddress recoveredSigner = ECDSA.recover(ethSignedMessageHash, signature);\nif (recoveredSigner != backend) revert InvalidSignature();\n```\n\nThe signed message does **not** commit to:\n\n- `block.chainid` (chain),\n- `address(this)` (contract deployment),\n- `currentRoundId` (session),\n- or any contract-config parameter like `baseStake`.\n\nIf the backend key is reused across networks (e.g., testnet/mainnet) or across multiple deployments/versions, a signature produced for `(uid, user, cellId)` in one environment is **valid verbatim** in another. Likewise, it’s reusable across future rounds within the same deployment because `currentRoundId` is not included in the message being signed (note: the contract stores `usedCellHash` keyed with `currentRoundId`, but that only blocks _duplicate joins in the same round_, not _signature reuse_ across rounds or deployments).\n\n### Impact\n\n- Cross-chain / cross-deployment replay: A signature issued on chain A (or deployment X) can authorize a join on chain B (or deployment Y) so long as the backend address is the same.\n- Cross-round replay: The same signature can be reused in later rounds of the same deployment so long as (`uid`, `user`, `cellId`) repeats (the contract prevents intra-round replay via `usedCellHash`, but not inter-round reuse of the same signature).\n- Outcome: not direct theft (user still pays `baseStake`), but it weakens anti-bot/eligibility controls, undermines “one-shot” off-chain gatekeeping, and enables unintended reuse of an authorization the backend believed was bound to a specific environment/round.\n\n## Location of Affected Code:\n\nFile: [contracts/Revolver.sol#L398](https://github.com/xgrisha666x/revolver-contract/blob/b9c318f97f10a4f496bda8959aeb90696402e114/contracts/Revolver.sol#L398)\n\n```solidity\nfunction joinGame(\n    uint256 cellId,\n    string calldata uid,\n    bytes calldata signature\n) external payable nonReentrant {\n    if (cellId < 1 || cellId > NUM_CELLS) revert InvalidCell();\n    Round storage round = rounds[currentRoundId];\n\n    if (round.status != RoundStatus.Gathering) revert RoundNotGathering();\n    if (round.locked) revert RoundLocked();\n    if (msg.value != baseStake) revert IncorrectStakeAmount();\n\n    bytes32 uidHash = keccak256(abi.encodePacked(uid));\n\n    address existingUidOwner = usedUidsToPlayer[uidHash];\n    if (existingUidOwner == address(0)) {\n        usedUidsToPlayer[uidHash] = msg.sender;\n    } else if (existingUidOwner != msg.sender) {\n        revert UidAlreadyUsed();\n    }\n\n    bytes32 existingPlayerUid = playerToUid[msg.sender];\n    if (existingPlayerUid == bytes32(0)) {\n        playerToUid[msg.sender] = uidHash;\n    } else if (existingPlayerUid != uidHash) {\n        revert UidAlreadyUsed();\n    }\n\n    // Verify signature - hash uid with msg.sender address (signature format unchanged)\n    bytes32 messageHash = keccak256(\n        abi.encodePacked(uid, msg.sender, cellId)\n    );\n\n    // Prevent replay within the same round by including the current round id in the used key\n    bytes32 usedKey = keccak256(\n        abi.encodePacked(currentRoundId, uid, msg.sender, cellId)\n    );\n    if (usedCellHash[usedKey]) revert UidAlreadyUsed();\n\n    bytes32 ethSignedMessageHash = MessageHashUtils.toEthSignedMessageHash(\n        messageHash\n    );\n    address recoveredSigner = ECDSA.recover(\n        ethSignedMessageHash,\n        signature\n    );\n    if (recoveredSigner != backend) revert InvalidSignature();\n\n    usedCellHash[usedKey] = true;\n\n    bytes32 roundUidKey = keccak256(abi.encodePacked(currentRoundId, uidHash));\n    if (uidToEntry[roundUidKey] >= 3) revert UidAlreadyUsed();\n    uidToEntry[roundUidKey]++;\n\n    Cell storage cell = round.cells[cellId];\n    if (!cell.isActive) {\n        cell.isActive = true;\n        round.activeCellsCount++;\n    }\n\n    if (cell.stakeByPlayer[msg.sender] > 0) revert AlreadyInCell();\n\n    if (round.playerInfo[msg.sender].stake == 0) {\n        round.uniquePlayersCount++;\n    }\n\n    cell.players.push(msg.sender);\n    cell.totalStake += msg.value;\n    cell.stakeByPlayer[msg.sender] += msg.value;\n    round.playerInfo[msg.sender].stake += msg.value;\n    round.pool += msg.value;\n\n    emit GameJoined(currentRoundId, msg.sender, cellId, uid, msg.value);\n\n    // Activate only when there are 2+ active cells AND at least two different users across those cells\n    if (round.activeCellsCount >= 2 && round.startTimestamp == 0) {\n        // Use a more efficient approach with early exit and player tracking\n        bool hasTwoUniqueUsersInTwoCells = _checkTwoUniqueUsersInTwoCells(round);\n\n        if (hasTwoUniqueUsersInTwoCells) {\n            round.startTimestamp = block.timestamp;\n            emit RoundActivated(currentRoundId, round.startTimestamp);\n        }\n    }\n}\n```\n\nThe problem is the `messageHash` preimage: it only uses (`uid`, `msg.sender`, `cellId`) and omits `block.chainid`, `address(this)`, `currentRoundId`, and (optionally) `baseStake`.\n\n## Recommendation\n\n### Bind domain & session (minimal, safe change)\n\nInclude fixed domain identifiers and the session in the signed preimage:\n\n```solidity\nbytes32 messageHash = keccak256(\n    abi.encodePacked(\n        block.chainid,\n        address(this),\n        currentRoundId,\n        uid,\n        msg.sender,\n        cellId,\n        baseStake // optional but useful to prevent price-mismatch replays\n    )\n);\nbytes32 ethSigned = MessageHashUtils.toEthSignedMessageHash(messageHash);\naddress recovered = ECDSA.recover(ethSigned, signature);\n```\n\n- Commit the domain and session:\n\n```solidity\nbytes32 messageHash = keccak256(\n    abi.encodePacked(block.chainid, address(this), currentRoundId, uid, msg.sender, cellId, baseStake)\n);\n```\n\nAlso, you can consider EIP-712 (structured data) with an explicit `JOIN_TYPEHASH`.\n\n## Team Response\n\nFixed.\n\n",
+    "summary": "\nThe report talks about a bug in the `joinGame()` function in `Revolver`. The signed payload does not contain all the necessary fields, making it vulnerable to cross-chain and cross-round replay attacks. This bug can be fixed by including more fields in the signed payload such as `block.chainid`, `address(this)`, `currentRoundId`, and `baseStake`. The team has acknowledged and fixed the bug.",
+    "report_date": "2025-09-24T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/shieldify-security/audits-portfolio-md/blob/main/SoulsClub-Revolver-Security-Review.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "m-01-join-signature-lacks-domain-separation-leading-to-cross-deploymentchain-replay-shieldify-none-soulsclub-revolver-markdown",
+    "firm_name": "Shieldify",
+    "firm_logo_square": "Shieldify_square.png",
+    "protocol_name": "Soulsclub Revolver",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Shieldify Security"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Shieldify",
+        "logo_square": "Shieldify_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Soulsclub Revolver",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

@@ -1,0 +1,55 @@
+{
+    "id": 62304,
+    "kind": "PDF",
+    "auditfirm_id": 6,
+    "impact": "LOW",
+    "finders_count": 3,
+    "protocol_id": 3396,
+    "title": "_setAssetsSources does not compare all lengths and is not emitting all parameters",
+    "content": "## Security Issue Report\n\n**Severity:** Low Risk  \n**Context:** Oracle.sol#L105-L109  \n\n**Description:**\n1. `timeouts` length has not been compared to `assets.length`.\n2. `timeouts[i]` does not get emitted in the event `AssetSourceUpdated`.\n\n**Recommendation:** \nMake sure all lengths are compared for the arrays supplied to `_setAssetsSources` and the event includes all parameters.\n\n**Astera:** Fixed in commit `1eb7b435`.  \n**Spearbit:** Fix verified.",
+    "summary": "",
+    "report_date": "2025-08-29T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Astera-Spearbit-Security-Review-December-2024.pdf",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Astera-Spearbit-Security-Review-December-2024.pdf",
+    "github_link": "",
+    "pdf_link": "https://solodit-bucket.s3.amazonaws.com/storage/reports/spearbit/Astera-Spearbit-Security-Review-December-2024.pdf",
+    "pdf_page_from": 34,
+    "contest_id": "",
+    "slug": "setassetssources-does-not-compare-all-lengths-and-is-not-emitting-all-parameters-spearbit-none-astera-pdf",
+    "firm_name": "Spearbit",
+    "firm_logo_square": "spearbit_square.png",
+    "protocol_name": "Astera",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Saw-mon and Natalie"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Cergyk"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Jonatas Martins"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Spearbit",
+        "logo_square": "spearbit_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Astera",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

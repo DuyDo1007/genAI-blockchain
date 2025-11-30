@@ -1,0 +1,50 @@
+{
+    "id": 62712,
+    "kind": "PDF",
+    "auditfirm_id": 6,
+    "impact": "LOW",
+    "finders_count": 2,
+    "protocol_id": 3436,
+    "title": "Chain can be accidentally unpaused when changing the ETH_LOCKBOX feature",
+    "content": "## Security Review Summary\n\n## Severity\n**Low Risk**\n\n## Context\n`SystemConfig.sol#L526-L534`\n\n## Description\nIn `SystemConfig.paused()`, the identifier used to check if the chain is paused is determined based on whether the `ETH_LOCKBOX` feature is enabled:\n\n```solidity\nfunction paused() public view returns (bool) {\n    // Determine the appropriate chain identifier based on the feature flags.\n    address identifier = isFeatureEnabled[Features.ETH_LOCKBOX]\n        ? address(IOptimismPortal2(payable(optimismPortal())).ethLockbox())\n        : address(optimismPortal());\n    // Check if either global or local pause is active.\n    return superchainConfig.paused(address(0)) || superchainConfig.paused(identifier);\n}\n```\n\nHowever, this implementation makes it possible to accidentally unpause a chain when enabling/disabling the `ETH_LOCKBOX` feature.\n\nFor example, assume that:\n- A chain currently has `ETH_LOCKBOX` disabled.\n- The chain is currently paused (i.e. the `OptimismPortal2` address is set to paused in `SuperchainConfig`).\n\nIf `ETH_LOCKBOX` is enabled, the chain's pause identifier changes to the `ETHLockbox` address, which isn't set to paused in `SuperchainConfig`. As such, the chain is unpaused without actually calling `unpause()`.\n\n## Recommendation\nA potential solution would be to check if the chain is paused in `setFeature()` and revert. However, note that this removes the ability to disable features while the chain is paused, which might be needed (e.g. in case a feature has a bug).\n\n## Acknowledgements\n- **OP Labs**: Acknowledged. For U16a we are going to address this with better documentation. For U17 we might add some code in the `SystemConfig` to prevent the footgun/be more explicit about this concern.\n- **Spearbit**: Acknowledged.",
+    "summary": "",
+    "report_date": "2025-09-22T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Optimism-Verify-Upgrade16-Spearbit-Security-Review-September-2025.pdf",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 2,
+    "general_score": 2,
+    "source_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Optimism-Verify-Upgrade16-Spearbit-Security-Review-September-2025.pdf",
+    "github_link": "",
+    "pdf_link": "https://solodit-bucket.s3.amazonaws.com/storage/reports/spearbit/Optimism-Verify-Upgrade16-Spearbit-Security-Review-September-2025.pdf",
+    "pdf_page_from": 6,
+    "contest_id": "",
+    "slug": "chain-can-be-accidentally-unpaused-when-changing-the-eth_lockbox-feature-spearbit-none-optimism-u16-pdf",
+    "firm_name": "Spearbit",
+    "firm_logo_square": "spearbit_square.png",
+    "protocol_name": "Optimism u16",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "R0bert"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "MiloTruck"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Spearbit",
+        "logo_square": "spearbit_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Optimism u16",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

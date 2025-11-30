@@ -1,0 +1,50 @@
+{
+    "id": 62233,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 11,
+    "impact": "LOW",
+    "finders_count": 2,
+    "protocol_id": 3393,
+    "title": "Use multi-sig wallet for contract admin and owner",
+    "content": "**Description:** As part of the audit we were asked to investigate the on-chain state of the deployed contracts. Using Ethereum as the example:\n* the primary deployer appears to be [0xA5Ab0683d4f4AD107766a9fc4dDd49B5a960e661](https://etherscan.io/address/0xA5Ab0683d4f4AD107766a9fc4dDd49B5a960e661)\n* it has transferred ownership and admin to [0xD47777Cf34305Dec4F1095F164792C1A4AFB327e](https://etherscan.io/address/0xd47777cf34305dec4f1095f164792c1a4afb327e)\n\nBoth of these are [EOA addresses](https://academy.binance.com/en/glossary/externally-owned-account-eoa):\n```\ncast code 0xA5Ab0683d4f4AD107766a9fc4dDd49B5a960e661 --rpc-url $ETH_RPC_URL\ncast code 0xD47777Cf34305Dec4F1095F164792C1A4AFB327e --rpc-url $ETH_RPC_URL\n0x\n0x\n```\n\n**Impact:** EOAs present significant security risks:\n* Single point of failure (one compromised private key = total control)\n* No ability to implement time delays, spending limits, or approval requirements\n* No recovery mechanism if keys are lost\n* Vulnerable to phishing, device compromise, or coercion\n\n**Recommended Mitigation:** Transfer admin and ownership to a multi-signature wallet (e.g., Gnosis Safe) with:\n* Minimum 3-of-5 or 2-of-3 threshold\n* Time delays for critical operations\n* Trusted Third-Party Entity who can veto/cancel time-locked admin actions\n* Signers using hardware wallets\n* Documented key management procedures\n\n**Avant:**\nAcknowledged; Avant intends to transfer contract ownership and admin privileges to EOAs within the ForDeFi custodian ecosystem used to hold the protocol’s funds. The MPC wallets associated with the RBAC structure provided by their platform function similarly to the suggested multisig configuration. Avant’s setup ensures that only a quorum of admin-level users will be allowed to perform admin contract calls.\n\n\\clearpage",
+    "summary": "",
+    "report_date": "2025-08-28T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/solodit/solodit_content/blob/main/reports/Cyfrin/2025-08-28-cyfrin-avant-max-v2.0.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "use-multi-sig-wallet-for-contract-admin-and-owner-cyfrin-none-avant-max-markdown",
+    "firm_name": "Cyfrin",
+    "firm_logo_square": "Cyfrin_square.jpg",
+    "protocol_name": "Avant Max",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Dacian"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Jorge"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Cyfrin",
+        "logo_square": "Cyfrin_square.jpg"
+    },
+    "protocols_protocol": {
+        "name": "Avant Max",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

@@ -1,0 +1,45 @@
+{
+    "id": 62620,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 16,
+    "impact": "HIGH",
+    "finders_count": 1,
+    "protocol_id": 3422,
+    "title": "[H-01] `FunnelVaultUpgradeable` cannot send transactions to HyperCore",
+    "content": "\n_Resolved_\n\n## Severity\n\n**Impact:** Medium\n\n**Likelihood:** High\n\n## Description\n\n`sendNativeTokenToLayer1()` bridges `HYPE` from HyperEVM to HyperCore. These funds are credited to the vault contract address in HyperCore, so it is required that the contract implements the logic to send transactions from the HyperEVM to HyperCore.\n\nAs `FunnelVaultUpgradeable` does not implement a mechanism to send transactions to HyperCore, the funds will be locked in HyperCore until the contract is upgraded, adding the required logic.\n\n## Recommendations\n\nImplement the logic to send transactions from the HyperEVM to HyperCore following the [Hyperliquid documentation](https://hyperliquid.gitbook.io/hyperliquid-docs/for-developers/hyperevm/interacting-with-hypercore#corewriter-contract).\n\n\n\n",
+    "summary": "\nThis report discusses a bug in the `sendNativeTokenToLayer1()` function that transfers funds from HyperEVM to HyperCore. The bug prevents the funds from being credited to the correct contract address in HyperCore, resulting in them being locked until the contract is upgraded to include the necessary logic. The report recommends implementing the logic outlined in the Hyperliquid documentation to resolve the issue.",
+    "report_date": "2025-09-12T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/pashov/audits/blob/master/team/md/Funnel-security-review_2025-08-27.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "h-01-funnelvaultupgradeable-cannot-send-transactions-to-hypercore-pashov-audit-group-none-funnel_2025-08-27-markdown",
+    "firm_name": "Pashov Audit Group",
+    "firm_logo_square": "Pashov_square.png",
+    "protocol_name": "Funnel_2025-08-27",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Pashov Audit Group"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Pashov Audit Group",
+        "logo_square": "Pashov_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Funnel_2025-08-27",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

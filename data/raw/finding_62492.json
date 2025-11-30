@@ -1,0 +1,95 @@
+{
+    "id": 62492,
+    "kind": "GIT",
+    "auditfirm_id": 3,
+    "impact": "HIGH",
+    "finders_count": 11,
+    "protocol_id": 3104,
+    "title": "H-11: Missing Slippage Protection in Expired PT Redemption Causes User Fund Loss",
+    "content": "\nSource: https://github.com/sherlock-audit/2025-06-notional-exponent-judging/issues/874 \n\n## Found by \n0xPhantom2, Bluedragon, Schnilch, albahaca0000, boredpukar, jasonxiale, sergei2340, touristS, xiaoming90, yoooo, zhuying\n\n## Summary:\n\nWhen PT tokens are expired, the `_redeemPT` function calls `redeemExpiredPT` which performs `sy.redeem` with `minTokenOut: 0`, allowing SY contracts that perform external DEX swaps to cause slippage losses without protection in both instant redemption and withdraw initiation flows.\n\n## Vulnerability Details:\n\nThe vulnerability occurs in the `_redeemPT` function which handles both expired and non-expired PT redemption. When `PT.isExpired()` returns true, it calls `PendlePTLib.redeemExpiredPT`.\n\nThe [`redeemExpiredPT`](https://github.com/sherlock-audit/2025-06-notional-exponent/blob/82c87105f6b32bb362d7523356f235b5b07509f9/notional-v4/src/staking/PendlePTLib.sol#L87) function performs the redemption by calling `sy.redeem` with `minTokenOut: 0`. This means there's no slippage protection when the SY contract performs external DEX swaps or trades to convert the redeemed tokens to the target `tokenOutSy`.\n\n**Code Snippet:**\n\n```solidity\nfunction redeemExpiredPT(\n        IPPrincipalToken pt,\n        IPYieldToken yt,\n        IStandardizedYield sy,\n        address tokenOutSy,\n        uint256 netPtIn\n    ) external returns (uint256 netTokenOut) {\n        // PT Tokens are known to be ERC20 compliant\n        pt.transfer(address(yt), netPtIn);\n        uint256 netSyOut = yt.redeemPY(address(sy));\n@->     netTokenOut = sy.redeem(address(this), netSyOut, tokenOutSy, 0, true); // AUDIT: no slippage protection\n    }\n```\n\nThis affects two critical flows:\n\n1. **Instant Redemption**: Called via `_executeInstantRedemption`.\n2. **Withdraw Initiation**: Called via `_initiateWithdraw`.\n\n## Impact\n\nUsers suffer direct fund loss when SY contracts perform unfavorable external DEX swaps during expired PT redemption, as the zero slippage protection allows maximum extractable value attacks and natural slippage losses.\n\nThe impact is amplified because users have no control over the redemption rate and cannot protect themselves against adverse market conditions or MEV attacks during the SY redemption process.\n\n## Proof of Concept (Scenario step by step):\n\n1. PT tokens expire and user initiates exit position\n2. `_redeemPT` is called and detects `PT.isExpired() == true`\n3. `PendlePTLib.redeemExpiredPT` is called with the expired PT amount\n4. PT tokens are transferred to YT contract and `yt.redeemPY` is called\n5. `sy.redeem` is called with `minTokenOut: 0`\n6. SY contract performs external DEX swap with unfavorable rates due to market conditions or MEV attacks\n7. User receives significantly fewer `sUSDe` tokens than expected with no recourse\n8. Loss propagates through either instant redemption or withdraw request flows\n\n## Recommended Mitigation:\n\nModify the `redeemExpiredPT` function to accept a `minTokenOut` parameter and pass it through to `sy.redeem`. Update both calling functions to calculate and provide appropriate slippage protection based on expected redemption rates.\n\n```solidity\nfunction redeemExpiredPT(\n    IPPrincipalToken pt,\n    IPYieldToken yt,\n    IStandardizedYield sy,\n    address tokenOutSy,\n    uint256 netPtIn,\n    uint256 minTokenOut  // Add slippage protection parameter\n) external returns (uint256 netTokenOut) {\n    pt.transfer(address(yt), netPtIn);\n    uint256 netSyOut = yt.redeemPY(address(sy));\n    netTokenOut = sy.redeem(address(this), netSyOut, tokenOutSy, minTokenOut, true);\n}\n```\n\n",
+    "summary": "\nThis bug report discusses a vulnerability found in the `_redeemPT` function of the PendlePTLib.sol contract. When PT tokens expire, the function calls `redeemExpiredPT` which performs `sy.redeem` with `minTokenOut: 0`, leaving users vulnerable to slippage losses. This affects both instant redemption and withdraw initiation flows. The impact is amplified because users have no control over the redemption rate and cannot protect themselves against adverse market conditions or MEV attacks. A proof of concept scenario is provided and a recommended mitigation is suggested, which involves modifying the `redeemExpiredPT` function to accept a `minTokenOut` parameter and updating the calling functions to provide appropriate slippage protection. ",
+    "report_date": "2025-07-18T15:00:00.000Z",
+    "contest_prize_txt": "75500 USDC",
+    "contest_link": "https://app.sherlock.xyz/audits/contests/1001",
+    "sponsor_name": "",
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "",
+    "github_link": "https://github.com/sherlock-audit/2025-06-notional-exponent-judging/issues/874",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "1001",
+    "slug": "h-11-missing-slippage-protection-in-expired-pt-redemption-causes-user-fund-loss-sherlock-notional-exponent-git",
+    "firm_name": "Sherlock",
+    "firm_logo_square": "sherlock_square.png",
+    "protocol_name": "Notional Exponent",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "sergei2340"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "0xPhantom2"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "touristS"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Schnilch"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "boredpukar"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "jasonxiale"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "yoooo"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "xiaoming90"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "albahaca0000"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Bluedragon"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "zhuying"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Sherlock",
+        "logo_square": "sherlock_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Notional Exponent",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

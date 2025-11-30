@@ -1,0 +1,45 @@
+{
+    "id": 62413,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 34,
+    "impact": "MEDIUM",
+    "finders_count": 1,
+    "protocol_id": 1826,
+    "title": "[EIGEN2-14] Stake deviations due to adding/removing strategy may allow for ejector manipulation",
+    "content": "**Severity:** Medium\n\n**Path:** src/StakeRegistry.sol#L128-L174\nsrc/StakeRegistry.sol#L727-L731\nsrc/EjectionManager.sol#L135-L163\n\n**Description:** In the StakeRegistry contract, the `updateOperatorsStake()` function is triggered by the `updateOperators()` function of the RegistryCoordinator contract to update the stakes of some specific operators. It will calculate the new stake of each operator based on the current strategies of a quorum and update the new total stake of the StakeRegistry.\n```\n(uint96[] memory stakeWeights, bool[] memory hasMinimumStakes) =\n    _weightOfOperatorsForQuorum(quorumNumber, operators);\n\nint256 totalStakeDelta = 0;\n// If the operator no longer meets the minimum stake, set their stake to zero and mark them for removal\n/// also handle setting the operator's stake to 0 and remove them from the quorum\nfor (uint256 i = 0; i < operators.length; i++) {\n    if (!hasMinimumStakes[i]) {\n        stakeWeights[i] = 0;\n        shouldBeDeregistered[i] = true;\n    }\n\n    // Update the operator's stake and retrieve the delta\n    // If we're deregistering them, their weight is set to 0\n    int256 stakeDelta = _recordOperatorStakeUpdate({\n        operatorId: operatorIds[i],\n        quorumNumber: quorumNumber,\n        newStake: stakeWeights[i]\n    });\n\n    totalStakeDelta += stakeDelta;\n}\n\n// Apply the delta to the quorum's total stake\n_recordTotalStakeUpdate(quorumNumber, totalStakeDelta);\n```\nHowever, when adding or removing a strategy from a quorum, not all operators of that quorum will have their stakes updated immediately. Some operators may be updated first, leading to unfair competition when large stake deviations occur. The ejector role can take advantage of this to manipulate ejections as they wish.\n\nFor example, right after a strategy is added to a quorum, an ejector might post-run to update specific operators, increasing their stakes and the total stake of that quorum. After that, the `amountEjectableForQuorum` of that quorum will increase, allowing the ejector to eject other operators who still have outdated stakes. The operator selection for that ejection depends on the ejector.\n\n**Remediation:**  After adding or removing a strategy in a quorum, it should be ensured that all operators of that quorum update their stakes right away, or a validation should be created to check that all operators in the quorum have been updated before executing an ejection.\n\n**Status:**  Acknowledged\n\n\n- - -",
+    "summary": "\nThis bug report discusses a problem in the StakeRegistry contract where the `updateOperatorsStake()` function is not updating all operators' stakes immediately after a strategy is added or removed from a quorum. This can lead to unfair competition and manipulation by the ejector role. The suggested solution is to ensure all operators update their stakes or create a validation before executing an ejection. The status of the bug is acknowledged.",
+    "report_date": "2025-04-22T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/solodit/solodit_content/blob/main/reports/Hexens/2025-04-22-EigenLayer.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "eigen2-14-stake-deviations-due-to-addingremoving-strategy-may-allow-for-ejector-manipulation-hexens-none-eigenlayer-markdown",
+    "firm_name": "Hexens",
+    "firm_logo_square": "Hexens_square.png",
+    "protocol_name": "Eigenlayer",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Hexens"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Hexens",
+        "logo_square": "Hexens_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Eigenlayer",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

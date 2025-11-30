@@ -1,0 +1,50 @@
+{
+    "id": 62124,
+    "kind": "PDF",
+    "auditfirm_id": 9,
+    "impact": "HIGH",
+    "finders_count": 2,
+    "protocol_id": 3383,
+    "title": "API keys exposure in client-side code enables API abuse",
+    "content": "## Security Analysis Report\n\n## Difficulty: Low\n\n## Type: Data Validation\n\n## Description\nThe API keys are exposed in client-side code, allowing malicious users to extract and abuse them. The API keys are used to create a Pimlico client for bundling transactions and to get on-chain information using Alchemy. However, the API key is currently being sent to the client browser, where it can be accessed through browser developer tools. This enables unauthorized users to make API calls using Gemini’s API key, potentially exhausting the API quota or incurring unexpected costs.\n\n```javascript\n// Create Pimlico configuration for bundling transactions\nconst pimlicoUrl =\n`https://api.pimlico.io/v2/${chainId}/rpc?apikey=${process.env.NEXT_PUBLIC_PIMLICO_API_KEY}`;\nconst pimlicoTransport = http(pimlicoUrl);\n```\n\n![Figure 4.1](https://example.com/pimlico_url) The Pimlico URL containing the API key is shared with the client.  \n![Figure 4.2](https://example.com/chrome_dev_tools) Chrome developer tool on the client side.\n\n## Exploit Scenario\nA malicious user connects to the Gemini wallet and inspects the network requests or browser developer tools. They extract the Pimlico API key from the client-side code. Using this key, they can make direct API calls to Pimlico’s services, potentially exhausting the API quota or incurring unexpected costs for the Gemini wallet service.\n\n## Recommendations\n### Short Term\nThe following security measures should be implemented:\n- Keys should have minimal privileges, if possible.\n- Use different keys for debug and production builds.\n- Rotate keys regularly.\n- Enable rate-limiting or monitoring.\n\n### Long Term\nImplement a proper API gateway pattern where all third-party API calls are proxied through the SDK server, with appropriate rate limiting and monitoring to prevent abuse. Note that this recommendation has the side effect of slowing down the connection.",
+    "summary": "\nThis bug report discusses a security issue where the API keys are exposed in the client-side code, making it easy for malicious users to access and potentially abuse them. This can lead to unexpected costs for the service. The report recommends implementing security measures such as using different keys for debug and production builds, rotating keys regularly, and enabling rate-limiting or monitoring. In the long term, it suggests implementing an API gateway pattern to prevent abuse, but notes that this may slow down the connection.",
+    "report_date": "2025-08-15T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://github.com/trailofbits/publications/blob/master/reviews/2025-08-gemini-smartwallet-securityreview.pdf",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/trailofbits/publications/blob/master/reviews/2025-08-gemini-smartwallet-securityreview.pdf",
+    "github_link": "",
+    "pdf_link": "https://solodit-bucket.s3.amazonaws.com/storage/reports/trailofbits/2025-08-gemini-smartwallet-securityreview.pdf",
+    "pdf_page_from": 18,
+    "contest_id": "",
+    "slug": "api-keys-exposure-in-client-side-code-enables-api-abuse-trailofbits-none-gemini-smart-wallet-pdf",
+    "firm_name": "TrailOfBits",
+    "firm_logo_square": "trailofbits_square.png",
+    "protocol_name": "Gemini Smart Wallet",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Coriolan Pinhas Trail of Bits PUBLIC"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Anish Naik"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "TrailOfBits",
+        "logo_square": "trailofbits_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Gemini Smart Wallet",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

@@ -1,0 +1,45 @@
+{
+    "id": 62553,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 16,
+    "impact": "MEDIUM",
+    "finders_count": 1,
+    "protocol_id": 3420,
+    "title": "[M-09] Role management vulnerability in `assignRole()` function",
+    "content": "\n_Resolved_\n\n## Severity\n\n**Impact:** High\n\n**Likelihood:** Low\n\n## Description\n\nReference Finding: [Link](https://solodit.cyfrin.io/issues/m-01-admin-role-evasion-risk-pashov-audit-group-none-reyanetwork-june2-markdown)\n\nThe `assignRole` function in the `RoleBasedAccessControl` contract is protected by the `onlySuperAdminOrRoleManager` modifier, which allows both `SUPER_ADMIN_ROLE` and `ROLE_MANAGER_ROLE` to invoke it.\n\n```solidity\n    function assignRole(uint256 roleId, address receiver) external onlySuperAdminOrRoleManager {\n       ...\n    }\n```\n\nWhile the function correctly prevents the assignment of the `SUPER_ADMIN_ROLE`, it does not restrict a user with `ROLE_MANAGER_ROLE` from assigning the `ROLE_MANAGER_ROLE` to others.\n\n```solidity\n        if (roleId == SUPER_ADMIN_ROLE) {\n            revert SuperAdminRoleReserved();\n        }\n        if (roleId == 0) {\n            revert InvalidRoleId();\n        }\n```\n\nThis creates a potential scenario where a malicious `ROLE_MANAGER_ROLE` user could exploit this function to maintain or enhance their privileges, leading to administrative confusion and potential abuse of power.\n\nConsider the following scenario:\n1. A `SUPER_ADMIN_ROLE` attempts to revoke permissions from a user holding the `ROLE_MANAGER_ROLE` using the `revokeRole` function.\n2. A malicious admin anticipates this action and executes a front-run by calling the `assignRole` function to grant `ROLE_MANAGER_ROLE` privileges to another user under their control.\n3. The revocation transaction from step 1 is processed successfully, but the malicious admin retains access to the system through the newly empowered user, undermining the intended security measures.\n\nNote: Same applies for `revokeRole`, as a `ROLE_MANAGER_ROLE` user could revoke the `ROLE_MANAGER_ROLE` role from others.\n\n## Recommendations\n\nTo mitigate this risk, it is essential to implement additional checks within the `assignRole` function to prevent a `ROLE_MANAGER_ROLE` from assigning the same role to themselves or others.\n\n\n\n",
+    "summary": "\nThe report discusses a bug found in the `assignRole` function of the `RoleBasedAccessControl` contract. This function is supposed to only allow users with the `SUPER_ADMIN_ROLE` or `ROLE_MANAGER_ROLE` to invoke it, but it does not restrict a `ROLE_MANAGER_ROLE` user from assigning the `ROLE_MANAGER_ROLE` to themselves or others. This creates a potential scenario where a malicious user with `ROLE_MANAGER_ROLE` could exploit the function to maintain or increase their privileges, leading to administrative confusion and potential abuse of power. To fix this bug, it is recommended to implement additional checks in the `assignRole` function to prevent a `ROLE_MANAGER_ROLE` from assigning the same role to themselves or others.",
+    "report_date": "2025-09-11T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/pashov/audits/blob/master/team/md/RipIt-security-review_2025-04-25.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "m-09-role-management-vulnerability-in-assignrole-function-pashov-audit-group-none-ripit_2025-04-25-markdown",
+    "firm_name": "Pashov Audit Group",
+    "firm_logo_square": "Pashov_square.png",
+    "protocol_name": "RipIt_2025-04-25",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Pashov Audit Group"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Pashov Audit Group",
+        "logo_square": "Pashov_square.png"
+    },
+    "protocols_protocol": {
+        "name": "RipIt_2025-04-25",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

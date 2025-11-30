@@ -1,0 +1,60 @@
+{
+    "id": 62049,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 37,
+    "impact": "LOW",
+    "finders_count": 4,
+    "protocol_id": 3368,
+    "title": "Event Is Not Emitted when Transaction Reverts",
+    "content": "**Update**\nMarked as \"Fixed\" by the client. Addressed in: `dd79d7f`.\n\n![Image 82: Alert icon](https://certificate.quantstamp.com/full/sapien/ffb7e698-6178-46f0-8df8-52e537af70c0/static/media/success-icon-alert.4e26c8d3b65fdf9f4f0789a4086052ba.svg)\n\n**Update**\nMarked as \"Fixed\" by the client. Addressed in: `3f9a00380d668b7879b62d0fa86ed1c43cdb9736`. The client provided the following explanation:\n\n> Premature event emission removed and appropriate event emission now happening.\n\n![Image 83: Alert icon](https://certificate.quantstamp.com/full/sapien/ffb7e698-6178-46f0-8df8-52e537af70c0/static/media/success-icon-alert.4e26c8d3b65fdf9f4f0789a4086052ba.svg)\n\n**Update**\nMarked as \"Fixed\" by the client. Addressed in: `3f9a00380d668b7879b62d0fa86ed1c43cdb9736`. The client provided the following explanation:\n\n> Premature event emission removed and appropriate event emission now happening.\n\n**File(s) affected:**`Rewards.sol`\n\n**Description:** The `claimReward()` function emits a `WithdrawalProcessed` event before potentially reverting the transaction. This event emission is redundant as all state changes including events are rolled back when a transaction reverts in the EVM. In the case where `success` is `false`, the `WithdrawalProcessed` event will never be visible on-chain.\n\n**Recommendation:** Remove the premature event emission and only emit events after confirming the operation's success.",
+    "summary": "",
+    "report_date": "2025-03-30T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://certificate.quantstamp.com/full/sapien/ffb7e698-6178-46f0-8df8-52e537af70c0/index.html",
+    "sponsor_name": "",
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://certificate.quantstamp.com/full/sapien/ffb7e698-6178-46f0-8df8-52e537af70c0/index.html",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "event-is-not-emitted-when-transaction-reverts-quantstamp-sapien-markdown",
+    "firm_name": "Quantstamp",
+    "firm_logo_square": "quantstamp_square.png",
+    "protocol_name": "Sapien",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Paul Clemson"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Julio Aguilar"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Mostafa Yassin"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Tim Sigl"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Quantstamp",
+        "logo_square": "quantstamp_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Sapien",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

@@ -1,0 +1,45 @@
+{
+    "id": 62510,
+    "kind": "GIT",
+    "auditfirm_id": 3,
+    "impact": "MEDIUM",
+    "finders_count": 1,
+    "protocol_id": 3104,
+    "title": "M-18: Reducing liquidity in the hardcoded Curve sDAI/sUSDe pool leads to unnecessary slippage loss",
+    "content": "\nSource: https://github.com/sherlock-audit/2025-06-notional-exponent-judging/issues/677 \n\n## Found by \nxiaoming90\n\n### Summary\n\n-\n\n### Root Cause\n\n-\n\n### Internal Pre-conditions\n\n-\n\n### External Pre-conditions\n\n-\n\n### Attack Path\n\nMaker's Savings DAI (sDAI) is the old version of SKY's Savings USDS (sUSDS). The OG Maker DAI protocol has migrated to the new SKY protocol. sDAI is issued by old Maker DAI while sUSDS is issued by new SKY protocol.\n\nThis part of the code, where sUSDe is swapped to sDAI and then swapped to the asset token, is taken from the old Notional code during the period when Maker had not migrated to SKY yet. In the past, the sDAI/sUSDe curve pool has had larger liquidity.\n\nHowever, eventually, the liquidity in the hardcoded Curve sDAI/sUSDe (0x167478921b907422F8E88B43C4Af2B8BEa278d3A) pool will decrease as users migrate over to the newer sUSDS since the newer SKY protocol is where the majority of the incentives are allocated at the moment. Users will be incentivized to move to sUSDS over time.\n\nThe following is the on-chain liquidity data of the Curve sDAI/sUSDe pool, showing that the balance of sDAI steadily decreases over time, aligned with the points mentioned above.\n\n- 12 month ago (Apr-06-2024)(19600000) - 6.4 million sDAI\n\n- 6 month ago (Jan-11-2025)(Block - 21600000) - 6.2 million sDAI\n\n- 3 months ago (Apr-04-2025) 22196000 - 5.6 million sDAI\n\n- Today (Jul-13-2025)  - 5.2 million sDAI\n\nIf the liquidity is reduced or decreased to a lower level, the users are still forced to swap with this curve pool due to the hardcoded swap logic here (sUSDe -> sDAI -> assets), incurring unnecessary slippage due to low liquidity in Curve sDAI/sUSDe pool.\n\nhttps://github.com/sherlock-audit/2025-06-notional-exponent/blob/main/notional-v4/src/staking/PendlePT_sUSDe.sol#L42\n\n```solidity\nFile: PendlePT_sUSDe.sol\n23:     /// @notice The vast majority of the sUSDe liquidity is in an sDAI/sUSDe curve pool.\n24:     /// sDAI has much greater liquidity once it is unwrapped as DAI so that is done manually\n25:     /// in this method.\n26:     function _executeInstantRedemption(\n27:         uint256 yieldTokensToRedeem,\n28:         bytes memory redeemData\n29:     ) internal override virtual returns (uint256 assetsPurchased) {\n30:         PendleRedeemParams memory params = abi.decode(redeemData, (PendleRedeemParams));\n31:         uint256 netTokenOut = _redeemPT(yieldTokensToRedeem, params.limitOrderData);\n32: \n33:         Trade memory sDAITrade = Trade({\n34:             tradeType: TradeType.EXACT_IN_SINGLE,\n35:             sellToken: address(sUSDe),\n36:             buyToken: address(sDAI),\n37:             amount: netTokenOut,\n38:             limit: 0, // NOTE: no slippage guard is set here, it is enforced in the second leg\n39:                         // of the trade.\n40:             deadline: block.timestamp,\n41:             exchangeData: abi.encode(CurveV2SingleData({\n42:                 pool: 0x167478921b907422F8E88B43C4Af2B8BEa278d3A,\n43:                 fromIndex: 1, // sUSDe\n44:                 toIndex: 0 // sDAI\n45:             }))\n46:         });\n```\n\n### Impact\n\nHigh. Loss of funds due to unnecessary slippage\n\n### PoC\n\n_No response_\n\n### Mitigation\n\n_No response_\n\n",
+    "summary": "\nThis bug report discusses a potential issue with the Notional protocol, specifically in the PendlePT_sUSDe.sol file. The code includes a hardcoded swap logic that may result in unnecessary slippage due to low liquidity in the Curve sDAI/sUSDe pool. This is because the sDAI/sUSDe pool has decreased in liquidity over time as users migrate to the newer sUSDS protocol. This could potentially lead to a loss of funds for users. The report suggests that the protocol team should address this issue to mitigate any potential impact.",
+    "report_date": "2025-07-18T15:00:00.000Z",
+    "contest_prize_txt": "75500 USDC",
+    "contest_link": "https://app.sherlock.xyz/audits/contests/1001",
+    "sponsor_name": "",
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "",
+    "github_link": "https://github.com/sherlock-audit/2025-06-notional-exponent-judging/issues/677",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "1001",
+    "slug": "m-18-reducing-liquidity-in-the-hardcoded-curve-sdaisusde-pool-leads-to-unnecessary-slippage-loss-sherlock-notional-exponent-git",
+    "firm_name": "Sherlock",
+    "firm_logo_square": "sherlock_square.png",
+    "protocol_name": "Notional Exponent",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "xiaoming90"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Sherlock",
+        "logo_square": "sherlock_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Notional Exponent",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

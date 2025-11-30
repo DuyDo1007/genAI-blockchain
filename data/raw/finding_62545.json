@@ -1,0 +1,45 @@
+{
+    "id": 62545,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 16,
+    "impact": "MEDIUM",
+    "finders_count": 1,
+    "protocol_id": 3420,
+    "title": "[M-01] Missing sanity check in `addCardBundlesToPacketPool`",
+    "content": "\n_Resolved_\n\n## Severity\n\n**Impact:** Medium\n\n**Likelihood:** Medium\n\n## Description\n\nIn CardAllocationPool contract, we will generate one randomness via Chainlink VRF for the instant redeem. In initialize() function, we will initialize `callbackGasLimit` to 100_000. This gas limit is used for the Chainlink VRF callback gas limit.\n\nIn the callback function, there is one loop for transferring the selected cards. After the foundry's test, if we have 10 cards in this bundle, the gas limit will be insufficient. This will cause the callback function will fail, and users cannot get the card NFT.\n\nFunction `addCardBundlesToPacketPool` is used to add one card bundle. The problem here is that we don't add any sanity check about the card bundle's length.\n```solidity\n    function initialize(\n        address packetAddress,\n        address cardAddress,\n        address _rbac,\n        uint256 _redeemManagerRoleId,\n        address vrfCoordinator,\n        uint256 subscriptionId,\n        bytes32 _keyHash\n    ) external initializer {\n        callbackGasLimit = 100000;\n    }\n    function fulfillRandomWords(uint256 requestId, uint256[] memory randomWords) internal {\n        PacketOpenRequest storage request = requestIdToPacketOpen[requestId];\n        if (request.fulfilled) revert(\"Already fulfilled\");\n\n        CardBundle[] storage cardBundles = packetTypeToCardBundles[request.packetType];\n\n        uint256[] memory selectedCards = selectRandomCards(cardBundles, randomWords[0]);\n\n@>        for (uint256 i = 0; i < selectedCards.length; i++) {\n            IERC721(cardNFTAddress).transferFrom(address(this), request.owner, selectedCards[i]);\n        }\n\n        request.fulfilled = true;\n\n        RipFunPacks(packetNFTAddress).finalizeOpen(request.packetId, \"\");\n\n        emit PacketOpenFulfilled(requestId, request.packetId, selectedCards);\n    }\n    function addCardBundlesToPacketPool(uint256 packetType, uint256[] memory cardBundles, bytes32 bundleProvenance)\n        external\n        onlyRole(redeemManagerRoleId)\n    {\n        packetTypeToCardBundles[packetType].push(CardBundle({cardIds: cardBundles, bundleProvenance: bundleProvenance}));\n        for (uint256 i = 0; i < cardBundles.length; i++) {\n            IERC721(cardNFTAddress).transferFrom(msg.sender, address(this), cardBundles[i]);\n        }\n\n        emit CardsAddedToPool(packetType, cardBundles, bundleProvenance);\n    }\n```\n\n## Recommendations\n\nAdd a sanity check for the card bundle's length.\n\n\n\n",
+    "summary": "\nThis bug report is about a problem in the CardAllocationPool contract that affects the instant redeem feature. The issue is caused by a gas limit being set too low in the initialize() function, which is used for a Chainlink VRF callback. This leads to the callback function failing and users not being able to receive their card NFTs. Additionally, there is a missing sanity check in the addCardBundlesToPacketPool function, which could cause further issues. The recommendation is to add a sanity check for the length of the card bundle.",
+    "report_date": "2025-09-11T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/pashov/audits/blob/master/team/md/RipIt-security-review_2025-04-25.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "m-01-missing-sanity-check-in-addcardbundlestopacketpool-pashov-audit-group-none-ripit_2025-04-25-markdown",
+    "firm_name": "Pashov Audit Group",
+    "firm_logo_square": "Pashov_square.png",
+    "protocol_name": "RipIt_2025-04-25",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Pashov Audit Group"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Pashov Audit Group",
+        "logo_square": "Pashov_square.png"
+    },
+    "protocols_protocol": {
+        "name": "RipIt_2025-04-25",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

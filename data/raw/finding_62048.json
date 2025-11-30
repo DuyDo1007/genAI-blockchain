@@ -1,0 +1,60 @@
+{
+    "id": 62048,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 37,
+    "impact": "LOW",
+    "finders_count": 4,
+    "protocol_id": 3368,
+    "title": "Inequitable Multiplier Distribution in `calculateMultiplier()` Function",
+    "content": "**Update**\nMarked as \"Acknowledged\" by the client. The client provided the following explanation:\n\n> I disagree with this assessment. The multiplier will gradually increase up to the BASE_STAKE, and there are no dead zones. On mainnet, the requirement for a minimum BASE_STAKE will be removed, and the multiplier will be adjusted accordingly to prevent gaming the system by staking very little over a long period to achieve the maximum multiplier.\n\n![Image 78: Alert icon](https://certificate.quantstamp.com/full/sapien/ffb7e698-6178-46f0-8df8-52e537af70c0/static/media/success-icon-alert.4e26c8d3b65fdf9f4f0789a4086052ba.svg)\n\n**Update**\nMarked as \"Fixed\" by the client. Addressed in: `b4eba62e3ccd45e83dc125a50c9f0bab44b2b446`. The client provided the following explanation:\n\n> The multiplier distribution has been amended to have more tiers and more equitably reward users for staking different amounts.\n\n![Image 79: Alert icon](https://certificate.quantstamp.com/full/sapien/ffb7e698-6178-46f0-8df8-52e537af70c0/static/media/success-icon-alert.4e26c8d3b65fdf9f4f0789a4086052ba.svg)\n\n**Update**\nMarked as \"Fixed\" by the client. Addressed in: `b4eba62e3ccd45e83dc125a50c9f0bab44b2b446`. The client provided the following explanation:\n\n> The multiplier distribution has been amended to have more tiers and more equitably reward users for staking different amounts.\n\n**File(s) affected:**`SapienStaking.sol`\n\n**Description:** The function `SapienStaking.calculateMultiplier()` awards the same multiplier for a very wide range of stake amounts. One such example of this is that any `amount` from 980 tokens up to 999.999999999999999999 tokens will receive a multiplier of 149. This creates a large \"dead zone\" where users get no benefit from staking additional tokens, followed by a sharp cliff where 1 wei more suddenly increases the multiplier.\n\n**Recommendation:** Consider implementing a more granular calculation system by scaling the amounts before performing calculations.",
+    "summary": "",
+    "report_date": "2025-03-30T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://certificate.quantstamp.com/full/sapien/ffb7e698-6178-46f0-8df8-52e537af70c0/index.html",
+    "sponsor_name": "",
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://certificate.quantstamp.com/full/sapien/ffb7e698-6178-46f0-8df8-52e537af70c0/index.html",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "inequitable-multiplier-distribution-in-calculatemultiplier-function-quantstamp-sapien-markdown",
+    "firm_name": "Quantstamp",
+    "firm_logo_square": "quantstamp_square.png",
+    "protocol_name": "Sapien",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Paul Clemson"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Julio Aguilar"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Mostafa Yassin"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Tim Sigl"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Quantstamp",
+        "logo_square": "quantstamp_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Sapien",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

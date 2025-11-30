@@ -1,0 +1,45 @@
+{
+    "id": 62735,
+    "kind": "GIT",
+    "auditfirm_id": 3,
+    "impact": "MEDIUM",
+    "finders_count": 1,
+    "protocol_id": 3324,
+    "title": "M-12: Rebalancer can drain market funds via excessive bridge fees",
+    "content": "\nSource: https://github.com/sherlock-audit/2025-07-malda-judging/issues/686 \n\n## Found by \nbefree3x\n\n### Summary\n\nThe `REBALANCER_EOA` role, which is considered semi-trusted, can drain funds from any market by specifying an arbitrarily high `maxFee` when initiating a bridge transfer through `EverclearBridge.sol`. This violates the trust assumption that the Rebalancer \"cannot transfer user funds\" and can only perform DDoS-style attacks, as it allows for a slow but steady extraction of value from the protocol's liquidity pools.\n\n### Root Cause\n\nThe [`Rebalancer::sendMsg`](https://github.com/sherlock-audit/2025-07-malda/blob/main/malda-lending/src/rebalancer/Rebalancer.sol#L129) function allows the `REBALANCER_EOA` to pass an unchecked `_message` blob to the selected bridge contract. The [`EverclearBridge.sendMsg`](https://github.com/sherlock-audit/2025-07-malda/blob/main/malda-lending/src/rebalancer/bridges/EverclearBridge.sol#L79) function decodes this message to extract bridging parameters, including a `maxFee`. However, the bridge contract fails to validate this `maxFee` against any protocol-defined limit, instead passing it directly to the external [`everclearFeeAdapter.newIntent`](https://github.com/sherlock-audit/2025-07-malda/blob/main/malda-lending/src/rebalancer/bridges/EverclearBridge.sol#L111-L117) call. A malicious `REBALANCER_EOA` can therefore set this fee to an extreme value, causing the protocol to lose most of the bridged amount to fees.\n\n### Internal Pre-conditions\n\n- A market (e.g., `mWethHost`) has liquidity.\n- The `EverclearBridge` is whitelisted in the Rebalancer.\n\n### External Pre-conditions\n\nThe `REBALANCER_EOA` private key is compromised or its operator acts maliciously.\n\n### Attack Path\n\nA malicious actor controlling the `REBALANCER_EOA` decides to drain funds from the `mWethHost` market.\n\n- The actor calls `Rebalancer.sendMsg`, targeting the `EverclearBridge` and `mWethHost`.\n- It provides a valid `_amount` to extract from the market, for example, `10 WETH`.\n- It crafts the `_message` parameter. Inside this message, which is decoded by `EverclearBridge`, it sets the amount to be bridged to 10 WETH but sets the `maxFee` parameter to an extremely high value, such as `9.9 WETH`.\n- The `Rebalancer` contract extracts `10 WETH` from `mWethHost` and calls `EverclearBridge.sendMsg`.\n- `EverclearBridge` decodes the message but performs no validation on the `maxFee`.\n- It calls `everclearFeeAdapter.newIntent`, passing along the malicious maxFee of `9.9 WETH`.\n- The external `Everclear` protocol executes the bridge transfer. It sends `10 WETH` but is authorized to take up to `9.9 WETH` as a fee, which is lost from the protocol. Only 0.1 WETH (or less) arrives at the destination market.\n- The attacker can repeat this process, draining a substantial portion of the market's liquidity over time through exorbitant fees.\n\n### Impact\n\n`Rebalancer` can cause permanent loss of protocol funds. This attack directly drains the liquidity provided by users from the market contracts. While the `REBALANCER_EOA` does not receive the funds directly, their action causes value to be extracted from the protocol and paid to third-party bridge relayers.\n\n\n### PoC\n\n_No response_\n\n### Mitigation\n\nThe protocol should not blindly trust the `maxFee` parameter provided by the semi-trusted `REBALANCER_EOA`. A centrally-controlled, maximum allowable fee should be enforced.\n\n- The `GUARDIAN_BRIDGE` role (a more trusted admin) should set a maximum fee limit (e.g., as a percentage or basis points) on a per-token, per-chain basis within the `Rebalancer` or bridge contracts.\n- The `EverclearBridge.sendMsg` function must validate that the `maxFee` parameter decoded from the message does not exceed the configured maximum fee limit for that specific bridging route.\n\n## Discussion\n\n**sherlock-admin2**\n\nThe protocol team fixed this issue in the following PRs/commits:\nhttps://github.com/malda-protocol/malda-lending/pull/139\n\n\n**CergyK**\n\nFix looks good\n\n\n\n",
+    "summary": "\nSummary:\n\nThe `REBALANCER_EOA` role in the Malda protocol allows for a slow but steady extraction of value from the protocol's liquidity pools. This is due to a vulnerability in the `Rebalancer::sendMsg` function, which allows the `REBALANCER_EOA` to set an arbitrarily high `maxFee` when initiating a bridge transfer through `EverclearBridge.sol`. This can result in a loss of funds from the protocol's liquidity pools. The protocol team has fixed this issue by implementing a maximum fee limit and validating the `maxFee` parameter in the `EverclearBridge.sendMsg` function. ",
+    "report_date": "2025-08-14T17:00:00.000Z",
+    "contest_prize_txt": "80000 USDC",
+    "contest_link": "https://app.sherlock.xyz/audits/contests/1029",
+    "sponsor_name": "",
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "",
+    "github_link": "https://github.com/sherlock-audit/2025-07-malda-judging/issues/686",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "1029",
+    "slug": "m-12-rebalancer-can-drain-market-funds-via-excessive-bridge-fees-sherlock-malda-git",
+    "firm_name": "Sherlock",
+    "firm_logo_square": "sherlock_square.png",
+    "protocol_name": "Malda",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "befree3x"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Sherlock",
+        "logo_square": "sherlock_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Malda",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

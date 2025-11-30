@@ -1,0 +1,45 @@
+{
+    "id": 62612,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 16,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3421,
+    "title": "[L-15] Sellers face fee volatility without safeguard in `MarketPlace.buy()`",
+    "content": "\n_Resolved_\n\nIn the `MarketPlace.buy()` function, a percentage fee is deducted from the request price for each purchase. However, the `fees` percentage can change between when the listing is added and when it is fulfilled via the `buy()` function. This creates a risk that the seller may receive a price that deviates significantly from the originally accepted price due to changing `fees`, resulting in financial loss for the seller.\n\n```solidity\n function buy(ListingParams[] calldata listings, bool chargeDelegate) external nonReentrant {\n        for (uint256 i = 0; i < listings.length; i++) {\n            //...\n            uint256 feeAmount = Math.mulDiv(listings[i].request.price, fees, 10000, Math.Rounding.Ceil);\n            uint256 sellerAmount = listings[i].request.price - feeAmount;\n            //...\n            if (feeAmount > 0) IERC20(acceptedCurrency).safeTransferFrom(payee, address(this), feeAmount);\n\n            //...\n        }\n    }\n```\nA similar issue in `acceptOffer()` function.\n\nRecommendations:\nImplement a mechanism that allows the seller to define an acceptable price deviation (`minPrice`):\n\n```diff\n function buy(ListingParams[] calldata listings, bool chargeDelegate) external nonReentrant {\n        for (uint256 i = 0; i < listings.length; i++) {\n            //...\n            uint256 feeAmount = Math.mulDiv(listings[i].request.price, fees, 10000, Math.Rounding.Ceil);\n            uint256 sellerAmount = listings[i].request.price - feeAmount;\n+           require(sellerAmount > listings[i].request.minPrice)\n            // External calls after state changes\n            if (sellerAmount > 0) {\n                IERC20(acceptedCurrency).safeTransferFrom(payee, listings[i].request.owner, sellerAmount);\n            }\n\n            if (feeAmount > 0) IERC20(acceptedCurrency).safeTransferFrom(payee, address(this), feeAmount);\n\n            //...\n        }\n    }\n```\n\nThis change requires updating the `generateListingSignatureHash()` function and `LISTING_TYPEHASH` to account for this `request.minPrice`.\n\n\n\n",
+    "summary": "",
+    "report_date": "2025-09-11T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/pashov/audits/blob/master/team/md/RipIt-security-review_2025-05-10.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "l-15-sellers-face-fee-volatility-without-safeguard-in-marketplacebuy-pashov-audit-group-none-ripit_2025-05-10-markdown",
+    "firm_name": "Pashov Audit Group",
+    "firm_logo_square": "Pashov_square.png",
+    "protocol_name": "RipIt_2025-05-10",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Pashov Audit Group"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Pashov Audit Group",
+        "logo_square": "Pashov_square.png"
+    },
+    "protocols_protocol": {
+        "name": "RipIt_2025-05-10",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

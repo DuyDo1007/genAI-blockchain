@@ -1,0 +1,45 @@
+{
+    "id": 62849,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 30,
+    "impact": "HIGH",
+    "finders_count": 1,
+    "protocol_id": 3449,
+    "title": "[H-02] Paid Tokens by Smart Contract Wallets Are Not Refunded When Cancelling Invoice",
+    "content": "\n## Severity\n\nHigh Risk\n\n## Description\n\nWhen processing the claiming process, the smart wallet pays for the amount of token locked and sends it to the `InvoiceManager` contract. In order for the claiming to occur, the session should not have expired, and it should not have already claimed tokens.\n\nAfter sending tokens, we call `InvoiceManager::creditTokensToInvoice()`, which increases `creditedAmount` for that token.\n\nFile: [CredibleAccountModule.sol#L731-L732](https://github.com/etherspot/etherspot-modular-accounts/blob/9019f2a78c36e74bdb1df4029672998cb4631162/src/modules/validators/CredibleAccountModule.sol#L731-L732)\n\n```solidity\nfunction claim(address _sessionKey, address _token, uint256 _amount) external nonReentrant returns (bool) {\n    // code\n    if (!sd.live || block.timestamp < sd.validAfter || block.timestamp > sd.validUntil) {\n        revert CredibleAccountModule_SessionKeyDoesNotExist(_sessionKey);\n    }\n    // code\n    for (uint256 i; i < tokenLength;) {\n        if (tokens[i].token == _token) {\n            // code\n>>          IERC20(_token).safeTransferFrom(wallet, invoiceManager, _amount);\n>>          IInvoiceManager(invoiceManager).creditTokensToInvoice(_sessionKey, _token, _amount);\n            return true;\n        }\n        unchecked {\n            ++i;\n        }\n    }\n    // code\n}\n```\n\nFile: [src/invoice_manager/InvoiceManager.sol#L221](https://github.com/etherspot/etherspot-modular-accounts/blob/9019f2a78c36e74bdb1df4029672998cb4631162/src/invoice_manager/InvoiceManager.sol#L221)\n\n```solidity\nfunction creditTokensToInvoice(address _sessionKey, address _token, uint256 _amount) external onlyRole(CREDIBLE_ACCOUNT_ROLE) {\n    //code\n\n    // 4. If checks passed, then attribute to the invoice\n>>  tokenData[tokenIndex].creditedAmount = newCreditedAmount;\n    emit TokensCreditedToInvoice(_sessionKey, _token, _amount);\n}\n```\n\nIn order for the Invoice to get settled, all tokens in that Invoice should be credited so that the settlement process can occur.\n\nFile: [InvoiceManager.sol#L159-L165](https://github.com/etherspot/etherspot-modular-accounts/blob/9019f2a78c36e74bdb1df4029672998cb4631162/src/invoice_manager/InvoiceManager.sol#L159-L165)\n\n```solidity\nfunction settleInvoice(address _sessionKey) external onlySettlerOrLinkedWallet(_sessionKey) nonReentrant {\n    // code\n    for (uint256 i; i < tokensLength; ++i) {\n>>  if (tokens[i].creditedAmount != tokens[i].amount) {\n            revert IM_InvoiceNotFullyCredited(\n                _sessionKey, tokens[i].token, tokens[i].amount, tokens[i].creditedAmount\n            );\n        }\n    }\n\n    // code\n}\n```\n\nSo, in case the session expired and there were still one or more tokens not getting claimed. We will not be able to claim them from `CredibleAccountModule` or credit them on `InvoiceManager`.\n\nAdmins can handle this, where they can delete any Invoice they want in case of any error occurring, or unfulfillment, but the problem is that when deleting the Invoice, the SCW does not refund the money it paid.\n\nFile: [InvoiceManager.sol#L232-L245](https://github.com/etherspot/etherspot-modular-accounts/blob/9019f2a78c36e74bdb1df4029672998cb4631162/src/invoice_manager/InvoiceManager.sol#L232-L245)\n\n```solidity\nfunction cancelInvoice(address _sessionKey, string calldata _reason) external onlyRole(SETTLER_ROLE) {\n    Invoice storage invoice = invoices[_sessionKey];\n    if (invoice.createdAt == 0) revert IM_InvoiceNotFound();\n\n    bytes32 bidHash = invoice.data.bidHash;\n    address solver = invoice.data.solver;\n\n    delete invoices[_sessionKey];\n    delete invoiceTokenData[_sessionKey];\n    delete bidHashToSessionKey[bidHash];\n    _removeSolverInvoice(solver, _sessionKey);\n\n    emit InvoiceCancelled(_sessionKey, _reason);\n}\n```\n\nSince the Invoice is for cross-chain payment, after it is settled and sent to Solver. It will handle the payment for the SCW on the destination chain. In case of non-full settlement, the funds should be refunded to the sender on the Source chain.\n\n## Location of Affected Code\n\nFile: [InvoiceManager.sol#L232-L245](https://github.com/etherspot/etherspot-modular-accounts/blob/9019f2a78c36e74bdb1df4029672998cb4631162/src/invoice_manager/InvoiceManager.sol#L232-L245)\n\n```solidity\nfunction cancelInvoice(address _sessionKey, string calldata _reason) external onlyRole(SETTLER_ROLE) {\n    Invoice storage invoice = invoices[_sessionKey];\n    if (invoice.createdAt == 0) revert IM_InvoiceNotFound();\n\n    bytes32 bidHash = invoice.data.bidHash;\n    address solver = invoice.data.solver;\n\n    delete invoices[_sessionKey];\n    delete invoiceTokenData[_sessionKey];\n    delete bidHashToSessionKey[bidHash];\n    _removeSolverInvoice(solver, _sessionKey);\n\n    emit InvoiceCancelled(_sessionKey, _reason);\n}\n```\n\n## Impact\n\nSmart Wallets will not take the money they paid in case the Invoice got cancelled and they paid part of it\n\n## Recommendation\n\nWe should go for the invoice locked tokens, and in case it is credited, the `amount` should be returned to the original `SmartWallet` (it is stored in the `InvoiceData` struct.\n\n## Team Response\n\nFixed.\n\n",
+    "summary": "\nThe bug report describes an issue where the smart wallet is not able to claim tokens and credit them to an invoice. This is due to an expiration of the session and a failure to check if the tokens have already been claimed. As a result, the smart wallet is not able to settle the invoice and refund the money it paid. The team has recommended implementing invoice locked tokens and returning the amount to the original smart wallet. This issue has been fixed by the team.",
+    "report_date": "2025-10-03T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/shieldify-security/audits-portfolio-md/blob/main/Etherspot-GasTankPaymasterModule-Extended-Security-Review.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "h-02-paid-tokens-by-smart-contract-wallets-are-not-refunded-when-cancelling-invoice-shieldify-none-etherspot-gastankpaymastermodule-extended-markdown",
+    "firm_name": "Shieldify",
+    "firm_logo_square": "Shieldify_square.png",
+    "protocol_name": "Etherspot Gastankpaymastermodule Extended",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Shieldify Security"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Shieldify",
+        "logo_square": "Shieldify_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Etherspot Gastankpaymastermodule Extended",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

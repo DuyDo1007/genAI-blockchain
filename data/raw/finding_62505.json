@@ -1,0 +1,110 @@
+{
+    "id": 62505,
+    "kind": "GIT",
+    "auditfirm_id": 3,
+    "impact": "MEDIUM",
+    "finders_count": 14,
+    "protocol_id": 3104,
+    "title": "M-13: Incompatibility of `ERC20::approve` function with USDT tokens on Ethereum Mainnet chain",
+    "content": "\nSource: https://github.com/sherlock-audit/2025-06-notional-exponent-judging/issues/652 \n\n## Found by \nAtharv, Bigsam, KungFuPanda, Ledger\\_Patrol, Pro\\_King, X0sauce, bretzel, bube, h2134, harry, mgf15, sebar1018, theweb3mechanic, yoooo\n\n## Summary\n\nThe `ERC-20` standard specifies that [`approve`](https://github.com/Creepybits/openzeppelin/blob/ecafeabad405536f647ac07567a1d74ad60eb14f/contracts/token/ERC20/ERC20.sol#L81) function should return a bool indicating success. However, some widely-used tokens such as `USDT` omit the return value. When interacting with such tokens using high-level Solidity calls (`ERC20(token).approve`), the EVM expects a return value. If none is returned, decoding fails and the transaction reverts.\n\n## Root Cause\n\nThe [`AbstractLendingRouter::_enterOrMigrate`](https://github.com/sherlock-audit/2025-06-notional-exponent/blob/82c87105f6b32bb362d7523356f235b5b07509f9/notional-v4/src/routers/AbstractLendingRouter.sol#L222C5-L245C6) function, [`MorphoLendingRouter::_supplyCollateral`](https://github.com/sherlock-audit/2025-06-notional-exponent/blob/82c87105f6b32bb362d7523356f235b5b07509f9/notional-v4/src/routers/MorphoLendingRouter.sol#L150C5-L164C6) function, [`AbstractStakingStrategy::_mintYieldToken`](https://github.com/sherlock-audit/2025-06-notional-exponent/blob/82c87105f6b32bb362d7523356f235b5b07509f9/notional-v4/src/staking/AbstractStakingStrategy.sol#L77C5-L81C1) and GenericERC4626::_stakeTokens use the `ERC20::approve` function to approve a given amount of asset/token:\n\n```solidity\n\nfunction _enterOrMigrate(\n        address onBehalf,\n        address vault,\n        address asset,\n        uint256 assetAmount,\n        bytes memory depositData,\n        address migrateFrom\n    ) internal returns (uint256 sharesReceived) {\n        if (migrateFrom != address(0)) {\n            // Allow the previous lending router to repay the debt from assets held here.\n            ERC20(asset).checkApprove(migrateFrom, assetAmount);\n            sharesReceived = ILendingRouter(migrateFrom).balanceOfCollateral(onBehalf, vault);\n\n            // Must migrate the entire position\n            ILendingRouter(migrateFrom).exitPosition(\n                onBehalf, vault, address(this), sharesReceived, type(uint256).max, bytes(\"\")\n            );\n        } else {\n@>          ERC20(asset).approve(vault, assetAmount);\n            sharesReceived = IYieldStrategy(vault).mintShares(assetAmount, onBehalf, depositData);\n        }\n\n        _supplyCollateral(onBehalf, vault, asset, sharesReceived);\n    }\n\n    function _supplyCollateral(\n        address onBehalf,\n        address vault,\n        address asset,\n        uint256 sharesReceived\n    ) internal override {\n        MarketParams memory m = marketParams(vault, asset);\n\n        // Allows the transfer from the lending market to the Morpho contract\n        IYieldStrategy(vault).allowTransfer(address(MORPHO), sharesReceived, onBehalf);\n\n        // We should receive shares in return\n    @>  ERC20(vault).approve(address(MORPHO), sharesReceived);\n        MORPHO.supplyCollateral(m, sharesReceived, onBehalf, \"\");\n    }\n\n    function _mintYieldTokens(uint256 assets, address /* receiver */, bytes memory depositData) internal override virtual {\n@>      ERC20(asset).approve(address(withdrawRequestManager), assets);\n        withdrawRequestManager.stakeTokens(address(asset), assets, depositData);\n    }\n\n     function _stakeTokens(uint256 amount, bytes memory /* stakeData */) internal override {\n@>      ERC20(STAKING_TOKEN).approve(address(YIELD_TOKEN), amount);\n        IERC4626(YIELD_TOKEN).deposit(amount, address(this));\n    }\n\n\n```\n\nAccording to the `README` the contract will be deployed on Ethereum Mainnet chain and will use USDT tokens.\n\nThe problem is that the `ERC20` interface expects the `approve` function to return a boolean value, but `USDT` token on Ethereum dosn't have a [return value](https://etherscan.io/address/0xdAC17F958D2ee523a2206206994597C13D831ec7#code#L199). This means the approve operation of the tokens will always revert.\n\nAlso these functions don't set first the allowance to 0. In normal circumstances, the previous allowance should be used and the current allowance should be 0, but if the current allowance is not 0, the approve function will revert again. The `approve` function of the `USDT` token expects the allowance to be 0 before setting the new one.\n\n## Impact\n\nUsers are unable to use properly important functions of the protocol like entering or migrating a vault, minting yield tokens or staking tokens with USDT token on Ethereum mainnet chain, these functions will always revert due to the use of `ERC20::approve` function. USDT is one of the tokens that the protocol will use, therefore the failure to handle its non-boolean approve return is a critical issue due to breaking core functionality for a supported token.\n\n## PoC\n\nThe following test shows that the approve function will revert for `USDT` token on Ethereum Mainnet chain:\n\n```solidity\n\n    function testApproveMainnet() public{\n        address user = address(0x123);\n        ethFork = vm.createFork(ETH_RPC_URL);\n        vm.selectFork(ethFork);\n        assetUsdtETH = IERC20(usdtETH);\n        \n        deal(address(assetUsdtETH), user, 100*10**6, true);\n\n        vm.startPrank(user);\n        vm.expectRevert();\n        assetUsdtETH.approve(address(0x444), 10*10**6);\n    }\n\n```\n\n## Mitigation\n\nUse OpenZeppelin's `SafeERC20::forceApprove` function instead of `IERC20::approve` function.\n\n## Discussion\n\n**sherlock-admin2**\n\nThe protocol team fixed this issue in the following PRs/commits:\nhttps://github.com/notional-finance/notional-v4/pull/11\n\n\n\n\n",
+    "summary": "\nSummary:\n\nThe bug report highlights an issue with the `ERC-20` standard, which specifies that the `approve` function should return a boolean value indicating success. However, some widely-used tokens, such as `USDT`, do not return a value. This causes problems when interacting with these tokens using high-level Solidity calls, as the EVM expects a return value. This issue affects important functions of the protocol, such as entering or migrating a vault, minting yield tokens, and staking tokens. The bug has been identified and a potential solution has been suggested, which involves using OpenZeppelin's `SafeERC20::forceApprove` function instead of the `approve` function. The protocol team has already addressed this issue in their code.",
+    "report_date": "2025-07-18T15:00:00.000Z",
+    "contest_prize_txt": "75500 USDC",
+    "contest_link": "https://app.sherlock.xyz/audits/contests/1001",
+    "sponsor_name": "",
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "",
+    "github_link": "https://github.com/sherlock-audit/2025-06-notional-exponent-judging/issues/652",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "1001",
+    "slug": "m-13-incompatibility-of-erc20approve-function-with-usdt-tokens-on-ethereum-mainnet-chain-sherlock-notional-exponent-git",
+    "firm_name": "Sherlock",
+    "firm_logo_square": "sherlock_square.png",
+    "protocol_name": "Notional Exponent",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Pro\\_King"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "sebar1018"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "harry"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "bretzel"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Ledger\\_Patrol"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "X0sauce"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "yoooo"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "KungFuPa"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "mgf15"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "theweb3mechanic"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "bube"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "h2134"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Atharv"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Bigsam"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Sherlock",
+        "logo_square": "sherlock_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Notional Exponent",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

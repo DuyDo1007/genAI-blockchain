@@ -1,0 +1,55 @@
+{
+    "id": 62515,
+    "kind": "GIT",
+    "auditfirm_id": 3,
+    "impact": "MEDIUM",
+    "finders_count": 3,
+    "protocol_id": 3104,
+    "title": "M-23: Unable to support Curve Pool with Native ETH",
+    "content": "\nSource: https://github.com/sherlock-audit/2025-06-notional-exponent-judging/issues/717 \n\n## Found by \nauditgpt, touristS, xiaoming90\n\n### Summary\n\n-\n\n### Root Cause\n\n-\n\n### Internal Pre-conditions\n\n-\n\n### External Pre-conditions\n\n-\n\n### Attack Path\n\nIf any of the tokens of the Curve Pool are Native ETH (0xEEEEE...), the `_rewriteAltETH()` function at Lines 54 and 55 will rewrite the address from 0xEEEEE to 0x00000.\n\nhttps://github.com/sherlock-audit/2025-06-notional-exponent/blob/main/notional-v4/src/single-sided-lp/CurveConvex2Token.sol#L54\n\n```solidity\nFile: CurveConvex2Token.sol\n39:     constructor(\n40:         uint256 _maxPoolShare,\n41:         address _asset,\n42:         address _yieldToken,\n43:         uint256 _feeRate,\n44:         address _rewardManager,\n45:         DeploymentParams memory params,\n46:         IWithdrawRequestManager _withdrawRequestManager\n47:     ) AbstractSingleSidedLP(_maxPoolShare, _asset, _yieldToken, _feeRate, _rewardManager, 18, _withdrawRequestManager) {\n48:         CURVE_POOL_TOKEN = ERC20(params.poolToken);\n49: \n50:         // We interact with curve pools directly so we never pass the token addresses back\n51:         // to the curve pools. The amounts are passed back based on indexes instead. Therefore\n52:         // we can rewrite the token addresses from ALT Eth (0xeeee...) back to (0x0000...) which\n53:         // is used by the vault internally to represent ETH.\n54:         TOKEN_1 = _rewriteAltETH(ICurvePool(params.pool).coins(0));\n55:         TOKEN_2 = _rewriteAltETH(ICurvePool(params.pool).coins(1));\n```\n\nAssume a Curve pool with the first token is Native ETH, while the second token is a normal ERC20 token (e.g., wstETH). In this case, calling the `TOKENS()` function will return:\n\n- tokens[0] = 0x0000 (Native ETH)\n- tokens[1] = 0xB82381A3fBD3FaFA77B3a7bE693342618240067b (wstETH)\n\nhttps://github.com/sherlock-audit/2025-06-notional-exponent/blob/main/notional-v4/src/single-sided-lp/CurveConvex2Token.sol#L162\n\n```solidity\nFile: CurveConvex2Token.sol\n162:     function TOKENS() internal view override returns (ERC20[] memory) {\n163:         ERC20[] memory tokens = new ERC20[](_NUM_TOKENS);\n164:         tokens[0] = ERC20(TOKEN_1);\n165:         tokens[1] = ERC20(TOKEN_2);\n166:         return tokens;\n167:     }\n```\n\nWhen computing the value of the Curve LP token, the `getWithdrawRequestValue()` function will attempt to loop through all tokens in Line 326 below.\n\nhttps://github.com/sherlock-audit/2025-06-notional-exponent/blob/main/notional-v4/src/single-sided-lp/AbstractSingleSidedLP.sol#L326\n\n```solidity\nFile: AbstractSingleSidedLP.sol\n319:     function getWithdrawRequestValue(\n320:         address account,\n321:         address asset,\n322:         uint256 shares\n323:     ) external view returns (uint256 totalValue) {\n324:         ERC20[] memory tokens = TOKENS();\n325: \n326:         for (uint256 i; i < tokens.length; i++) {\n327:             IWithdrawRequestManager manager = ADDRESS_REGISTRY.getWithdrawRequestManager(address(tokens[i]));\n328:             // This is called as a view function, not a delegate call so use the msg.sender to get\n329:             // the correct vault address\n330:             (bool hasRequest, uint256 value) = manager.getWithdrawRequestValue(msg.sender, account, asset, shares);\n331:             // Ensure that this is true so that we do not lose any value.\n332:             require(hasRequest);\n333:             totalValue += value;\n334:         }\n335:     }\n```\n\nIn the first iteration, where `tokens[0] = 0x0000 (Native ETH)`, it will execute the following code at Line 327:\n\n```solidity\nIWithdrawRequestManager manager = ADDRESS_REGISTRY.getWithdrawRequestManager(address(tokens[i]));\nIWithdrawRequestManager manager = ADDRESS_REGISTRY.getWithdrawRequestManager(address(0));\n```\n\nIt will attempt to fetch the Withdraw Request Manager for Native ETH (0x0).\n\nHowever, it will revert because there is no Withdraw Request Manager (WRM) for Native ETH. There is only WRM for Standard ERC20, but not Native ETH.\n\nThe `BaseLPLib.hasPendingWithdrawals()` function is also affected by the same issue when looping through all the tokens to obtain the WRM.\n\nhttps://github.com/sherlock-audit/2025-06-notional-exponent/blob/main/notional-v4/src/single-sided-lp/AbstractSingleSidedLP.sol#L338\n\n```solidity\nFile: AbstractSingleSidedLP.sol\n338:     function hasPendingWithdrawals(address account) external view override returns (bool) {\n339:         ERC20[] memory tokens = TOKENS();\n340:         for (uint256 i; i < tokens.length; i++) {\n341:             IWithdrawRequestManager manager = ADDRESS_REGISTRY.getWithdrawRequestManager(address(tokens[i]));\n342:             if (address(manager) == address(0)) continue;\n343:             // This is called as a view function, not a delegate call so use the msg.sender to get\n344:             // the correct vault address\n345:             (WithdrawRequest memory w, /* */) = manager.getWithdrawRequest(msg.sender, account);\n346:             if (w.requestId != 0) return true;\n347:         }\n348: \n349:         return false;\n350:     }\n```\n\nSame for `BaseLPLib.initiateWithdraw()`, `BaseLPLib.finalizeAndRedeemWithdrawRequest()`, `BaseLPLib.tokenizeWithdrawRequest()`.\n\n### Impact\n\nHigh. This issue is aggravated by the fact that the protocol is designed to handle depositing Native ETH to Curve pool, but the problem will surface during withdrawal and liquidation. In the worst-case scenario, users deposit funds into the protocol but are unable to withdraw them, resulting in their funds being stuck.\n\nAdditionally, core functionality is broken, as Curve Pool with Native ETH will not work with the protocol. \n\n\n### PoC\n\n_No response_\n\n### Mitigation\n\n_No response_\n\n",
+    "summary": "\nThis bug report discusses an issue found by auditgpt, touristS, and xiaoming90 in a code repository on GitHub. The issue is related to a function called `_rewriteAltETH()` which rewrites the address of a token from 0xEEEEE to 0x00000. If the token is Native ETH (0xEEEEE), the function will rewrite the address to 0x00000. This can cause problems when computing the value of the Curve LP token, as it will attempt to fetch the Withdraw Request Manager for Native ETH, which does not exist. This can result in users being unable to withdraw their funds and the protocol being unable to handle deposits of Native ETH. The impact of this bug is considered high, as it can result in users' funds being stuck and core functionality being broken. No response or mitigation has been provided by the developers yet.",
+    "report_date": "2025-07-18T15:00:00.000Z",
+    "contest_prize_txt": "75500 USDC",
+    "contest_link": "https://app.sherlock.xyz/audits/contests/1001",
+    "sponsor_name": "",
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "",
+    "github_link": "https://github.com/sherlock-audit/2025-06-notional-exponent-judging/issues/717",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "1001",
+    "slug": "m-23-unable-to-support-curve-pool-with-native-eth-sherlock-notional-exponent-git",
+    "firm_name": "Sherlock",
+    "firm_logo_square": "sherlock_square.png",
+    "protocol_name": "Notional Exponent",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "auditgpt"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "touristS"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "xiaoming90"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Sherlock",
+        "logo_square": "sherlock_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Notional Exponent",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

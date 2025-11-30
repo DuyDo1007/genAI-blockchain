@@ -1,0 +1,95 @@
+{
+    "id": 62512,
+    "kind": "GIT",
+    "auditfirm_id": 3,
+    "impact": "MEDIUM",
+    "finders_count": 11,
+    "protocol_id": 3104,
+    "title": "M-20: Lack of minimum debt threshold enables unliquidatable small positions",
+    "content": "\nSource: https://github.com/sherlock-audit/2025-06-notional-exponent-judging/issues/684 \n\n## Found by \n0xKemah, 0xenzo, Audinarey, EddiePumpin, LhoussainePh, Pro\\_King, SOPROBRO, jasonxiale, molaratai, oxwhite, theweb3mechanic\n\n### Summary\n\nThe protocol allows users to repay debt partially through the `exitPosition()` function, even if a minimal amount of debt remains (e.g., 1 wei). Since liquidation incentives are proportional to the repaid debt and gas costs are fixed, such positions offer no economic incentive for liquidators. As a result, these small debt positions accumulate over time, becoming unliquidatable and potentially leading to long-term protocol insolvency.\n\n### Root Cause\n\nWhen users open a position without providing upfront collateral by calling [`enterPosition()` ](https://github.com/sherlock-audit/2025-06-notional-exponent/blob/main/notional-v4/src/routers/AbstractLendingRouter.sol#L56)with a non-zero `borrowAmount` and a `depositAssetAmount` of zero. The protocol takes a flashloan from Morpho for the borrow amount, mints shares with it, supplies those shares as collateral to Morpho, and then borrows the same amount to repay the flashloan resulting in a position where collateral equals the borrowed amount.\n If a deposit is provided, the collateral becomes greater than the debt.  So `collateral` can be `>=` `borrowAmmount` .\n This logic enables fully collateralized positions with little or no initial user capital.\n```javascript\n//AbstractLendingRouter.sol\n\nL56:  function enterPosition(\n        address onBehalf,\n        address vault,\n        uint256 depositAssetAmount,\n        uint256 borrowAmount,\n        bytes calldata depositData\n    ) public override isAuthorized(onBehalf, vault) {\n        _enterPosition(onBehalf, vault, depositAssetAmount, borrowAmount, depositData, address(0));\n    }\n\nL79:   function _enterPosition(\n        address onBehalf,\n        address vault,\n        uint256 depositAssetAmount,\n        uint256 borrowAmount,\n        bytes memory depositData,\n        address migrateFrom\n    ) internal {\n       ...\n@>        if (depositAssetAmount > 0) {\n            // Take any margin deposit from the sender initially\n            ERC20(asset).safeTransferFrom(msg.sender, address(this), depositAssetAmount);\n        }\n\n  @>      if (borrowAmount > 0) {\n            _flashBorrowAndEnter(\n                onBehalf, vault, asset, depositAssetAmount, borrowAmount, depositData, migrateFrom\n            );\n        } else {\n            _enterOrMigrate(onBehalf, vault, asset, depositAssetAmount, depositData, migrateFrom);\n...\n```\n\nWhen repaying through `exitPosition()`,\n```javascript\n//AbstractLendingRouter.sol\n\n    function exitPosition(\n        address onBehalf,\n        address vault,\n        address receiver,\n        uint256 sharesToRedeem,\n        uint256 assetToRepay,\n        bytes calldata redeemData\n    ) external override isAuthorized(onBehalf, vault) {\n        _checkExit(onBehalf, vault);\n\n        address asset = IYieldStrategy(vault).asset();\n        if (0 < assetToRepay) {\nL120:            _exitWithRepay(onBehalf, vault, asset, receiver, sharesToRedeem, assetToRepay, redeemData);\n        } else {\n...\n}\n```\n a borrower can make partial repayments that reduce their debt to extremely small amounts, such as 1 wei. These minimal debt positions offer no meaningful incentive for liquidators, who must cover fixed gas costs to execute liquidation but receive rewards that are too small especially on Ethereum mainnet which is the only chain the contract will be deployed to.\n\n### Internal Pre-conditions\n\n- Borrower must borrow small amounts such as 1 wei.\n- Or reduce his debt positions to 1 wei\n\n### External Pre-conditions\n\nnone\n\n### Attack Path\n\nnone \n\n### Impact\n\n\n- Positions with tiny debt amounts remain permanently unliquidated.\n\n- Over time, these accumulate and skew the protocol’s debt accounting and solvency assumptions.\n\n### PoC\n\n_No response_\n\n### Mitigation\n\n- Enforce a minimum borrow size\n- Or prevent users from leaving behind trivial debt after repay or withdrawal.\n\n",
+    "summary": "\nThe report discusses a bug in a protocol that allows users to partially repay their debt, even if only a small amount remains. This creates a situation where these small debt positions are not economically viable for liquidators to take on, leading to long-term insolvency for the protocol. The root cause of this bug is in the protocol's logic for opening positions without upfront collateral. The bug can be exploited by borrowers by making small repayments, causing their debt to become extremely small, making it unattractive for liquidators. The impact of this bug is that these small debt positions remain unliquidated and accumulate over time, affecting the protocol's debt accounting and solvency. The report suggests enforcing a minimum borrow size or preventing users from leaving behind trivial debt to mitigate this issue.",
+    "report_date": "2025-07-18T15:00:00.000Z",
+    "contest_prize_txt": "75500 USDC",
+    "contest_link": "https://app.sherlock.xyz/audits/contests/1001",
+    "sponsor_name": "",
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "",
+    "github_link": "https://github.com/sherlock-audit/2025-06-notional-exponent-judging/issues/684",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "1001",
+    "slug": "m-20-lack-of-minimum-debt-threshold-enables-unliquidatable-small-positions-sherlock-notional-exponent-git",
+    "firm_name": "Sherlock",
+    "firm_logo_square": "sherlock_square.png",
+    "protocol_name": "Notional Exponent",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Pro\\_King"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "0xenzo"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "EddiePumpin"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Audinarey"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "molaratai"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "jasonxiale"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "theweb3mechanic"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "oxwhite"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "LhoussainePh"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "SOPROBRO"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "0xKemah"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Sherlock",
+        "logo_square": "sherlock_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Notional Exponent",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

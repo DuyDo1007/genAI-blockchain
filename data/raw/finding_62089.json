@@ -1,0 +1,38 @@
+{
+    "id": 62089,
+    "kind": "GIT",
+    "auditfirm_id": 2,
+    "impact": "LOW",
+    "finders_count": 0,
+    "protocol_id": 2159,
+    "title": "[12] Adjust incorrect parameter naming issue in `set_emitter`",
+    "content": "\n<https://github.com/code-423n4/2025-02-blend/blob/f23b3260763488f365ef6a95bfb139c95b0ed0f9/blend-contracts-v2/backstop/src/storage.rs# L128-L132>\n\n### Finding description and impact\n\n`set_emitter` allows setting emitter, but the parameter name is set as `pool_factory_id`. This works because both parameters are addresses, but in other cases could cause a parameter mismatch issue.\n```\n\n@>  pub fn set_emitter(e: &Env, pool_factory_id: &Address) {\n      e.storage()\n          .instance()\n}\n```\n\n### Recommended mitigation steps\n\nChange `pool_factory_id` to emitter id instead.\n\n**Comments from the Script3 team:**\n\n> This was addressed [here](https://github.com/blend-capital/blend-contracts-v2/commit/88af1f7f5d476a65fb95c251602a8064b1a43e62).\n\n---\n\n",
+    "summary": "",
+    "report_date": "2025-08-13T00:00:00.000Z",
+    "contest_prize_txt": "125000",
+    "contest_link": "https://code4rena.com/reports/2025-02-blend-v2-audit-certora-formal-verification",
+    "sponsor_name": "Blend",
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://code4rena.com/reports/2025-02-blend-v2-audit-certora-formal-verification",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "492",
+    "slug": "12-adjust-incorrect-parameter-naming-issue-in-set_emitter-code4rena-blend-blend-git",
+    "firm_name": "Code4rena",
+    "firm_logo_square": "code4rena_square.png",
+    "protocol_name": "Blend",
+    "bookmarked": false,
+    "read": false,
+    "auditfirms_auditfirm": {
+        "name": "Code4rena",
+        "logo_square": "code4rena_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Blend",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

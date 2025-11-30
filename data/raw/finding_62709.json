@@ -1,0 +1,45 @@
+{
+    "id": 62709,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 23,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3435,
+    "title": "Undescriptive Errors on Arithmetic Underflow",
+    "content": "##### Description\nThis issue has been identified in arithmetic operations susceptible to underflow. While Solidity 0.8.x automatically reverts on underflow, the revert message does not indicate the specific cause or location. This obscures debugging.\n\nExamples include:\n- **`PTokenModule._transferTokens`**:\n  ```solidity!\n  uint256 srcTokensNew = $.accountTokens[src] - tokens;\n  ```\n- **`PTokenModule.redeemFresh`**:\n  ```solidity!\n  $.totalSupply = $.totalSupply - redeemTokens;\n  $.accountTokens[onBehalfOf] = $.accountTokens[onBehalfOf] - redeemTokens;\n  ```\n- **`PTokenModule.repayBorrowFresh`**:\n  ```solidity!\n  uint256 accountBorrowsNew = accountBorrowsPrev - actualRepayAmount;\n  uint256 totalBorrowsNew = $.totalBorrows - actualRepayAmount;\n  ```\n\nIf the subtracted amount exceeds the current balance or supply, it causes an underflow revert with no clear error message.\n\n##### Recommendation\nWe recommend adding explicit `require` statements before these subtraction operations. For example:\n\n```solidity!\nrequire($.accountTokens[src] >= tokens, PTokenError.InsufficientBalance());\n```\n\nSuch validation ensures that any underflow triggers a descriptive revert message, improving debuggability and user experience.\n",
+    "summary": "",
+    "report_date": "2025-09-18T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/mixbytes/audits_public/blob/master/NUTS%20Finance/Pike/README.md#12-undescriptive-errors-on-arithmetic-underflow",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "undescriptive-errors-on-arithmetic-underflow-mixbytes-none-nuts-finance-markdown",
+    "firm_name": "MixBytes",
+    "firm_logo_square": "mixbytes_square.png",
+    "protocol_name": "NUTS Finance",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "MixBytes"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "MixBytes",
+        "logo_square": "mixbytes_square.png"
+    },
+    "protocols_protocol": {
+        "name": "NUTS Finance",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

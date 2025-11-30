@@ -1,0 +1,55 @@
+{
+    "id": 62247,
+    "kind": "PDF",
+    "auditfirm_id": 9,
+    "impact": "MEDIUM",
+    "finders_count": 3,
+    "protocol_id": 3394,
+    "title": "New upgrade conﬁguration is not written to storage",
+    "content": "## Difficulty: Low\n\n## Type: Data Validation\n\n### Description\nThe protocol’s upgrade process consists of three steps, represented by three opcodes:\n- **init_upgrade_process**: Sets the new master and user code to storage and starts the upgrade timer.\n- **disable_contract_for_upgrade_process**: Ensures that no new operations are started and pending ones are completed before committing to the upgrade.\n- **submit_upgrade_process**: Sets the new master contract code, stores code versions, and performs the necessary checks to ensure that the upgrade succeeds.\n\nIn the last step, a `new_upgrade_config` variable is generated to emit the upgrade log, but it is not saved to storage. This prevents the `master_version`, `user_version`, and `user_code` variables in storage from being updated, and the rest of the upgrade fields from being cleaned up correctly.\n\nSince the current upgrade will be run using the v6 upgradeability feature, this can become an issue in the v7 to v8 upgrade. However, even in the case where the user contract code upgrade fails, the master contract code can still be upgraded, and a recovery function can be added to avoid losing control of the master contract.\n\n```plaintext\n() submit_upgrade_process  (\n[...]\n) impure inline {\n    throw_unless(error::message_not_from_admin, slice_data_equal?(sender_address, admin));\n    (\n        int master_version, int user_version,\n        int timeout, int update_time, int freeze_time,\n        cell user_code,\n        cell new_master_code, cell new_user_code\n    ) = unpack_upgrade_config(upgrade_config);\n    [...]\n    cell new_upgrade_config = pack_upgrade_config(\n        master_version, user_version,\n        timeout, 0, 0,\n        user_code,\n        null(), null()\n    );\n    [...]\n    on_upgrade(my_balance, msg_value, in_msg_full, in_msg_body);\n    cell new_store = get_data();\n    cell log_data = begin_cell()\n        .store_uint(log::submit_upgrade, 8)\n        .store_uint(now(), 32)\n        .store_ref(begin_cell()\n            .store_ref(upgrade_config)\n            .store_ref(old_code)\n            .store_ref(old_store)\n            .end_cell())\n        .store_ref(begin_cell()\n            .store_ref(new_upgrade_config)\n            .store_ref(new_master_code)\n            .store_ref(new_store)\n            .end_cell())\n        .end_cell();\n    emit_log_simple(log_data);\n    recv_internal(my_balance, msg_value, in_msg_full,\n        begin_cell().store_op_code(op::do_data_checks).store_query_id(query_id).end_cell().\n        begin_parse()\n    );\n    return ();\n}\n```\nFigure 2.1: The `new_upgrade_config` variable in `contracts_internal/contracts/core/master-admin.fc#L432–L495`\n\n### Exploit Scenario\nThe EVAA team finds a bug in the current version of the user contract. As the contracts are upgradeable, they start the procedure for upgrading the master contract’s storage with the new version of the user contract.\n\nAfter finishing the upgrade, the EVAA team notices that the user contracts have not been upgraded because the master contract’s storage was not persisted in the upgrade process. This effectively disallows upgrading the user contract.\n\n### Recommendations\n- **Short term**: Persist the `new_upgrade_config` variable to the master contract’s storage.\n- **Long term**: Ensure that the test suite thoroughly checks the master contract’s storage and that both master and user contracts’ code changes on each upgrade process.",
+    "summary": "\nThe report describes a bug in the protocol's upgrade process that prevents the user contract from being upgraded. This is caused by a variable not being saved to storage during the upgrade, which results in the user contract not being updated. This can cause issues in future upgrades and may require a recovery function to regain control of the master contract. The recommended solution is to persist the variable to storage and to thoroughly test the master contract's storage in future upgrades.",
+    "report_date": "2025-08-22T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://github.com/trailofbits/publications/blob/master/reviews/2025-08-evaafinance-securityreview.pdf",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/trailofbits/publications/blob/master/reviews/2025-08-evaafinance-securityreview.pdf",
+    "github_link": "",
+    "pdf_link": "https://solodit-bucket.s3.amazonaws.com/storage/reports/trailofbits/2025-08-evaafinance-securityreview.pdf",
+    "pdf_page_from": 16,
+    "contest_id": "",
+    "slug": "new-upgrade-configuration-is-not-written-to-storage-trailofbits-none-evaa-finance-pdf",
+    "firm_name": "TrailOfBits",
+    "firm_logo_square": "trailofbits_square.png",
+    "protocol_name": "EVAA Finance",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Kevin Valerio Trail of Bits PUBLIC"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Guillermo Larregay"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Quan Nguyen"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "TrailOfBits",
+        "logo_square": "trailofbits_square.png"
+    },
+    "protocols_protocol": {
+        "name": "EVAA Finance",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

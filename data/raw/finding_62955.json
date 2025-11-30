@@ -1,0 +1,45 @@
+{
+    "id": 62955,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 16,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3464,
+    "title": "[L-09] Pre-start trading fees may result in unfair investor benefits",
+    "content": "\n_Acknowledged_\n\nIn the current design, the Fixed Side investor’s liquidity can be added to the Uniswap V3 pool and begin generating trading fees **before** the Vault officially starts (`isStarted == false`).\n\nHowever, once the Vault is started, these **pre-start fees become indistinguishable from post-start fees**, and may be indirectly distributed to Variable Side investors during withdrawal or claim processes. This creates an **economic imbalance**, where:\n\n* The Fixed Side investor **assumes all early risk** and provides capital to the pool,\n* While Variable Side investors **may benefit from pre-start fees** without contributing any risk or capital during that time.\n\nThis behavior contradicts the intended design of the Vault, in which Variable Side investors are expected to earn yield **only** from post-start activity.\n\n**Recommendations**\n\nIntroduce a mechanism to **isolate or attribute pre-start fees**, such as:\n\n* In `start()`, call `collect()` and assign all accumulated pre-start fees exclusively to the Fixed Side investor before enabling Variable Side participation.\n* Alternatively, track and subtract pre-start fees from total earnings, ensuring that Variable Side investors only benefit from fees earned **after** the Vault has officially started.\n\n\n",
+    "summary": "",
+    "report_date": "2025-10-13T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/pashov/audits/blob/master/team/md/Saffron-security-review_2025-07-31.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "l-09-pre-start-trading-fees-may-result-in-unfair-investor-benefits-pashov-audit-group-none-saffron_2025-07-31-markdown",
+    "firm_name": "Pashov Audit Group",
+    "firm_logo_square": "Pashov_square.png",
+    "protocol_name": "Saffron_2025-07-31",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Pashov Audit Group"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Pashov Audit Group",
+        "logo_square": "Pashov_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Saffron_2025-07-31",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

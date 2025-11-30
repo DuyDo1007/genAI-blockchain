@@ -1,0 +1,50 @@
+{
+    "id": 62122,
+    "kind": "PDF",
+    "auditfirm_id": 9,
+    "impact": "LOW",
+    "finders_count": 2,
+    "protocol_id": 3383,
+    "title": "Missing access control allows nonce manipulation",
+    "content": "## Diﬃculty: Low\n\n## Type: Data Validation\n\n### Description\nThe `validateUserOp` function in the `JWTRecovery` module lacks access control, allowing any caller to validate a user’s recovery operation signature and increment their nonce. When a malicious actor calls the `validateUserOp` function of the `JWTRecovery` module before a legitimate user, it increments the account’s nonce, causing the user’s subsequent transaction to fail due to a nonce mismatch. \n\nThe impact is limited to nonce manipulation and does not allow unauthorized access to account funds or other critical operations.\n\n```plaintext\nnonce[account] = currentNonce + 1;\n```\n\n**Figure 1.1:** The nonce is incremented in the `validateUserOp` function.\n\n### Exploit Scenario\nA malicious user monitors the mempool for recovery transactions from a target account. Before the legitimate recovery transaction is processed, the attacker calls `validateUserOp` directly with the same parameters. This increments the target account’s nonce, causing the legitimate user’s recovery transaction to fail when it is processed due to the nonce mismatch. The user must then create a new recovery transaction with the updated nonce.\n\n### Recommendations\n- **Short term:** Add an access control check requiring `msg.sender == userOp.sender` to ensure that only the account owner can validate their own recovery operations.\n- **Long term:** Implement comprehensive access control testing in the test suite to verify that all validation functions properly restrict caller permissions and test edge cases where unauthorized callers attempt to manipulate the account state.",
+    "summary": "",
+    "report_date": "2025-08-15T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://github.com/trailofbits/publications/blob/master/reviews/2025-08-gemini-smartwallet-securityreview.pdf",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/trailofbits/publications/blob/master/reviews/2025-08-gemini-smartwallet-securityreview.pdf",
+    "github_link": "",
+    "pdf_link": "https://solodit-bucket.s3.amazonaws.com/storage/reports/trailofbits/2025-08-gemini-smartwallet-securityreview.pdf",
+    "pdf_page_from": 15,
+    "contest_id": "",
+    "slug": "missing-access-control-allows-nonce-manipulation-trailofbits-none-gemini-smart-wallet-pdf",
+    "firm_name": "TrailOfBits",
+    "firm_logo_square": "trailofbits_square.png",
+    "protocol_name": "Gemini Smart Wallet",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Coriolan Pinhas Trail of Bits PUBLIC"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Anish Naik"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "TrailOfBits",
+        "logo_square": "trailofbits_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Gemini Smart Wallet",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

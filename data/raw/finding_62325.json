@@ -1,0 +1,45 @@
+{
+    "id": 62325,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 16,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3400,
+    "title": "[L-01] Incomplete storage cleanup on full withdrawal",
+    "content": "\n_Resolved_\n\nIn the `locked_funds.move` function `update_user_collateral_coin_types()` when users withdraw all tokens of a specific type, the tracking list is updated, but the underlying `BalanceStore<T>` dynamic field entry is not removed from storage.\n\nThis is **how it occurs:**\n1. User deposits ETH → creates `BalanceStore<ETH>` dynamic field in deposit calling `get_or_create_balance_store_mut`.\n2. When the user withdraws all ETH → balance becomes 0.\n3. `update_user_collateral_coin_types()` removes ETH from the tracking list.\n4. `BalanceStore<ETH>` with zero balance remains in storage permanently.\n\nThe **root cause** is missing cleanup logic, only tracking is updated, and actual storage persists.\n\nOne concrete impact of this is **gradual storage bloat**, as empty balance entries accumulate over time without cleanup.\n\nAs recommendation, add a dynamic field removal when the balance reaches zero. In the `update_user_collateral_coin_types` else part, add the code below:\n\n```move\n} else {\n    // Current: remove from tracking\n    coin_types.remove(&coin_type);\n    \n    // ADD: remove empty storage\n    let balance_key = get_balance_store_key<T>(owner);\n    if (df::exists_(&management.id, balance_key)) {\n        df::remove<vector<u8>, BalanceStore<T>>(&mut management.id, balance_key);\n    }\n}\n```\n\n\n\n",
+    "summary": "",
+    "report_date": "2025-09-02T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/pashov/audits/blob/master/team/md/Elixir-security-review_2025-08-17.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "l-01-incomplete-storage-cleanup-on-full-withdrawal-pashov-audit-group-none-elixir_2025-08-17-markdown",
+    "firm_name": "Pashov Audit Group",
+    "firm_logo_square": "Pashov_square.png",
+    "protocol_name": "Elixir_2025-08-17",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Pashov Audit Group"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Pashov Audit Group",
+        "logo_square": "Pashov_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Elixir_2025-08-17",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

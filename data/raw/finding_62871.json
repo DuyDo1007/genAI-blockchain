@@ -1,0 +1,45 @@
+{
+    "id": 62871,
+    "kind": "PDF",
+    "auditfirm_id": 9,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3450,
+    "title": "TTL validation missing when updating burnable status",
+    "content": "## Description\n\nThe `setBaseMetadata` function allows updating the burnable status of a token without validating whether a TTL (time-to-live) has been set. This creates a potential inconsistency where a token can be marked as non-burnable while still having an expiration time configured.\n\nThe contract enforces that TTL can be set only for burnable tokens in the `setTTL` function, but the reverse validation is missing. When updating a token’s metadata to make it non-burnable, the function should check if a TTL is currently set and either prevent the change or reset the TTL to zero. Without this validation, tokens can exist in an inconsistent state where they have expiration times but cannot be burned.\n\n## Function\n\n```solidity\nfunction setBaseMetadata(uint256 id, bool _active, bool _burnable, bool _transferable) public {\n    require(hasRole(TOKEN_MANAGER_ROLE, _msgSender()), \"Unauthorized token manager\");\n    require(id <= nextTokenId, \"Invalid token ID\");\n    _metadata[id] = BaseMetadata(id, _active, _burnable, _transferable);\n    if (id == nextTokenId) {\n        nextTokenId++;\n    }\n}\n```\n\n### Figure 7.1: Missing TTL validation in `setBaseMetadata` function\n\n## Exploit Scenario\n\nAn admin sets up an authentication token with a 30-day TTL and burnable status. Later, the admin decides to make the token non-burnable by calling `setBaseMetadata` with `_burnable = false`. The token now has an inconsistent state where it has an expiration time but cannot be burned. This could lead to confusion in the system logic where non-burnable tokens can be burnt through the cleanup mechanisms.\n\n## Recommendations\n\n**Short term:** Add validation in the `setBaseMetadata` function to check if a TTL is set when making a token non-burnable, and either prevent the change or automatically reset the TTL to zero.\n\n**Long term:** Implement comprehensive unit tests that cover metadata update scenarios, and ensure consistency between the burnable status and TTL configuration.",
+    "summary": "",
+    "report_date": "2025-10-03T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://github.com/trailofbits/publications/blob/master/reviews/2025-10-radiustechnology-evmauth-securityreview.pdf",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/trailofbits/publications/blob/master/reviews/2025-10-radiustechnology-evmauth-securityreview.pdf",
+    "github_link": "",
+    "pdf_link": "https://solodit-bucket.s3.amazonaws.com/storage/reports/trailofbits/2025-10-radiustechnology-evmauth-securityreview.pdf",
+    "pdf_page_from": 25,
+    "contest_id": "",
+    "slug": "ttl-validation-missing-when-updating-burnable-status-trailofbits-none-radius-technology-evmauth-pdf",
+    "firm_name": "TrailOfBits",
+    "firm_logo_square": "trailofbits_square.png",
+    "protocol_name": "Radius Technology EVMAuth",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Quan Nguyen Trail of Bits PUBLIC"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "TrailOfBits",
+        "logo_square": "trailofbits_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Radius Technology EVMAuth",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

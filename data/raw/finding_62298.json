@@ -1,0 +1,55 @@
+{
+    "id": 62298,
+    "kind": "PDF",
+    "auditfirm_id": 6,
+    "impact": "LOW",
+    "finders_count": 3,
+    "protocol_id": 3396,
+    "title": "Events related issues",
+    "content": "## Vulnerability Report\n\n## Severity: Low Risk\n\n### Context\n- `LendingPoolAddressesProvider.sol#L197-L199`\n- `LendingPoolAddressesProvider.sol#L213-L215`\n- `MiniPoolAddressProvider.sol#L280`\n- `MiniPoolAddressProvider.sol#L292`\n- `MiniPoolAddressProvider.sol#L326`\n- `MiniPoolAddressProvider.sol#L354`\n- `MiniPoolAddressProvider.sol#L365`\n- `LendingPool.sol#L810`\n\n### Description/Recommendation\n- **Missing Events**:   \n  - `LendingPoolAddressesProvider.sol#L197-L199`, `LendingPoolAddressesProvider.sol#L213-L215`, `AToken.sol#L506-L510`, `AToken.sol#L610-L679`, `VariableDebtToken.sol#L392-L395`, `ATokenERC6909.sol#L147-L150`, `RewardForwarder.sol#L46-L147`, `RewardsController.sol#L65-L76`, `LendingPool.sol#L809-L811`, `BorrowLogic.sol#L441`, `MiniPoolBorrowLogic.sol#L337`: Events are missing.\n  \n- **Emit miniPoolId**:  \n  - `MiniPoolAddressProvider.sol#L280`, `MiniPoolAddressProvider.sol#L292`, `MiniPoolAddressProvider.sol#L365`: Emit `miniPoolId` in these events.\n\n- **Emit additional data**:  \n  - `MiniPoolAddressProvider.sol#L354`: Also emit `miniPool` and `asset` in `FlowLimitUpdated`.\n  \n- **Missing emission**:  \n  - `MiniPoolAddressProvider.sol#L326`: Emitting `PoolAdminSet` is missing.\n\n- **Initialization issue**:  \n  - `AToken.sol#L158-L168`: `_aTokenWrapper` is missing from `Initialized`.\n\n- **Event emission**:  \n  - `BasePiReserveRateStrategy.sol`: Event emission is missing from the setter functions in this contract.\n\n- **Minting endpoints issue**:  \n  - `ATokenERC6909.sol#L30`: Minting endpoints do not emit the `Mint` event compared to the `AToken` counterpart.\n\n- **Parameter issues**:  \n  - `BorrowLogic.sol#L308`: In `IVariableDebtToken(reserve.variableDebtTokenAddress).mint`, the `onBehalfOf` input parameter is set to `params.miniPoolAddress`, but for the `Borrow` event, the `onBehalfOf` parameter is set to `address(flowLimiter)`.\n\nThere are more endpoints that don't emit events; please consider what is needed for on-chain and off-chain agents and provide relevant event emission based on the project's needs.\n\n### Remediation Status\n- **Astera**: Fixed in commit `2d70fcc7`.\n- **Spearbit**: Fix verified.",
+    "summary": "",
+    "report_date": "2025-08-29T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Astera-Spearbit-Security-Review-December-2024.pdf",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Astera-Spearbit-Security-Review-December-2024.pdf",
+    "github_link": "",
+    "pdf_link": "https://solodit-bucket.s3.amazonaws.com/storage/reports/spearbit/Astera-Spearbit-Security-Review-December-2024.pdf",
+    "pdf_page_from": 32,
+    "contest_id": "",
+    "slug": "events-related-issues-spearbit-none-astera-pdf",
+    "firm_name": "Spearbit",
+    "firm_logo_square": "spearbit_square.png",
+    "protocol_name": "Astera",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Saw-mon and Natalie"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Cergyk"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Jonatas Martins"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Spearbit",
+        "logo_square": "spearbit_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Astera",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

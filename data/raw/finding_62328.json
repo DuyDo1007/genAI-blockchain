@@ -1,0 +1,45 @@
+{
+    "id": 62328,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 16,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3400,
+    "title": "[L-04] Missing role bounds check in `has_role`",
+    "content": "\n_Resolved_\n\nThe has_role function in `sources/acl.move` lacks role bounds validation, unlike other role functions. This inconsistency could cause runtime aborts if invalid role values (≥128) are passed. The issue may arise in future integrations where external contracts pass user-controlled role parameters or during cross-contract calls with unvalidated inputs.\n\nImpact -> Runtime trxs abort instead of graceful error handling, leading to inconsistent API behavior.\n\nRecommendation -> Add `assert!(role < 128, EInvalidRole);` at the beginning of `has_role` function for consistency with add_role and remove_role.\n\n\n\n",
+    "summary": "",
+    "report_date": "2025-09-02T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/pashov/audits/blob/master/team/md/Elixir-security-review_2025-08-17.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "l-04-missing-role-bounds-check-in-has_role-pashov-audit-group-none-elixir_2025-08-17-markdown",
+    "firm_name": "Pashov Audit Group",
+    "firm_logo_square": "Pashov_square.png",
+    "protocol_name": "Elixir_2025-08-17",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Pashov Audit Group"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Pashov Audit Group",
+        "logo_square": "Pashov_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Elixir_2025-08-17",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

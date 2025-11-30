@@ -1,0 +1,45 @@
+{
+    "id": 62856,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 30,
+    "impact": "MEDIUM",
+    "finders_count": 1,
+    "protocol_id": 3449,
+    "title": "[M-06] The `minSwapAmount` Check Is Made for the Minimum Amount Instead of the Exact Amount",
+    "content": "\n## Severity\n\nMedium Risk\n\n## Description\n\nWhen making topUp for the Paymaster, we swap the ERC20 token for the WETH token to then fund the Paymaster with ETH in the EntryPoint.\n\nThere is a minimum amount of tokens to be swapped, which is added when configuring the Paymaster, where we can not swap an amount smaller than this amount.\n\nWe apply a slippage check that ensures the value is not too far from the value read by oracles, but when checking for the minimum amount of WETH, we will take it instead of the expected amount, leading to incorrect checks and some correct swaps will be rejected in this case\n\n## Location of Affected Code\n\nFile: [UniswapHelper.sol#L57-L70](https://github.com/etherspot/etherspot-modular-accounts/blob/9019f2a78c36e74bdb1df4029672998cb4631162/src/paymaster/utils/UniswapHelper.sol#L57-L70)\n\n```solidity\nfunction _maybeSwapTokenToWeth(IERC20 tokenIn, uint256 amountToSwap, uint256 quote) internal returns (uint256) {\n    // code\n    // uint256 expectedOutput = tokenToWei(amountToSwap, quote);\n>>  uint256 amountOutMin = addSlippage(tokenToWei(amountToSwap, quote), uniswapHelperConfig.slippage);\n    // Compare expected output (in wei) vs minSwapAmount (also in wei)\n>>  if (amountOutMin < uniswapHelperConfig.minSwapAmount) {\n        return 0;\n    }\n    return swapToToken(\n        address(tokenIn), address(wrappedNative), amountToSwap, amountOutMin, uniswapHelperConfig.uniswapPoolFee\n    );\n}\n```\n\n## Impact\n\nValid output value can be rejected by the minimum amount check, although the expected amount is greater than the `UniHelperConfig.minSwapAmount`\n\n## Recommendation\n\nWe should make the check against the expected amount instead of the minimum amount. The expected amount is the value coming from `tokenToWei()`.\n\n## Team Response\n\nFixed.\n\n",
+    "summary": "\nThis bug report describes a problem with the code that is used to swap ERC20 tokens for WETH tokens in order to fund a Paymaster with ETH. The code has a minimum amount of tokens that can be swapped, which is set when configuring the Paymaster. However, there is a mistake in the code that causes the minimum amount to be taken instead of the expected amount, leading to incorrect checks and some valid swaps being rejected. The location of the affected code is identified and a recommendation is made to fix the check against the expected amount instead of the minimum amount. The team has responded that they have fixed the issue. ",
+    "report_date": "2025-10-03T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/shieldify-security/audits-portfolio-md/blob/main/Etherspot-GasTankPaymasterModule-Extended-Security-Review.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "m-06-the-minswapamount-check-is-made-for-the-minimum-amount-instead-of-the-exact-amount-shieldify-none-etherspot-gastankpaymastermodule-extended-markdown",
+    "firm_name": "Shieldify",
+    "firm_logo_square": "Shieldify_square.png",
+    "protocol_name": "Etherspot Gastankpaymastermodule Extended",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Shieldify Security"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Shieldify",
+        "logo_square": "Shieldify_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Etherspot Gastankpaymastermodule Extended",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

@@ -1,0 +1,60 @@
+{
+    "id": 62156,
+    "kind": "PDF",
+    "auditfirm_id": 6,
+    "impact": "LOW",
+    "finders_count": 4,
+    "protocol_id": 3384,
+    "title": "Correct rounding direction needs to be used when accumulating pmData in memory or storage",
+    "content": "## Severity: Low Risk\n\n## Context\n- CoreStateUtils.sol#L259\n- MarginViewUtils.sol#L89-L105\n- PendingOIPureUtils.sol#L40\n- PendingOIPureUtils.sol#L48\n- PendingOIPureUtils.sol#L61\n- ProcessMergeUtils.sol#L68\n\n## Description/Recommendation\nIn general, when adding to `pmData`, the delta accumulated needs to be rounded up, and when subtracting from `pmData`, the delta subtracted needs to be rounded down. This would guarantee that the initial margin checks are stricter.\n\n### Desired Rounding Direction\n\n| Location                       | Desired Rounding Direction | Current Rounding Direction | Function                |\n|--------------------------------|----------------------------|----------------------------|-------------------------|\n| _squashPartial                 | up                         | down                       | _calcPMFromFill        |\n| _updateOIAndPMOnSwept         | down                       | down                       | _calcPMFromFill        |\n| _mergePartialFillAft          | down                       | down                       | _calcPMFromFill        |\n| _updatePMOnAdd                | up                         | down                       | _calcPMFromTick        |\n| _updatePMOnRemove             | down                       | down                       | _calcPMFromTick        |\n\n## Responses\n- **Pendle Finance**: Acknowledged. Won't fix as we will scale all to 1e18 to avoid having to be too strict with rounding.\n- **Spearbit**: Acknowledged.",
+    "summary": "",
+    "report_date": "2025-08-22T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Pendle-Spearbit-Security-Review-August-2025.pdf",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Pendle-Spearbit-Security-Review-August-2025.pdf",
+    "github_link": "",
+    "pdf_link": "https://solodit-bucket.s3.amazonaws.com/storage/reports/spearbit/Pendle-Spearbit-Security-Review-August-2025.pdf",
+    "pdf_page_from": 39,
+    "contest_id": "",
+    "slug": "correct-rounding-direction-needs-to-be-used-when-accumulating-pmdata-in-memory-or-storage-spearbit-none-pendle-core-v3-pdf",
+    "firm_name": "Spearbit",
+    "firm_logo_square": "spearbit_square.png",
+    "protocol_name": "Pendle Core v3",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Saw-mon and Natalie"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Ethan"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Desmond Ho"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "RustyRabbit"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Spearbit",
+        "logo_square": "spearbit_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Pendle Core v3",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

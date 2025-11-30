@@ -1,0 +1,45 @@
+{
+    "id": 62527,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 7,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3418,
+    "title": "Liquidity Penalty Can Be Circumvented Using Secondary Accounts",
+    "content": "[`LiquidityPenaltyHook`](https://github.com/OpenZeppelin/uniswap-hooks/blob/3e9fa228ec0f7fe05a95e09e25442466b459a712/src/general/LiquidityPenaltyHook.sol) is designed to mitigate JIT liquidity attacks by penalizing fee collection when liquidity is added and removed within a short window ([`blockNumberOffset`](https://github.com/OpenZeppelin/uniswap-hooks/blob/3e9fa228ec0f7fe05a95e09e25442466b459a712/src/general/LiquidityPenaltyHook.sol#L63)). Fees accrued during this window are redirected to active in-range LPs, thereby not giving incentives to opportunistic liquidity provision around swaps. However, a coordinated attack involving multiple accounts can still be used to bypass this penalty mechanism under specific conditions.\n\nThe core of this exploit lies in the ability to manipulate who receives the penalty donation. Because the donated fees are distributed to whoever is in-range at the time of liquidity removal, an attacker can use a secondary account to strategically position liquidity in an otherwise empty tick range. The attack proceeds as follows:\n\n1. **Setup:** The attacker (Account B) provides a small amount of liquidity in a distant or low-traffic tick range where no other liquidity exists.\n2. **JIT Execution:** After some blocks, the main attacker account (Account A) adds a large liquidity position around the current tick, anticipating incoming user swaps. These swaps generate fees that accrue to A, but are withheld by the hook due to the JIT window.\n3. **Fee Redirection:** After fees are generated, A moves the pool’s price into B’s tick range via a swap. When A removes liquidity, the hook penalizes the action by donating fees to the in-range position (B’s position). B can then immediately withdraw the donated fees.\n4. **Optional Reversion:** A can optionally swap again to return the pool to its original state.\n\nAlthough this strategy is technically feasible, it is rarely practical in real-world conditions. The attack relies on the attacker being able to move the price into a specific tick range, something that becomes significantly more costly and difficult as pool liquidity increases. In highly liquid pools, the cost of such manipulation often outweighs the potential gain from the collected fees. Furthermore, to extract meaningful profit, the attacker would need to intercept a large volume of user swaps within the JIT window, which introduces additional uncertainty and complexity.\n\nDue to these constraints, while the mechanism remains exploitable in theory, it is of low practical viability. The attacker must incur high costs to control price movement and depend on timing a substantial amount of user activity, both of which reduce the profitability and feasibility of the exploit. As such, this issue has been categorized as having a low severity. It highlights a subtle limitation in the fee donation logic of the hook but does not pose a realistic threat under normal market conditions. Nonetheless, developers and protocol designers should remain aware of the potential for fee redirection through coordinated account behavior, especially in low-liquidity pools.\n\nConsider expanding the hook’s docstrings to explicitly mention the possibility of coordinated multi-account strategies redirecting penalties, particularly in low-liquidity environments, to ensure that downstream integrators are aware of this edge case.\n\n***Update:** Resolved in [pull request #89](https://github.com/OpenZeppelin/uniswap-hooks/pull/89) at commit [bd7b885](https://github.com/OpenZeppelin/uniswap-hooks/pull/89/commits/bd7b885da11b954b062b641056a7110422d18f4f).*",
+    "summary": "",
+    "report_date": "2025-07-16T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://blog.openzeppelin.com/openzeppelin-uniswap-hooks-v1.1.0-rc-2-audit",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "liquidity-penalty-can-be-circumvented-using-secondary-accounts-openzeppelin-none-openzeppelin-uniswap-hooks-v110-rc-2-audit-markdown",
+    "firm_name": "OpenZeppelin",
+    "firm_logo_square": "openzeppelin_square.png",
+    "protocol_name": "OpenZeppelin Uniswap Hooks v1.1.0 RC 2 Audit",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "OpenZeppelin"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "OpenZeppelin",
+        "logo_square": "openzeppelin_square.png"
+    },
+    "protocols_protocol": {
+        "name": "OpenZeppelin Uniswap Hooks v1.1.0 RC 2 Audit",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

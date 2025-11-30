@@ -1,0 +1,50 @@
+{
+    "id": 62939,
+    "kind": "PDF",
+    "auditfirm_id": 6,
+    "impact": "LOW",
+    "finders_count": 2,
+    "protocol_id": 3463,
+    "title": "Some market params with non-zero shares might get removed from the marketParamsList",
+    "content": "## Severity: Low Risk\n\n## Context\n- `MorphoMarketV1Adapter.sol#L34`\n- `MorphoMarketV1Adapter.sol#L77-L78`\n- `MorphoMarketV1Adapter.sol#L98-L99`\n- `MorphoMarketV1Adapter.sol#L106-L119`\n- `MorphoMarketV1Adapter.sol#L134-L140`\n- `MorphoVaultV1Adapter.sol#L108-L110`\n\n## Description\nIn `allocate` and `deallocate` if the `newAllocation` is 0:\n\n1. **Allocation flow**: \n   - If the `oldAllocation` is also 0 and the `marketParams` is not in the `marketParamsList`, in the allocation flow it would not get added to the list.\n   - Assume the amount of assets provided is `a` where the total assets and total supply for this market are `A` and `S` respectively. Then the shares minted would be:\n\n     \\[\n     s = \\left\\lfloor \\frac{a(S + 106)}{A + 1} \\right\\rfloor\n     \\]\n\n   - Assume that \\( 1 \\leq s \\), i.e., a non-zero share is minted for this allocation but the returned new allocation is 0. That means:\n\n     \\[\n     0 = \\left\\lfloor \\frac{s(A + a + 1)}{S + s + 106} \\right\\rfloor\n     \\]\n\n   - Let:\n\n     \\[\n     \\epsilon = \\frac{a(S + 106)}{A + 1} - \\left\\lfloor \\frac{a(S + 106)}{A + 1} \\right\\rfloor \\in [0, 1)\n     \\]\n\n   - We get:\n\n     \\[\n     1 \\leq s = \\frac{a(S + 106)}{A + 1} - \\epsilon \\Rightarrow \\frac{A + 1}{S + 106} \\leq a - \\epsilon \\left(\\frac{A + 1}{S + 106}\\right)\n     \\]\n\n   - From (1) we can deduce that:\n\n     \\[\n     (1) \\Rightarrow a < 1 - \\epsilon \\left(\\frac{A + 1}{(S + 106)(A + 1 + a)}\\right) + \\epsilon \\left(\\frac{A + 1}{S + 106}\\right)\n     \\]\n\n   - Or:\n\n     \\[\n     \\frac{A + 1}{S + 106} \\leq a - \\epsilon \\left(\\frac{A + 1}{S + 106}\\right) < 1 - \\epsilon \\left(\\frac{A + 1}{(S + 106)(A + 1 + a)}\\right) < 1\n     \\]\n\n   - Thus:\n\n     \\[\n     (4, 5) \\Rightarrow a < 2 \\Rightarrow a \\in \\{0, 1\\}\n     \\]\n\n   - But \\( a \\) cannot be 0 since then \\( s \\) would also end up being 0. So \\( a \\) should be 1 and we should have:\n\n     \\[\n     \\frac{A + 1}{S + 106} < 1\n     \\]\n\n   - Thus \\( S + 106 \\notin \\mathbb{Z} \\).\n\n   - Therefore, if \\( \\frac{S + 106}{A + 1} \\in (1, \\infty) \\setminus \\mathbb{Z} \\) and the asset to be allocated \\( a = 1 \\), a non-zero share would be minted, but the market parameter would not get added to the list since right after supplying the value of those shares would be 0, although in the future they might accumulate more value.\n\n   - Also, in some cases, one might have a non-zero old allocation for a market parameter, but the new allocation would turn 0 and thus the market parameter would get removed from the list, even though there might have been some non-zero shares left.\n\n2. **Deallocation flow**: \n   - Same as the allocation flow, it might be the case that the current new allocation might be 0 but there are still non-zero shares left for the market parameter in the context.\n\n   - Note that in this route, the market parameter could not get added to the list since for that to happen the old allocation must have been 0 and the new allocation should end up non-zero. \n\n   - But after the deallocation flow in the adapter, in the main deallocation internal flow of the vault v2 we have:\n\n     ```solidity\n     for (uint256 i; i < ids.length; i++) {\n         Caps storage _caps = caps[ids[i]];\n         require(_caps.allocation > 0, ErrorsLib.ZeroAllocation());\n         _caps.allocation = (int256(_caps.allocation) + change).toUint256();\n     }\n     ```\n\n   - This makes sure the must fine-grained unique allocation cap for this market parameter and adapter (i.e., the old allocation) must have been non-zero before getting updated to the new one.\n\n   - So in the allocation flow, the only possible outcome is that the market parameter could only potentially get removed from the list. Addition is not possible in this flow (which also makes sense).\n\n## Recommendation\nFor both flows, one can see that a market parameter could potentially get removed from the `marketParamsList` even though for that parameter a non-zero share amount might have been left in the Morpho market contract. Therefore, in the interest accrual routes when the `realAssets()` of this adapter is called, the value of those left-over shares would not get accounted for.\n\nPossible solutions would be to only remove the market params from the list if the share for the market parameter would end up being 0 (this applies to both allocation and deallocation flows). Although having lots of market parameters that would have small values might add up to a lot of gas when querying the `realAssets()` of this adapter.\n\nAlso, note that if the values not considered for the removed market parameters in question become significant on the next call to allocate they would get added back to the list even if one calls allocate with 0 assets. In the allocation flow, it might also make sense to revert if `newAllocation` is 0. This suggestion does not apply for the deallocation flow.\n\n## Morpho\nAcknowledged. Related comment has been added in PR 733.\n\n## Spearbit\nAcknowledged.\n\n## Footnote\nThe above logic also applies to `MorphoVaultV1Adapter` where the new allocation might be 0 but the adapter might still have non-zero shares in the yield source. At a future timestamp, the call to `IERC4626(morphoVaultV1).previewRedeem(IERC4626(morphoVaultV1).balanceOf(address(this)))` might return a non-zero value. But currently, the decision to make this call or not in `realAssets()` is based on the last updated allocation which would have a stale value.",
+    "summary": "",
+    "report_date": "2025-10-13T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Morpho-Vaults-v2-fixes-Spearbit-Security-Review-August-2025.pdf",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Morpho-Vaults-v2-fixes-Spearbit-Security-Review-August-2025.pdf",
+    "github_link": "",
+    "pdf_link": "https://solodit-bucket.s3.amazonaws.com/storage/reports/spearbit/Morpho-Vaults-v2-fixes-Spearbit-Security-Review-August-2025.pdf",
+    "pdf_page_from": 6,
+    "contest_id": "",
+    "slug": "some-market-params-with-non-zero-shares-might-get-removed-from-the-marketparamslist-spearbit-none-morpho-vaults-v2-fix-review-pdf",
+    "firm_name": "Spearbit",
+    "firm_logo_square": "spearbit_square.png",
+    "protocol_name": "Morpho Vaults v2 Fix Review",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Saw-mon and Natalie"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "MiloTruck"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Spearbit",
+        "logo_square": "spearbit_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Morpho Vaults v2 Fix Review",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

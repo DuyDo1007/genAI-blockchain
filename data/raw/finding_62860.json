@@ -1,0 +1,45 @@
+{
+    "id": 62860,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 30,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3449,
+    "title": "[L-04] The `_validatePaymasterUserOp()` Function in `GasTank` Will Revert When Adding the Exact Minimum `PostOp` Gas",
+    "content": "\n## Severity\n\nLow Risk\n\n## Description\n\nIn our `GasTankPaymaster`, there is a configuration for the minimum gas limit for the `postOp()` function, which is stored in `postOpCost`\n\nFile: [GasTankPaymaster.sol#L80](https://github.com/etherspot/etherspot-modular-accounts/blob/9019f2a78c36e74bdb1df4029672998cb4631162/src/paymaster/GasTankPaymaster.sol#L80)\n\n```solidity\n/**\n * @notice Configuration struct for the paymaster\n * @param tokenUsdFeed Oracle for token/USD price feed\n * @param nativeUsdFeed Oracle for native token/USD price feed\n * @param minEPBalance Minimum ETH balance to maintain in EntryPoint\n * @param cachedPriceTimestamp Timestamp of the last price update\n * @param tokenMaxAge Maximum age of token cached price before it's considered stale\n * @param nativeMaxAge Maximum age of native cached price before it's considered stale\n * @param postOpCost Gas cost for post-operation processing\n * @param cachedTokenPrice Cached token price to avoid frequent oracle calls\n * @param markup Price markup applied to oracle prices (in PRICE_DENOMINATOR units)\n * @param minVSTokenBalance Minimum token balance required for verifying signer to attempt top-up\n */\nstruct GasTankPaymasterConfig {\n    IOracle tokenUsdFeed;\n    IOracle nativeUsdFeed;\n    uint128 minEPBalance;\n    uint48 cachedPriceTimestamp;\n    uint48 tokenMaxAge;\n    uint48 nativeMaxAge;\n>>  uint48 postOpCost;\n    uint256 cachedTokenPrice;\n    uint256 markup;\n    uint256 minFeeReceiverTokenBalance;\n}\n```\n\nIn `_validatePaymasterUserOp()`, we are making sure that the amount of GasLimit put by the user is not smaller than this value, but the problem is that the check enforces the GasLimit to be greater than the `Config::postOpCost`, and is not accepted if the GasLimit is passed equal to `postOpCost`.\n\nThis will result in the validation process failing even when putting GasLimit with the correct value, which is the value in the Paymaster config itself.\n\n## Location of Affected Code\n\nFile: [GasTankPaymaster.sol#L436-L438](https://github.com/etherspot/etherspot-modular-accounts/blob/9019f2a78c36e74bdb1df4029672998cb4631162/src/paymaster/GasTankPaymaster.sol#L436-L438)\n\n```solidity\nfunction _validatePaymasterUserOp( PackedUserOperation calldata userOp, bytes32, /*userOpHash*/ uint256 requiredPreFund ) internal view override whenNotPaused returns (bytes memory context, uint256 validationData) {\n    // code\n    // Calculate comprehensive charge information\n    uint256 maxFeePerGas = userOp.unpackMaxFeePerGas();\n    uint256 refundPostopCost = paymasterConfig.postOpCost;\n>>  if (refundPostopCost >= userOp.unpackPostOpGasLimit()) {\n        revert GasTankPaymaster_PostOpGasLimitTooLow();\n    }\n    // code\n}\n```\n\n## Impact\n\nThe correct `postOpGasLimit` value will be rejected in the validation process.\n\n## Recommendation\n\nWe should use `>` instead of `>=` so that in case PostOpGasLimit equals `postOpCost`, the if block escapes, and tx not reverted with `PostOpGasLimitTooLow` error.\n\n## Team Response\n\nFixed.\n\n",
+    "summary": "",
+    "report_date": "2025-10-03T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/shieldify-security/audits-portfolio-md/blob/main/Etherspot-GasTankPaymasterModule-Extended-Security-Review.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "l-04-the-_validatepaymasteruserop-function-in-gastank-will-revert-when-adding-the-exact-minimum-postop-gas-shieldify-none-etherspot-gastankpaymastermodule-extended-markdown",
+    "firm_name": "Shieldify",
+    "firm_logo_square": "Shieldify_square.png",
+    "protocol_name": "Etherspot Gastankpaymastermodule Extended",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Shieldify Security"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Shieldify",
+        "logo_square": "Shieldify_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Etherspot Gastankpaymastermodule Extended",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

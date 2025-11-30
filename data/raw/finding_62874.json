@@ -1,0 +1,45 @@
+{
+    "id": 62874,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 30,
+    "impact": "MEDIUM",
+    "finders_count": 1,
+    "protocol_id": 3454,
+    "title": "[M-01] Retroactive Parameter Updates Cause Unfair Reward Distribution",
+    "content": "\n## Severity\n\nMedium Risk\n\n## Description\n\nChanging `rewardRatePerSecond` or `burnBonusBps` immediately affects accrual for the entire unclaimed interval, applying new parameters retroactively to past time. Rewards are computed at claim time using current values without epoching or checkpointing. This creates unfair treatment where users who claim before parameter changes receive different rewards than those who claim after, even for the same time periods.\n\n## Location of Affected Code\n\nFile: [src/NFTStaking.sol#L161](https://github.com/Honeypot-Finance/new_nft_staking/blob/02d5afe0b5327642f48fffe29ec2cb4607a078e7/src/NFTStaking.sol#L161)\n\n```solidity\nfunction _claim(uint256 tokenId) internal returns (uint256 amount) {\n  // code\n  // Normal staking claim evaluates the entire delta with current parameters\n  uint256 nowTs = block.timestamp;\n  if (nowTs <= s.lastClaimAt) return 0;\n\n  uint256 delta = nowTs - uint256(s.lastClaimAt);\n  uint256 elapsed = nowTs - uint256(s.stakedAt);\n  uint256 m = _multiplier(elapsed);\n\n  amount = (rewardRatePerSecond * delta * m) / ONE;\n  // code\n}\n```\n\nFile: [src/NFTStaking.sol#L124](https://github.com/Honeypot-Finance/new_nft_staking/blob/02d5afe0b5327642f48fffe29ec2cb4607a078e7/src/NFTStaking.sol#L124)\n\n```solidity\n// Owner can change parameters at any time\nfunction setParameters(\n    uint256 _ratePerSecond,\n    uint256 _burnBonusBps\n) external onlyOwner {\n    require(_burnBonusBps <= MAX_BPS, \"BPS_EXCEEDS_MAX\");\n    require(_ratePerSecond > 0, \"ZERO_RATE\");\n    rewardRatePerSecond = _ratePerSecond;\n    burnBonusBps = _burnBonusBps;\n    emit ParametersUpdated(_ratePerSecond, _burnBonusBps);\n}\n```\n\n## Impact\n\nElapsed time prior to the parameter change is mispriced at the new rate/bonus. Depending on direction, users may be overpaid or underpaid, and updates can be timed to skew payouts.\n\n## Proof of Concept\n\n**Example 1: Rewards increased 2x**\n\n- Initial `rewardRatePerSecond = 1e18` (1 token per second)\n- Both UserA and UserB stake at timestamp 0\n- Day 10: UserA claims → receives 10 days × 1e18 = 864,000e18 tokens\n- Day 10: Owner changes `rewardRatePerSecond = 2e18` (2 tokens per second)\n- Day 20: UserA claims again → receives 10 days × 2e18 = 1,728,000e18 tokens\n- Day 20: UserB claims once → receives 20 days × 2e18 = 3,456,000e18 tokens\n\n**Result**: User A gets 2,592,000e18 total, UserB gets 3,456,000e18 total. User B receives 33% more rewards for the same 20-day period.\n\n**Example 2: Rewards decreased 2x**\n\n- Initial `rewardRatePerSecond = 2e18` (2 tokens per second)\n- Both UserA and UserB stake at timestamp 0\n- Day 10: UserA claims → receives 10 days × 2e18 = 1,728,000e18 tokens\n- Day 10: Owner changes `rewardRatePerSecond = 1e18` (1 token per second)\n- Day 20: UserA claims again → receives 10 days × 1e18 = 864,000e18 tokens\n- Day 20: UserB claims once → receives 20 days × 1e18 = 1,728,000e18 tokens\n\n**Result**: UserA gets 2,592,000e18 total, UserB gets 1,728,000e18 total. UserA receives 50% more rewards for the same 20-day period.\n\n## Recommendation\n\nIntroduce parameter epochs with timestamps and compute piecewise across epochs intersecting `[lastClaimAt, now]`, or force a global checkpoint before parameter changes.\n\nAs a simpler alternative, store per-stake last-parameter values and pro-rate up to a recorded `parametersUpdatedAt` boundary.\n\n## Team Response\n\nFixed.\n\n",
+    "summary": "\nThis bug report discusses an issue where changing certain parameters in the code immediately affects the rewards given to users who claim their tokens. This creates an unfair situation where users who claim before the changes receive different rewards than those who claim after. The affected code can be found in two locations in the NFTStaking.sol file. The impact of this bug is that users may be overpaid or underpaid, depending on the direction of the change, and updates can be timed to skew payouts. The report provides two examples to illustrate this issue. The recommendation is to introduce parameter epochs or store per-stake last-parameter values to address this issue. The team has fixed the bug.",
+    "report_date": "2025-10-08T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/shieldify-security/audits-portfolio-md/blob/main/HoneypotFinance-NFTStaking-Security-Review.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "m-01-retroactive-parameter-updates-cause-unfair-reward-distribution-shieldify-none-honeypotfinance-nftstaking-markdown",
+    "firm_name": "Shieldify",
+    "firm_logo_square": "Shieldify_square.png",
+    "protocol_name": "Honeypotfinance Nftstaking",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Shieldify Security"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Shieldify",
+        "logo_square": "Shieldify_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Honeypotfinance Nftstaking",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

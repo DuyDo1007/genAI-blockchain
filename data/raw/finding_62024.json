@@ -1,0 +1,55 @@
+{
+    "id": 62024,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 37,
+    "impact": "LOW",
+    "finders_count": 3,
+    "protocol_id": 3366,
+    "title": "Onboarding `candidateSecret` Is Not Hashed",
+    "content": "**Update**\nMarked as \"Acknowledged\" by the client. The client provided the following explanation:\n\n> The risk of secret leakage is low.\n\n**File(s) affected:**`ValidatorOnboarding.daml`\n\n**Description:** The `candidateSecret` serves as an authentication of the candidate, and is checked on chain against the recorded value. This is theoretically secure due to the nature of secure private transaction execution and storage within DAML. Nonetheless, it'd still be best practice to store only the hash of the secret, and to calculate and match the hash during choice execution.\n\n**Recommendation:** Hash the secret. Alternatively, secret exchange can be totally done offchain.",
+    "summary": "",
+    "report_date": "2025-08-14T13:19:40.214Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://certificate.quantstamp.com/full/canton-coin-an-implementation-of-splice-amulet/d95ae8a5-34b5-4245-8afc-bfd5435e4632/index.html",
+    "sponsor_name": "",
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://certificate.quantstamp.com/full/canton-coin-an-implementation-of-splice-amulet/d95ae8a5-34b5-4245-8afc-bfd5435e4632/index.html",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "onboarding-candidatesecret-is-not-hashed-quantstamp-canton-coin-an-implementation-of-splice-amulet-markdown",
+    "firm_name": "Quantstamp",
+    "firm_logo_square": "quantstamp_square.png",
+    "protocol_name": "Canton Coin, an implementation of Splice Amulet",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Gereon Mendler"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Ibrahim Abouzied"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Jonathan Mevs"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Quantstamp",
+        "logo_square": "quantstamp_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Canton Coin, an implementation of Splice Amulet",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

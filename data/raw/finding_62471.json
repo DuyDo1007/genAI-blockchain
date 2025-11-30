@@ -1,0 +1,70 @@
+{
+    "id": 62471,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 16,
+    "impact": "MEDIUM",
+    "finders_count": 1,
+    "protocol_id": 3413,
+    "title": "[M-01] Funds lock if all users choose same direction and price is incorrect",
+    "content": "\n_Resolved_\n\n## Severity\n\n**Impact:** High\n\n**Likelihood:** Low\n\n## Description\nThe only way to withdraw tokens from the contract (excluding the fees sent to the treasury) is through `claimReward()`.\n```solidity\nfunction claimReward(uint256 marketId, uint256 roundId) external {\n        Round memory round = marketRounds[marketId][roundId];\n        require(round.ended, \"Round not ended\");\n        require(!hasClaimed[marketId][roundId][msg.sender], \"Already claimed\");\n\n        Prediction[] memory preds = predictions[marketId][roundId];\n        \n        // Determine winning direction (bullish if end price > start price)\n        bool isBullWinning = round.endPrice > round.startPrice;\n\n        // Calculate reward pool (total - 5% fee)\n        uint256 totalPool = preds.length * PREDICTION_FEE;\n        uint256 fee = (totalPool * 5) / 100;\n        uint256 rewardPool = totalPool - fee;\n\n        // Calculate user's share of winning predictions\n        uint256 totalWinningAmount = 0;\n        uint256 userWinningAmount = 0;\n\n        for (uint256 i = 0; i < preds.length; i++) {\n            if (preds[i].isBullish == isBullWinning) {\n                totalWinningAmount += preds[i].amount;\n                if (preds[i].user == msg.sender) {\n                    userWinningAmount += preds[i].amount;\n                }\n            }\n        }\n\n        require(userWinningAmount > 0, \"Not in winning group\");\n\n        // Calculate user's reward based on their share\n        uint256 reward = (rewardPool * userWinningAmount) / totalWinningAmount;\n\n        // Mark as claimed and transfer reward\n        hasClaimed[marketId][roundId][msg.sender] = true;\n        IERC20(markets[marketId].token).transfer(msg.sender, reward);\n\n        emit RewardClaimed(marketId, roundId, msg.sender, reward);\n    }\n```\nAs seen in the code, calculating a user's reward involves iterating through all predictions to determine `totalWinningAmount` and `userWinningAmount`. If all users predict the same direction, `totalWinningAmount` and  `userWinningAmount` become zero for all the users. This results in no one being able to claim rewards, effectively locking all funds in the contract permanently.\n\nIf even a single user predicts the opposite direction, they receive the entire `rewardPool`. However, if no one does, there's no valid winning side, and since there's no alternative mechanism to withdraw the tokens, they remain permanently stuck in the contract with no way to recover them.\n\n## Recommendations\nOne solution could be to send all the tokens from that round to the treasury if no one correctly predicts the price direction.\n\n\n\n",
+    "summary": "\nThis bug report discusses an issue in a smart contract that prevents users from withdrawing their tokens. The only way to withdraw tokens is through a function called `claimReward()`, but if all users predict the same direction, the function fails and no one can claim their rewards. This results in all funds being permanently stuck in the contract with no way to recover them. The report suggests sending all tokens to the treasury if no one correctly predicts the price direction as a possible solution.",
+    "report_date": "2025-09-04T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/pashov/audits/blob/master/team/md/MCP-security-review_2025-08-07.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "m-01-funds-lock-if-all-users-choose-same-direction-and-price-is-incorrect-pashov-audit-group-none-mcp_2025-08-07-markdown",
+    "firm_name": "Pashov Audit Group",
+    "firm_logo_square": "Pashov_square.png",
+    "protocol_name": "MCP_2025-08-07",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Pashov Audit Group"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Pashov Audit Group",
+        "logo_square": "Pashov_square.png"
+    },
+    "protocols_protocol": {
+        "name": "MCP_2025-08-07",
+        "protocols_protocolcategoryscore": [
+            {
+                "protocols_protocolcategory": {
+                    "title": "NFT Lending"
+                },
+                "score": 0.5
+            },
+            {
+                "protocols_protocolcategory": {
+                    "title": "RWA"
+                },
+                "score": 0.5
+            },
+            {
+                "protocols_protocolcategory": {
+                    "title": "RWA Lending"
+                },
+                "score": 0.5
+            },
+            {
+                "protocols_protocolcategory": {
+                    "title": "Staking Pool"
+                },
+                "score": 0.5
+            }
+        ]
+    },
+    "issues_issuetagscore": []
+}

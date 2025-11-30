@@ -1,0 +1,38 @@
+{
+    "id": 62086,
+    "kind": "GIT",
+    "auditfirm_id": 2,
+    "impact": "LOW",
+    "finders_count": 0,
+    "protocol_id": 2159,
+    "title": "[08] Absence of a flashfee will dos a execute with flashfee fxns",
+    "content": "\n<https://github.com/code-423n4/2025-02-blend/blob/f23b3260763488f365ef6a95bfb139c95b0ed0f9/blend-contracts-v2/pool/src/pool/submit.rs# L114-L121>\n\n### Finding description and impact\n\nFlashLoanClient calls `exec_op` passing in 0 as the flash fee. If the client charges a flashfee, it will be unusable since no fee is being passed in.\n```\n\n    FlashLoanClient::new(&e, &flash_loan.contract).exec_op(\n        &from,\n        &flash_loan.asset,\n        &flash_loan.amount,\n@>      &0,\n    );\n```\n\n### Recommended mitigation steps\n\nIntroduce a function to query potential clients’ fees, and pass the return value into the function.\n\n---\n\n",
+    "summary": "",
+    "report_date": "2025-08-13T00:00:00.000Z",
+    "contest_prize_txt": "125000",
+    "contest_link": "https://code4rena.com/reports/2025-02-blend-v2-audit-certora-formal-verification",
+    "sponsor_name": "Blend",
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://code4rena.com/reports/2025-02-blend-v2-audit-certora-formal-verification",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "492",
+    "slug": "08-absence-of-a-flashfee-will-dos-a-execute-with-flashfee-fxns-code4rena-blend-blend-git",
+    "firm_name": "Code4rena",
+    "firm_logo_square": "code4rena_square.png",
+    "protocol_name": "Blend",
+    "bookmarked": false,
+    "read": false,
+    "auditfirms_auditfirm": {
+        "name": "Code4rena",
+        "logo_square": "code4rena_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Blend",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

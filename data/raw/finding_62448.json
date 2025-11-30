@@ -1,0 +1,45 @@
+{
+    "id": 62448,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 7,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3409,
+    "title": "Optimization for PRIMARY_FACTOR_ADDRESS and PRIMARY_CONDITIONAL_MULTIPLIER_ADDRESS Checks",
+    "content": "The `TokenAirdrop` contract contains [these two `require` statements](https://github.com/Consensys/linea-tokens/blob/44640f0965a5c7465b99769a5d241a9a1cb3a2ef/src/airdrops/TokenAirdrop.sol#L92-L94). The intent is to ensure that either both `_primaryFactorAddress` and `_primaryConditionalMultiplierAddress` have been set (non-zero) or both are unset (zero). This guards against only one of them being initialized while the other is not. However, these two conditions are logically redundant and can be simplified. Moreover, in subsequent logic in the [`calculateAllocation`](https://github.com/Consensys/linea-tokens/blob/44640f0965a5c7465b99769a5d241a9a1cb3a2ef/src/airdrops/TokenAirdrop.sol#L111-L113) function, the check can also be simplified based on the guarantee enforced by the constructor.\n\nConsider replacing both of the `require` statements in the constructor of the `TokenAirdrop` with a single equivalent condition which ensures that both addresses are either set or unset. In addition, simplify the conditional in `calculateAllocation` to check just one of the two addresses.\n\n***Update:** Partially resolved in [pull request #10](https://github.com/Consensys/linea-tokens/pull/10). While the check in `calculateAllocation` has been simplified, the `require` statements in the constructor can be simplified further.*",
+    "summary": "",
+    "report_date": "2025-09-03T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://blog.openzeppelin.com/linea-tge-audit",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "optimization-for-primary_factor_address-and-primary_conditional_multiplier_address-checks-openzeppelin-none-linea-tge-audit-markdown",
+    "firm_name": "OpenZeppelin",
+    "firm_logo_square": "openzeppelin_square.png",
+    "protocol_name": "Linea TGE Audit",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "OpenZeppelin"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "OpenZeppelin",
+        "logo_square": "openzeppelin_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Linea TGE Audit",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

@@ -1,0 +1,45 @@
+{
+    "id": 62394,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 34,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3404,
+    "title": "[STAKE-9] Incorrect rounding in mintShares and cumulativeFeePerShare calculations",
+    "content": "**Severity:** Low\n\n**Path:** lib/v3-core/contracts/tokens/OsTokenVaultController.sol::mintShares()#L103-L129\n\nlib/v3-core/contracts/tokens/OsTokenVaultController.sol::cumulativeFeePerShare()#L200-L228\n\n**Description:** In the `OsTokenVaultController.sol` contract, the functions `mintShares()` and `cumulativeFeePerShare()` use rounding mode `Math.Rounding.Floor`, which can lead to incorrect asset-to-share conversions. Specifically, this rounding method allows the user to underpay during share minting and fee calculations, which results in values that consistently favor the user over the protocol.\n\nThe `mintShares()` function calculates the number of assets needed to mint a certain number of shares by using the `convertToAssets()` method, which in turn calls `_convertToAssets()` with `Math.Rounding.Floor`:\n```\n  function convertToAssets(uint256 shares) public view override returns (uint256 assets) {\n    return _convertToAssets(shares, _totalShares, totalAssets(), Math.Rounding.Floor);\n  }\n```\nallowing the user to pay less than the required amount of assets. This discrepancy might accumulate over multiple transactions, resulting in a protocol loss.\nThe fee calculation also uses the Math.Rounding.Floor method, potentially under-crediting the treasury with fewer assets than it is entitled to. Over time, this rounding method results in the protocol losing part of its fee revenue.\n\nExample:\nIf a user mints 100 shares, and the actual cost should be 91.5 assets, the rounding down behavior causes the user to pay only 91 assets. Over time, this discrepancy can accumulate, leading to a significant shortfall in the protocol's asset pool. Similarly, the protocol's treasury fee is rounded down, reducing the fees collected by the protocol.\n```\n  function mintShares(address receiver, uint256 shares) external override returns (uint256 assets) {\n    if (\n      !IVaultsRegistry(_registry).vaults(msg.sender) ||\n      !IVaultsRegistry(_registry).vaultImpls(IVaultVersion(msg.sender).implementation())\n    ) {\n      revert Errors.AccessDenied();\n    }\n    if (receiver == address(0)) revert Errors.ZeroAddress();\n    if (shares == 0) revert Errors.InvalidShares();\n\n    // pull accumulated rewards\n    updateState();\n\n    // calculate amount of assets to mint\n    assets = convertToAssets(shares);\n\n    uint256 totalAssetsAfter = _totalAssets + assets;\n    if (totalAssetsAfter > capacity) revert Errors.CapacityExceeded();\n\n    // update counters\n    _totalShares += SafeCast.toUint128(shares);\n    _totalAssets = SafeCast.toUint128(totalAssetsAfter);\n\n    // mint shares\n    IOsToken(_osToken).mint(receiver, shares);\n    emit Mint(msg.sender, receiver, assets, shares);\n  }\n```\n```\n  function cumulativeFeePerShare() external view override returns (uint256) {\n    // SLOAD to memory\n    uint256 currCumulativeFeePerShare = _cumulativeFeePerShare;\n\n    // calculate rewards\n    uint256 profitAccrued = _unclaimedAssets();\n    if (profitAccrued == 0) return currCumulativeFeePerShare;\n\n    // calculate treasury assets\n    uint256 treasuryAssets = Math.mulDiv(profitAccrued, feePercent, _maxFeePercent);\n    if (treasuryAssets == 0) return currCumulativeFeePerShare;\n\n    // SLOAD to memory\n    uint256 totalShares_ = _totalShares;\n\n    // calculate treasury shares\n    uint256 treasuryShares;\n    unchecked {\n      treasuryShares = _convertToShares(\n        treasuryAssets,\n        totalShares_,\n        // cannot underflow because profitAccrued >= treasuryAssets\n        _totalAssets + profitAccrued - treasuryAssets,\n        Math.Rounding.Floor\n      );\n    }\n\n    return currCumulativeFeePerShare + Math.mulDiv(treasuryShares, _wad, totalShares_);\n  }\n```\n\n**Remediation:**  In the mentioned functions, use `Math.Rounding.Ceil` for the `convertToShares` calculations.\n\n**Status:**   Acknowledged\n\n\n- - -",
+    "summary": "",
+    "report_date": "2024-09-19T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/solodit/solodit_content/blob/main/reports/Hexens/2024-09-19-StakeWise.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "stake-9-incorrect-rounding-in-mintshares-and-cumulativefeepershare-calculations-hexens-none-stakewise-markdown",
+    "firm_name": "Hexens",
+    "firm_logo_square": "Hexens_square.png",
+    "protocol_name": "Stakewise",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Hexens"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Hexens",
+        "logo_square": "Hexens_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Stakewise",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

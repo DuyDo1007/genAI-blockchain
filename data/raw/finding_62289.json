@@ -1,0 +1,55 @@
+{
+    "id": 62289,
+    "kind": "PDF",
+    "auditfirm_id": 6,
+    "impact": "MEDIUM",
+    "finders_count": 3,
+    "protocol_id": 3396,
+    "title": "Accounting available flow as available liquidity will lead to underestimate utilization",
+    "content": "## Severity: Medium Risk\n\n## Context\nMiniPoolPiReserveInterestRateStrategy.sol#L106-L108\n\n## Description\nWhen computing available liquidity for minipools, available flow from main lending pool is counted as available liquidity.\n\n### Code Snippet\n```solidity\n// MiniPoolPiReserveInterestRateStrategy.sol#L91-L112\nfunction getAvailableLiquidity(address asset, address aToken)\n    public\n    view\n    override\n    returns (uint256 availableLiquidity, address underlying, uint256 currentFlow)\n{\n    (,, bool isTranched) = IAERC6909(aToken).getIdForUnderlying(asset);\n    if (isTranched) {\n        IFlowLimiter flowLimiter = IFlowLimiter(IMiniPoolAddressesProvider(_addressProvider).getFlowLimiter());\n        underlying = IAToken(asset).UNDERLYING_ASSET_ADDRESS();\n        address minipool = IAERC6909(aToken).getMinipoolAddress();\n        currentFlow = flowLimiter.currentFlow(underlying, minipool);\n        availableLiquidity = IERC20(asset).balanceOf(aToken) // <<<\n            + IAToken(asset).convertToShares(flowLimiter.getFlowLimit(underlying, minipool)) // <<<\n            - IAToken(asset).convertToShares(currentFlow); // <<<\n    } else {\n        availableLiquidity = IERC20(asset).balanceOf(aToken);\n    }\n}\n```\n\nHowever, this leads to underestimating minipool utilization, and in-turn:\n- If there is no \"flow\", underestimating liquidity rate.  \nIndeed, liquidity rate is derived from borrow rate by applying utilization factor, because borrow interest is shared proportionally to all available liquidity. However, in this case, \"available flow\" does not earn from this interest accrual, so there is no need to include it.\n\n### Code Snippet\n```solidity\n// BasePiReserveRateStrategy.sol#L297-L306\nfunction getLiquidityRate(\n    uint256 currentVariableBorrowRate,\n    uint256 utilizationRate,\n    uint256 reserveFactor\n) internal pure returns (uint256) {\n    return currentVariableBorrowRate.rayMul(utilizationRate).percentMul(\n        PercentageMath.PERCENTAGE_FACTOR - reserveFactor\n    );\n}\n```\n\n- If there is \"flow\" (i.e. minipool is borrowing from main), overestimating borrow rate.  \nIn this case, a minimum liquidity rate is forced on the minipool so it is able to repay its debt eventually. The borrow rate is scaled by a factor of `1/utilization` in order to provide the liquidity rate to lenders. However, as stated above, \"available flow\" does not earn interest, leading to overcharging borrowers of the minipool.\n\n### Code Snippet\n```solidity\n// MiniPoolPiReserveInterestRateStrategy.sol#197-L223\nif (currentFlow != 0) {\n    //@audit minliquidity rate formula\n    ...\n    // `&& utilizationRate != 0` to avoid 0 division. It's safe since the minipool flow is\n    // always owed to a user. Since the debt is repaid as soon as possible if\n    // `utilizationRate != 0` then `currentFlow == 0` by the end of the transaction.\n    if (currentLiquidityRate < minLiquidityRate && utilizationRate != 0) {\n        currentLiquidityRate = minLiquidityRate;\n        currentVariableBorrowRate = currentLiquidityRate.rayDiv( // <<<\n            utilizationRate.percentMul(PercentageMath.PERCENTAGE_FACTOR - reserveFactor) // <<<, !\n        ); // <<<\n    }\n}\n```\n\n## Recommendation\nPlease consider removing available flow from the available liquidity calculation:\n\n### Code Snippet\n```solidity\n// MiniPoolPiReserveInterestRateStrategy.sol#L91-L112\nfunction getAvailableLiquidity(address asset, address aToken)\n    public\n    view\n    override\n    returns (uint256 availableLiquidity, address underlying, uint256 currentFlow)\n{\n    (,, bool isTranched) = IAERC6909(aToken).getIdForUnderlying(asset);\n    if (isTranched) {\n        IFlowLimiter flowLimiter = IFlowLimiter(IMiniPoolAddressesProvider(_addressProvider).getFlowLimiter());\n        underlying = IAToken(asset).UNDERLYING_ASSET_ADDRESS();\n        address minipool = IAERC6909(aToken).getMinipoolAddress();\n        currentFlow = flowLimiter.currentFlow(underlying, minipool);\n        // Modify the following line as shown\n        availableLiquidity = IERC20(asset).balanceOf(aToken)\n            - IAToken(asset).convertToShares(currentFlow);\n    } else {\n        availableLiquidity = IERC20(asset).balanceOf(aToken);\n    }\n}\n```\n\nPlease note that this would have the effect of keeping utilization of the minipool at 100% while bootstrapping liquidity (no organic liquidity provided to the minipool yet). However, the liquidity rate would rise alongside the borrow rate, which would attract lenders to supply to the minipool.\n\n## Acknowledgments\n- Astera: Fixed in commit 6c7bf89e.\n- Spearbit: Fix verified.",
+    "summary": "\nThe report describes a bug in the MiniPoolPiReserveInterestRateStrategy.sol file, which calculates the available liquidity for minipools. The bug causes the available flow from the main lending pool to be counted as available liquidity, leading to underestimation of minipool utilization. This results in incorrect liquidity rates and overcharging of borrowers. The report recommends removing the available flow from the calculation to fix the bug. The fix has been verified by Spearbit and Astera.",
+    "report_date": "2025-08-29T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Astera-Spearbit-Security-Review-December-2024.pdf",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Astera-Spearbit-Security-Review-December-2024.pdf",
+    "github_link": "",
+    "pdf_link": "https://solodit-bucket.s3.amazonaws.com/storage/reports/spearbit/Astera-Spearbit-Security-Review-December-2024.pdf",
+    "pdf_page_from": 24,
+    "contest_id": "",
+    "slug": "accounting-available-flow-as-available-liquidity-will-lead-to-underestimate-utilization-spearbit-none-astera-pdf",
+    "firm_name": "Spearbit",
+    "firm_logo_square": "spearbit_square.png",
+    "protocol_name": "Astera",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Saw-mon and Natalie"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Cergyk"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Jonatas Martins"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Spearbit",
+        "logo_square": "spearbit_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Astera",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

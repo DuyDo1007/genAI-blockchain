@@ -1,0 +1,45 @@
+{
+    "id": 62602,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 16,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3421,
+    "title": "[L-05] Missing state cleanup for burned packets",
+    "content": "\n_Resolved_\n\nIn the `Packet` contract, when an NFT (Packet) is burned, the state variables `_packetUris[packetId]` and `_packetTypeIds[packetId]` are not deleted. While the `tokenURI()` getter function for the `_packetUris[packetId]` parameter will revert for a burned or non-existent NFT, **these states are public** and can still be accessed directly, which leads to invalid data being returned for burned or non-existent NFTs.\n\nThis issue is present in the `finalizeOpen()`, `finalizeRedeem()`, and `burnFromInventory()` functions, where the states related to the burned NFT are not properly cleaned up.\n```solidity\n /// @notice Maps token IDs to their packet type IDs\n /// @dev Used to determine which type a packet belongs to\n mapping(uint256 => uint256) public _packetTypeIds;\n\n /// @notice Maps token IDs to their packet metadata\n /// @dev Used to store packet metadata for each token\n mapping(uint256 => string) public _packetUris;\n```\nRecommendation:  \nWhenever an NFT (Packet) is burned, delete the `_packetUris[packetId]` and `_packetTypeIds[packetId]` states:\n```diff\n_burn(packetId);\n+ delete _packetUris[packetId];\n+ delete _packetTypeIds[packetId];\n```\n\n\n\n",
+    "summary": "",
+    "report_date": "2025-09-11T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/pashov/audits/blob/master/team/md/RipIt-security-review_2025-05-10.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "l-05-missing-state-cleanup-for-burned-packets-pashov-audit-group-none-ripit_2025-05-10-markdown",
+    "firm_name": "Pashov Audit Group",
+    "firm_logo_square": "Pashov_square.png",
+    "protocol_name": "RipIt_2025-05-10",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Pashov Audit Group"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Pashov Audit Group",
+        "logo_square": "Pashov_square.png"
+    },
+    "protocols_protocol": {
+        "name": "RipIt_2025-05-10",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

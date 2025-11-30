@@ -1,0 +1,60 @@
+{
+    "id": 62147,
+    "kind": "PDF",
+    "auditfirm_id": 6,
+    "impact": "LOW",
+    "finders_count": 4,
+    "protocol_id": 3384,
+    "title": "_disableInitializers() is missing in MiscModule's and MarketFactory's constructor",
+    "content": "## Severity: Low Risk\n\n## Context\n`MiscModule.sol#L18-L32`\n\n## Description\nBased on the implementation of `MiscModule`, one can guess that this contract would leave behind an upgradable contract and that is why there is an `initialize` function defined as well. Moreover, in the test repo's setup function, one has:\n\n```solidity\nmiscModule = address(new MiscModule(address(permissionController), address(marketHub)));\n// ...\naddress routerImplementation = address(new Router(ammModule, authModule, miscModule, tradeModule));\nrouter = IRouter(\n    address(\n        new TransparentUpgradeableProxy(\n            routerImplementation,\n            admin,\n            abi.encodeCall(IMiscModule.initialize, (\"PendleBoros Router\", \"1.0\", numTicksToTryAtOnce))\n        )\n    )\n);\n```\n\nTo conform to the patterns used in other implementation contracts in the codebase, it would be best to call `_disableInitializers()` in the constructor.\n\n## Recommendation\nModify the constructor to:\n\n```solidity\nconstructor(\n    address permissionController_,\n    address marketHub_\n) PendleRolesPlugin(permissionController_) TradeStorage(marketHub_) {\n    _disableInitializers(); // <--- added\n}\n```\n\nThe same issue and recommendation applies to `MarketFactory`.\n\n**Pendle Finance:** Fixed in commit `711a6d1b`.  \n**Spearbit:** Fix verified.",
+    "summary": "",
+    "report_date": "2025-08-22T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Pendle-Spearbit-Security-Review-August-2025.pdf",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Pendle-Spearbit-Security-Review-August-2025.pdf",
+    "github_link": "",
+    "pdf_link": "https://solodit-bucket.s3.amazonaws.com/storage/reports/spearbit/Pendle-Spearbit-Security-Review-August-2025.pdf",
+    "pdf_page_from": 14,
+    "contest_id": "",
+    "slug": "disableinitializers-is-missing-in-miscmodules-and-marketfactorys-constructor-spearbit-none-pendle-core-v3-pdf",
+    "firm_name": "Spearbit",
+    "firm_logo_square": "spearbit_square.png",
+    "protocol_name": "Pendle Core v3",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Saw-mon and Natalie"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Ethan"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Desmond Ho"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "RustyRabbit"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Spearbit",
+        "logo_square": "spearbit_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Pendle Core v3",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

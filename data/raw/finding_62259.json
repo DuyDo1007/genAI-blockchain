@@ -1,0 +1,55 @@
+{
+    "id": 62259,
+    "kind": "PDF",
+    "auditfirm_id": 6,
+    "impact": "MEDIUM",
+    "finders_count": 3,
+    "protocol_id": 3395,
+    "title": "Misuse of isProposalOpen() function",
+    "content": "## Severity: Medium Risk\n\n## Context\n(No context files were provided by the reviewer)\n\n## Summary\nThe `isProposalOpen()` function returns true if it's open for voting. It returns false if it's too late or too early for voting. However, in two places of the codebase, it seems to be used as an `isProposalStillOpen()` function, neglecting the fact that it will also return false if the proposal hasn't even been voted on yet, leading to unintended behavior.\n\n## Description\n\n- **Occurrence 1: LockManagerBase._withdrawActiveVotingPower()**  \n  The `_withdrawActiveVotingPower()` function iterates through the list of `knownProposalIds` and checks for each whether (1) the proposal is still open with `isProposalOpen()` (if not, its identifier is simply removed from the list) and whether (2) the user has active voting power on the proposal (if yes, it attempts to clear the vote). The problem lies in handling proposals that haven't even started yet: the function would remove them from the `knownProposalIds` list, and once it actually starts, it wouldn't check it anymore. This would allow a user to vote with their tokens and then withdraw them without having their vote cleared.  \n  **Disclaimer:** This issue was identified by Aragon themselves early during the audit.\n\n- **Occurrence 2: MajorityVotingBase._hasSucceeded()**  \n  The `_hasSucceeded()` function checks whether a proposal has been successfully voted for, such that it can be executed. It checks whether the proposal is still open with `isProposalOpen()` to decide whether to apply standard or early execution threshold checks. However, a proposal that hasn't even started yet would end up using standard threshold checks instead of the correct early execution checks. Fortunately, this has no impact thanks to the fact that a proposal needs at least 1 wei of voting power to pass thresholds, even if those have been set to 0, and a proposal that hasn't started yet cannot be voted on.\n\n## Recommendation\nTo prevent such confusion and possible bugs, we encourage the creation and use of an `isProposalEnded()` function specifically for this use case. It should return true if and only if both the start and end dates are in the past.\n\n## Aragon\nFixed in PR 42.\n\n## Spearbit\nFix verified.",
+    "summary": "\nThe bug report discusses an issue with the `isProposalOpen()` function in the codebase. This function is used to determine whether a proposal is open for voting, but in two instances it is being used as an `isProposalStillOpen()` function. This leads to unintended behavior as the function also returns false if the proposal hasn't even been voted on yet. This bug has been identified by Aragon themselves and has been fixed in their code. To prevent such confusion and possible bugs in the future, it is recommended to create and use a specific `isProposalEnded()` function. This issue has been verified and fixed by Spearbit.",
+    "report_date": "2025-08-28T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Aragon-Spearbit-Security-Review-July-2025.pdf",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Aragon-Spearbit-Security-Review-July-2025.pdf",
+    "github_link": "",
+    "pdf_link": "https://solodit-bucket.s3.amazonaws.com/storage/reports/spearbit/Aragon-Spearbit-Security-Review-July-2025.pdf",
+    "pdf_page_from": 10,
+    "contest_id": "",
+    "slug": "misuse-of-isproposalopen-function-spearbit-none-aragon-dao-gov-plugin-pdf",
+    "firm_name": "Spearbit",
+    "firm_logo_square": "spearbit_square.png",
+    "protocol_name": "Aragon DAO Gov Plugin",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Om Parikh"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Emanuelle Ricci"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Patrick Drotleff"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Spearbit",
+        "logo_square": "spearbit_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Aragon DAO Gov Plugin",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

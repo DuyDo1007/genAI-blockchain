@@ -1,0 +1,70 @@
+{
+    "id": 62474,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 16,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3413,
+    "title": "[L-01] Later prediction rounds may not start at expected timestamp",
+    "content": "\n_Resolved_\n\nAccording to the discussion with sponsors, we expect to start a new round at the expected timestamp. For example, we expect to start a new round in each UTC 00:00.\n\nThe problem here is that when the owner wants to end this round at start timestamp + 24 hours, it will be quite difficult to end the round exactly at start timestamp + 24 hours. It's quite possible that we may delay one or two blocks. Then we can start one new round after the start timestamp + 24 hours + several blocks. In each round prediction, we will add one delay here. When we finish hundreds of rounds, we will find out that the actual start time for one new round is far away from our expected UTC 00:00. This will have a bad influence on predictors.\n\n```solidity\n    function endRound(uint256 marketId) external onlyOwner {\n        uint256 roundId = currentRoundId[marketId];\n        // storage.\n        Round storage round = marketRounds[marketId][roundId];\n        require(!round.ended, \"Round already ended\");\n        // If we reach the end of this round, the owner can end one round.\n        require(block.timestamp >= round.startTime + 24 hours, \"Round not over yet\");\n    }\n```\n\nRecommendation: Remove this requirement. \n\n\n\n",
+    "summary": "",
+    "report_date": "2025-09-04T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/pashov/audits/blob/master/team/md/MCP-security-review_2025-08-07.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "l-01-later-prediction-rounds-may-not-start-at-expected-timestamp-pashov-audit-group-none-mcp_2025-08-07-markdown",
+    "firm_name": "Pashov Audit Group",
+    "firm_logo_square": "Pashov_square.png",
+    "protocol_name": "MCP_2025-08-07",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Pashov Audit Group"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Pashov Audit Group",
+        "logo_square": "Pashov_square.png"
+    },
+    "protocols_protocol": {
+        "name": "MCP_2025-08-07",
+        "protocols_protocolcategoryscore": [
+            {
+                "protocols_protocolcategory": {
+                    "title": "NFT Lending"
+                },
+                "score": 0.5
+            },
+            {
+                "protocols_protocolcategory": {
+                    "title": "RWA"
+                },
+                "score": 0.5
+            },
+            {
+                "protocols_protocolcategory": {
+                    "title": "RWA Lending"
+                },
+                "score": 0.5
+            },
+            {
+                "protocols_protocolcategory": {
+                    "title": "Staking Pool"
+                },
+                "score": 0.5
+            }
+        ]
+    },
+    "issues_issuetagscore": []
+}

@@ -1,0 +1,45 @@
+{
+    "id": 62716,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 32,
+    "impact": "HIGH",
+    "finders_count": 1,
+    "protocol_id": 3438,
+    "title": "[H-01] FULL-Restricted Users Can Still Deposit",
+    "content": "\n## Severity\n\nHigh\n\n## Description\n\nThe deposit flow does not fully enforce the FULL_RESTRICTED_STAKER_ROLE check.\nWhen a user with FULL restriction calls deposit(assets, receiver), the restriction logic fails to prevent the operation, allowing restricted users to bypass intended compliance rules.\n\nDeposit flow:\ndeposit(ERC4626 logic) -> _deposit(override) where checks if both addresses have SOFT_RESTRICTED_STAKER_ROLE if true reverts\nthen logic goes to _deposit(ERC4626)\n\n```solidity\n function _deposit(address caller, address receiver, uint256 assets, uint256 shares) internal virtual {  \n        \n        SafeERC20.safeTransferFrom(IERC20(asset()), caller, address(this), assets);  \n        _mint(receiver, shares);  \n  \n        emit Deposit(caller, receiver, assets, shares);  \n    }  \n```\n\nWhere _mint is called.\n\n```solidity\nfunction _mint(address account, uint256 value) internal {  \n        if (account == address(0)) {  \n            revert ERC20InvalidReceiver(address(0));  \n        }  \n        _update(address(0), account, value);  \n    }  \n```\nSee how _mint sets first parameter for _update to be address 0.\n\nand since we have _update override it goes to\n\n```solidity\n function _update(address from, address to, uint256 value) internal override {  \n        if (hasRole(FULL_RESTRICTED_STAKER_ROLE, from) && to != address(0)) {  \n            revert OperationNotAllowed();  \n        }  \n        if (hasRole(FULL_RESTRICTED_STAKER_ROLE, to)) {  \n            revert OperationNotAllowed();  \n        }  \n        super._update(from, to, value);  \n    }  \n```\n\nWhere it fails to check if the msg.sender is restricted role\n\n## Team Response\n\nFixed.\n\n",
+    "summary": "\nThe report describes a bug in the deposit flow that does not properly enforce the FULL_RESTRICTED_STAKER_ROLE check. This allows restricted users to bypass compliance rules when making a deposit. The bug is caused by the _mint function setting the first parameter for _update to be address 0, which bypasses the role check. The team has fixed the issue.",
+    "report_date": "2025-08-26T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/Kann-Audits/Kann-Audits/blob/main/reports/md-format/private-audits-reports/ManifestFinance-security-review_2025-08-26.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "h-01-full-restricted-users-can-still-deposit-kann-none-manifestfinance-security-review_2025-08-26-markdown",
+    "firm_name": "Kann",
+    "firm_logo_square": "Kann_Audits_square.png",
+    "protocol_name": "ManifestFinance-security-review_2025-08-26",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Kann"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Kann",
+        "logo_square": "Kann_Audits_square.png"
+    },
+    "protocols_protocol": {
+        "name": "ManifestFinance-security-review_2025-08-26",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

@@ -1,0 +1,45 @@
+{
+    "id": 62680,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 23,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3435,
+    "title": "Lack of `spa` and `wlp` Address Validation in Zap Contract",
+    "content": "##### Description\nThe `zapIn` and `zapOut` functions in the `Zap` contract accept `spa` (SelfPeggingAsset) and `wlp` (wrapped LP token) addresses provided by the caller without confirming they are valid contracts.\n\nAttackers can pass arbitrary contracts as `spa` and `wlp`, creating an opportunity to grant an allowance of any token from the `Zap` contract to these malicious addresses.\n\n##### Recommendation\nWe recommend implementing a whitelist of verified `spa` and `wlp` contracts.\n",
+    "summary": "",
+    "report_date": "2025-09-19T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/mixbytes/audits_public/blob/master/NUTS%20Finance/Tapio/README.md#10-lack-of-spa-and-wlp-address-validation-in-zap-contract",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "lack-of-spa-and-wlp-address-validation-in-zap-contract-mixbytes-none-nuts-finance-markdown",
+    "firm_name": "MixBytes",
+    "firm_logo_square": "mixbytes_square.png",
+    "protocol_name": "NUTS Finance",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "MixBytes"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "MixBytes",
+        "logo_square": "mixbytes_square.png"
+    },
+    "protocols_protocol": {
+        "name": "NUTS Finance",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

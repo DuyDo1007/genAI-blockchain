@@ -1,0 +1,45 @@
+{
+    "id": 62174,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 16,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3389,
+    "title": "[L-01] `createEulerEarn()` is vulnerable to frontrunning",
+    "content": "\n_Acknowledged_\n\nThe `EulerEarnFactory.createEulerEarn()` function deploys a new `EulerEarn` vault using the `CREATE2` opcode with a user-supplied `salt`. However, because the `salt` is arbitrary and not tied to the `msg.sender`, a malicious actor can frontrun the transaction and deploy a contract at the same address first, effectively griefing the original deployer by causing their transaction to revert.\n\nThis creates a denial-of-service vector where an attacker can preemptively occupy expected contract addresses and prevent legitimate users from deploying their vaults.\n\n```solidity\n function createEulerEarn(\n        address initialOwner,\n        uint256 initialTimelock,\n        address asset,\n        string memory name,\n        string memory symbol,\n        bytes32 salt\n    ) external returns (IEulerEarn eulerEarn) {\n        eulerEarn = IEulerEarn(\n            address(\n                new EulerEarn{salt: salt}(\n                    initialOwner, address(evc), permit2Address, initialTimelock, asset, name, symbol\n                )\n            )\n        );\n\n        isVault[address(eulerEarn)] = true;\n\n        vaultList.push(address(eulerEarn));\n\n        emit EventsLib.CreateEulerEarn(\n            address(eulerEarn), _msgSender(), initialOwner, initialTimelock, asset, name, symbol, salt\n        );\n    }\n```\n\n**Recommendation:**  \n\nConsider deriving the salt using both the provided `salt` and the caller’s address.\n\n\n### Euler comments\n\nWe acknowledge the finding, will keep as is.\n\n\n\n",
+    "summary": "",
+    "report_date": "2025-08-27T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/pashov/audits/blob/master/team/md/EulerEarn-security-review_2025-07-25.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "l-01-createeulerearn-is-vulnerable-to-frontrunning-pashov-audit-group-none-eulerearn_2025-07-25-markdown",
+    "firm_name": "Pashov Audit Group",
+    "firm_logo_square": "Pashov_square.png",
+    "protocol_name": "EulerEarn_2025-07-25",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Pashov Audit Group"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Pashov Audit Group",
+        "logo_square": "Pashov_square.png"
+    },
+    "protocols_protocol": {
+        "name": "EulerEarn_2025-07-25",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

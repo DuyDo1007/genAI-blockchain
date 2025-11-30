@@ -1,0 +1,60 @@
+{
+    "id": 62882,
+    "kind": "PDF",
+    "auditfirm_id": 6,
+    "impact": "HIGH",
+    "finders_count": 4,
+    "protocol_id": 3419,
+    "title": "DELEGATECALL to staking precompile allows theft of all staked MON",
+    "content": "## Security Report\n\n## Severity\n**Critical Risk**\n\n## Context\n(No context files were provided by the reviewer)\n\n## Description\nNote: This issue was known internally by the protocol team and fixed in a later commit after the issue had been submitted. However, it is still kept in the report for completeness (issue found in commit hash `4cbb1742cd31ee30a0d2c6edb698400d9d70f9d8`).\n\nThe staking precompile does not enforce that the EVMC message kind passed to the precompile is not `DELEGATE-CALL`. This has very severe implications since the staking precompile works by getting the user to transfer native MON via `msg.value` to the precompile.\n\n```cpp\nResult<byte_string> StakingContract::precompile_delegate(\n    byte_string_view const input, evmc_address const &msg_sender,\n    evmc_uint256be const &msg_value)\n{\n```\n\nSince `DELEGATECALL` preserves `msg.value` and `msg.sender` from the previous caller context, a user can set up a malicious contract that delegate calls `precompile_delegate`. For instance, the native MON will be transferred to the malicious contract, but the `msg.value` will be reused in `precompile_delegate` without actually transferring the funds to the staking precompile.\n\nState updates will then occur in the staking contract, recording the user's stake without the staking precompile actually having received the funds (this is because the state variables in the precompile contract are defined for the precompile address resulting in `state_.set_storage(STAKING_CONTRACT_ADDRESS...)` being called).\n\nThe user can then withdraw their funds from the staking precompile and the malicious contract, resulting in the theft of all staked MON.\n\nAlso related to this issue is that a user can call state-changing precompile functions using `STATICCALL`, which should not be allowed as `STATICCALL` should not allow state changes.\n\n## Recommendation\nEnforce that the EVMC message kind is `CALL` for all state-changing staking precompile functions (`precompile_get_delegator`, `precompile_add_validator`, `precompile_delegate`, `precompile_undelegate`, `precompile_compound`, `precompile_withdraw`, `precompile_claim_rewards`) and `CALL` and `STATICCALL` for non-state-changing precompile functions (`precompile_get_validator`).\n\n## Category Labs\nWe were planning to ban everything except `EVMC_CALL` (including on `get_validator` even though static call is fine) before anything gets dispatched. Fixed in commit `215721ad`.\n\nSpearbit: `STATICCALL` is still allowed to state-changing precompiles as the `msg.flags` is not checked to be `EVMC_STATIC`.\n\n## Category Labs\nFixed in `fc820c9`.",
+    "summary": "\nThis bug report discusses a critical risk issue found in a commit of a protocol. The staking precompile does not properly enforce the EVMC message kind, which can lead to malicious contracts stealing staked MON. The issue has been fixed in a later commit, but the report recommends enforcing `CALL` for all state-changing staking precompile functions and `CALL` and `STATICCALL` for non-state-changing precompile functions. The issue has been fixed in two separate commits.",
+    "report_date": "2025-09-19T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Monad-Spearbit-Security-Review-September-2025.pdf",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Monad-Spearbit-Security-Review-September-2025.pdf",
+    "github_link": "",
+    "pdf_link": "https://solodit-bucket.s3.amazonaws.com/storage/reports/spearbit/Monad-Spearbit-Security-Review-September-2025.pdf",
+    "pdf_page_from": 6,
+    "contest_id": "",
+    "slug": "delegatecall-to-staking-precompile-allows-theft-of-all-staked-mon-spearbit-none-monad-pdf",
+    "firm_name": "Spearbit",
+    "firm_logo_square": "spearbit_square.png",
+    "protocol_name": "Monad",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Haxatron"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Dtheo"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Guido Vranken"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Rikard Hjort"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Spearbit",
+        "logo_square": "spearbit_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Monad",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

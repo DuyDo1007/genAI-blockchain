@@ -1,0 +1,45 @@
+{
+    "id": 62592,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 16,
+    "impact": "HIGH",
+    "finders_count": 1,
+    "protocol_id": 3421,
+    "title": "[C-01] Reentrancy attack in `authorizedOpenPacket()` allows duplicates",
+    "content": "\n_Resolved_\n\n## Severity\n\n**Impact:** High\n\n**Likelihood:** High\n\n## Description\n\nThere is a critical reentrancy vulnerability in the interaction between `CardAllocationPool.sol` and `Packet.sol` when handling **OPEN_PACKET** burn types. This vulnerability enables attackers to receive multiple sets of NFT cards for a single packet.\n\nThe attack scenario follows this sequence:\n\n- Attacker initiates a burn with **OPEN_PACKET** type using `initiateBurn()` in `Packet.sol` for a packet they own.\n- A manager calls `authorizedOpenPacket()` in `CardAllocationPool.sol` to open the packet with specific cards.\n- The `authorizedOpenPacket()` function transfers cards to the attacker using `safeTransferFrom()`, which triggers the `onERC721Received()` hook on the attacker's contract.\n- Within this callback, the attacker can:\n   1) Call `cancelBurn()` to reset the burn state of the packet.\n   2) Immediately call `initiateBurn()` again with **INSTANT_OPEN_PACKET** type for the same packet\n-  If `packetTypeToCardBundles[packetType].length == 1` in `CardAllocationPool.sol`, the `instantOpenPacket()` function will:\n   1) Transfer a set of NFTs cards to the attacker.\n   2) Call `finalizeOpen()` in `Packet.sol` to transfer the packet to the inventory.\n- When control returns to the original `authorizedOpenPacket()` function, it calls `finalizeOpen()` to burn the packet, but at this point, the packet is already in the inventory, causing a state inconsistency.\n\nThis attack leads to:\n\na. The attacker receives cards twice for a single packet.\n\nb. The packet is added to inventory for resale but is also burned, causing future calls to the `PacketStore.sol` contract to fail when attempting to transfer the packet.\n\nThe root cause is that the `authorizedOpenPacket()` function doesn't protect against reentrancy and the burn type is not reset to **NONE**, allowing the packet's state to be manipulated during the callback from the `safeTransferFrom()` operation.\n\n## Recommendations\n\nImplement reentrancy protection and use a checks-effects-interactions pattern to prevent this attack in `Packet.sol` and `CardAllocationPool.sol` functions. \n\n\n\n",
+    "summary": "\nThis report discusses a bug that has been resolved in the `CardAllocationPool.sol` and `Packet.sol` contracts. The bug allows attackers to receive multiple sets of NFT cards for a single packet by exploiting a critical reentrancy vulnerability. This can happen when a manager calls the `authorizedOpenPacket()` function in `CardAllocationPool.sol` to open a packet with specific cards, which then triggers the `onERC721Received()` hook in the attacker's contract. The attacker can then manipulate the packet's state and receive the cards twice by calling `initiateBurn()` and `finalizeOpen()` in quick succession. To fix this issue, it is recommended to implement reentrancy protection and use a checks-effects-interactions pattern in the affected functions.",
+    "report_date": "2025-09-11T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/pashov/audits/blob/master/team/md/RipIt-security-review_2025-05-10.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "c-01-reentrancy-attack-in-authorizedopenpacket-allows-duplicates-pashov-audit-group-none-ripit_2025-05-10-markdown",
+    "firm_name": "Pashov Audit Group",
+    "firm_logo_square": "Pashov_square.png",
+    "protocol_name": "RipIt_2025-05-10",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Pashov Audit Group"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Pashov Audit Group",
+        "logo_square": "Pashov_square.png"
+    },
+    "protocols_protocol": {
+        "name": "RipIt_2025-05-10",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

@@ -1,0 +1,45 @@
+{
+    "id": 62657,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 23,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 875,
+    "title": "Redundant Type-Bound Checks for `moduleId` and `nodeOpId`",
+    "content": "##### Description\nIn the `validateExitRequests` function, there are two checks:\n\n```solidity=\nrequire(_input.moduleId <= type(uint24).max, ERROR_MODULE_ID_OVERFLOW);\nrequire(_input.nodeOpId <= type(uint40).max, ERROR_NODE_OP_ID_OVERFLOW);\n```\n\nThese checks are redundant because subsequent validations already ensure the correctness of these values:\n\n`require(_input.moduleId == moduleId, ERROR_EXECUTOR_NOT_PERMISSIONED_ON_MODULE);` ensures that `moduleId` is valid and matches the known value. `require(_input.nodeOpId < nodeOperatorsCount, ERROR_NODE_OPERATOR_ID_DOES_NOT_EXIST);` guarantees that `nodeOpId` fits within its intended range.\n\n##### Recommendation\nWe recommend removing the two mentioned checks for `moduleId` and `nodeOpId`, since their correctness is already ensured by the logic that follows.\n\n\n",
+    "summary": "",
+    "report_date": "2025-09-16T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/mixbytes/audits_public/blob/master/Lido/Easy%20Track%20(3)/README.md#2-redundant-type-bound-checks-for-moduleid-and-nodeopid",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "redundant-type-bound-checks-for-moduleid-and-nodeopid-mixbytes-none-lido-markdown",
+    "firm_name": "MixBytes",
+    "firm_logo_square": "mixbytes_square.png",
+    "protocol_name": "Lido",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "MixBytes"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "MixBytes",
+        "logo_square": "mixbytes_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Lido",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

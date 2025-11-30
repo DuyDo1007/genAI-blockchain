@@ -1,0 +1,50 @@
+{
+    "id": 62203,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 11,
+    "impact": "LOW",
+    "finders_count": 2,
+    "protocol_id": 3392,
+    "title": "Inability for users to permissionlessly stake and earn yield",
+    "content": "**Description:** The intention of the protocol as specified in the kick-off call and in discussion with the client is that users should be able to permissionlessly:\n* buy hBTC from a decentralized exchange\n* stake/unstake hBTC in a permissionless manner via `StakingVault`\n\n**Impact:** In the current implementation `StakingVault` uses `onlyWhitelisted` modifiers on many core functions which prohibits users who permissionlessly bought hBTC using a decentralized exchange from subsequently staking their hBTC and earning yield.\n\nTo enable this the admin would need to call `setGlobalWhitelist` which would effectively disable the whitelist and compliance checks anyway.\n\n**Recommended Mitigation:** Consider using only the \"blacklist\" functionality in `StakingVault` but removing the \"whitelist\" functionality to allow users to permissionlessly participate in staking and earning yield.\n\n**Syntetika:**\nFixed in commit [86384fe](https://github.com/SyntetikaLabs/monorepo/commit/86384fe1504780338649d25f720fb78b25132875).\n\n**Cyfrin:** Verified.",
+    "summary": "",
+    "report_date": "2025-08-01T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/solodit/solodit_content/blob/main/reports/Cyfrin/2025-08-01-cyfrin-syntetika-v2.0.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "inability-for-users-to-permissionlessly-stake-and-earn-yield-cyfrin-none-syntetika-markdown",
+    "firm_name": "Cyfrin",
+    "firm_logo_square": "Cyfrin_square.jpg",
+    "protocol_name": "Syntetika",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Dacian"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Jorge"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Cyfrin",
+        "logo_square": "Cyfrin_square.jpg"
+    },
+    "protocols_protocol": {
+        "name": "Syntetika",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

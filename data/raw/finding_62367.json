@@ -1,0 +1,45 @@
+{
+    "id": 62367,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 34,
+    "impact": "HIGH",
+    "finders_count": 1,
+    "protocol_id": 1390,
+    "title": "[ASTRO-22] No slippage protection for bridgeFunds",
+    "content": "**Severity:** High\n\n**Path:** BridgeConnectorHomeSTG.sol, BridgeConnectorRemoteSTG.sol\n\n**Description:** The function bridgeFunds (in both Home and Remote contracts) is used to send assets from a crate to a remote chain; it uses Stargate to make the swap. Although the minimal output amount parameter of the swap is hardcoded to be zero, thus the swap will be made without slippage protection. Although a stableswap is being made, slippage protection should be in place as it can be “sandwich” attacked or manipulated by unexpected market conditions.\n\nFurthermore, all debt calculations will be misaligned if slippage occurs and thus impact protocol consistency.\n```\n    function bridgeFunds(\n        uint256 _amount,\n        uint256 _chainId\n    ) external payable override onlyCrate {B\n        // Loading this in memory for gas savings\n        // We send directly to the allocator\n        address destination = allocatorsMap[_chainId];\n        uint256 dstPoolId = dstPoolIdMap[_chainId];\n        if (dstPoolId == 0) {\n            revert PoolNotSet(_chainId);\n        }\n\n        // Bridging using Stargate\n        IStargateRouter(stgEndpoint).swap{ value: msg.value }(\n            lzChainIdMap[_chainId], // destination chain Id\n            srcPoolId, // local pool Id (ex: USDC is 1)\n            dstPoolIdMap[_chainId], // remote pool Id\n            payable(tx.origin), // refund address for extra gas\n            _amount, // quantity to swap\n            0, // the min qty you would accept on the destination  \n            IStargateRouter.lzTxObj(0, 0, bytes(\"\")), // params for gas forwarding\n            abi.encodePacked(destination), // receiver of the tokens\n            bytes(\"\") // data for the destination router\n        );\n        emit BridgeSuccess(_amount, _chainId, msg.value, destination);\n    }\n```\n\n**Remediation:**  Add a minimal output amount parameter in bridgeFunds.\n\n**Status:**  Fixed\n\n- - -",
+    "summary": "\nA bug has been found in the BridgeConnectorHomeSTG.sol and BridgeConnectorRemoteSTG.sol contracts. The function bridgeFunds, which is used to send assets from one chain to another, does not have slippage protection in place. This means that the swap can be manipulated by unexpected market conditions, causing misaligned debt calculations and impacting the protocol's consistency. The bug has been fixed by adding a minimal output amount parameter to the bridgeFunds function.",
+    "report_date": "2023-04-17T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/solodit/solodit_content/blob/main/reports/Hexens/2023-04-17-Astrolab.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "astro-22-no-slippage-protection-for-bridgefunds-hexens-none-astrolab-markdown",
+    "firm_name": "Hexens",
+    "firm_logo_square": "Hexens_square.png",
+    "protocol_name": "Astrolab",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Hexens"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Hexens",
+        "logo_square": "Hexens_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Astrolab",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

@@ -1,0 +1,55 @@
+{
+    "id": 62265,
+    "kind": "PDF",
+    "auditfirm_id": 6,
+    "impact": "LOW",
+    "finders_count": 3,
+    "protocol_id": 3395,
+    "title": "Early execution via vote() bypasses authentication",
+    "content": "## Severity: Low Risk\n\n## Context\n(No context files were provided by the reviewer)\n\n## Summary\nExecution of a proposal requires having `EXECUTE_PROPOSAL_PERMISSION_ID` permission. The `vote()` function attempts automatic execution if the vote that was made allows for early execution of the proposal. However, it is found that it will only verify that the `LockManager` contract has that permission, instead of the person who actually made the vote.\n\n## Finding Description\nNormally, proposals that have successfully passed can be executed by calling the public `execute()` function on the plugin contract. The `MajorityVotingBase` contract ensures that `execute()` may only be called by those with the `EXECUTE_PROPOSAL_PERMISSION_ID` permission via the `auth()` function modifier.\n\nProposals may, however, be set to allow for early execution. In this case, a proposal may be executed early (before its `endDate`) when enough people have voted \"Yes\" or \"Abstain,\" such that even if all remaining votes were to be for \"No,\" the proposal would still pass at the current moment.\n\nThe `vote()` function intends to immediately execute a proposal if the new vote has made the proposal eligible for early execution. While it attempts to verify for the `EXECUTE_PROPOSAL_PERMISSION_ID` permission, it fails to do so properly. The reason is that, while `execute()` is called directly on the plugin contract, the `vote()` function is instead called via the lock contract because it has the voting power balances.\n\nThe plugin contract here checks the permissions of the lock contract, instead of the address that originally called the lock contract. It should be noted that, in the vast majority of cases, the `EXECUTE_PROPOSAL_PERMISSION_ID` permission would have been given to `ANY_ADDR`, meaning that any address would have had this permission anyway.\n\n## Recommendation\nDon't call the `_attemptEarlyExecution()` function in the name of the `msg.sender`, which is enforced to be the lock manager according to the `auth()` modifier, but instead have it check permissions for the passed `_voter` address, which contains the address of the person that called `vote()` on the lock manager contract.\n\n```solidity\nfunction vote(\n    uint256 _proposalId,\n    address _voter,\n    VoteOption _voteOption,\n    uint256 _newVotingPower\n) public override auth(LOCK_MANAGER_PERMISSION_ID) {\n    Proposal storage proposal_ = proposals[_proposalId];\n    // ...\n    if (proposal_.parameters.votingMode == VotingMode.EarlyExecution) {\n        // _attemptEarlyExecution(_proposalId, _msgSender());\n        _attemptEarlyExecution(_proposalId, _voter);\n    }\n}\n```\n\n## Aragon\nFixed in PR 26.\n\n## Spearbit\nAragon has decided to fully remove the EarlyExecution voting mode with PR 26.",
+    "summary": "",
+    "report_date": "2025-08-28T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Aragon-Spearbit-Security-Review-July-2025.pdf",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Aragon-Spearbit-Security-Review-July-2025.pdf",
+    "github_link": "",
+    "pdf_link": "https://solodit-bucket.s3.amazonaws.com/storage/reports/spearbit/Aragon-Spearbit-Security-Review-July-2025.pdf",
+    "pdf_page_from": 17,
+    "contest_id": "",
+    "slug": "early-execution-via-vote-bypasses-authentication-spearbit-none-aragon-dao-gov-plugin-pdf",
+    "firm_name": "Spearbit",
+    "firm_logo_square": "spearbit_square.png",
+    "protocol_name": "Aragon DAO Gov Plugin",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Om Parikh"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Emanuelle Ricci"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Patrick Drotleff"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Spearbit",
+        "logo_square": "spearbit_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Aragon DAO Gov Plugin",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

@@ -1,0 +1,50 @@
+{
+    "id": 62223,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 11,
+    "impact": "LOW",
+    "finders_count": 2,
+    "protocol_id": 3392,
+    "title": "Enforce that `StakingVault::decimals` is greater or equal to the underlying asset decimals",
+    "content": "**Description:** [EIP4626](https://eips.ethereum.org/EIPS/eip-4626) states:\n> Although the convertTo functions should eliminate the need for any use of an EIP-4626 Vault’s decimals variable, it is still strongly recommended to mirror the underlying token’s decimals if at all possible, to eliminate possible sources of confusion and simplify integration across front-ends and for other off-chain users.\n\nAnd this set of [vault property tests](https://github.com/crytic/properties/blob/main/contracts/ERC4626/properties/SecurityProps.sol#L8-L11) enforce that the vault's decimals are greater or equal to the underlying asset decimals:\n```solidity\n        assertGte(\n            vault.decimals(),\n            asset.decimals(),\n            \"The vault's share token should have greater than or equal to the number of decimals as the vault's asset token.\"\n        );\n```\n\n**Recommended Mitigation:** In `StakingVault::constructor`, revert if `IERC20Metadata(_asset).decimals() > decimals()`.\n\n**Syntetika:**\nFixed in commit [ac97972](https://github.com/SyntetikaLabs/monorepo/commit/ac97972d762392dc8465fa70c718fa78615636ff) by enforcing decimal equality per the EIP4626 standard recommendation.\n\n**Cyfrin:** Verified.",
+    "summary": "",
+    "report_date": "2025-08-01T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/solodit/solodit_content/blob/main/reports/Cyfrin/2025-08-01-cyfrin-syntetika-v2.0.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "enforce-that-stakingvaultdecimals-is-greater-or-equal-to-the-underlying-asset-decimals-cyfrin-none-syntetika-markdown",
+    "firm_name": "Cyfrin",
+    "firm_logo_square": "Cyfrin_square.jpg",
+    "protocol_name": "Syntetika",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Dacian"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Jorge"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Cyfrin",
+        "logo_square": "Cyfrin_square.jpg"
+    },
+    "protocols_protocol": {
+        "name": "Syntetika",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

@@ -1,0 +1,55 @@
+{
+    "id": 62281,
+    "kind": "PDF",
+    "auditfirm_id": 6,
+    "impact": "HIGH",
+    "finders_count": 3,
+    "protocol_id": 3396,
+    "title": "Mix of scaled and non-scaled parameters in _afterTokenTransfer",
+    "content": "## Severity: High Risk\n\n## Context\nATokenERC6909.sol#L396-L432.\n\n## Description\nMixing of scaled and unscaled parameters in arithmetic (addition/subtraction) operations has been used in `_afterTokenTransfer`. The amount input to `_afterTokenTransfer` comes from `super.{transfer, transferFrom, _mint, _burn}` of ERC6909, which is a scaled down amount (scaled down by the corresponding index, `x.rayDiv(i)`).\n\nHowever, the following parameters are **not scaled down** and include the indices:\n\n- `uint256 oldSupply = totalSupply(id); // not scaled` (only at this line later when `_decrementTotalSupply` or `_incrementTotalSupply` is called it would be scaled)\n- `uint256 oldFromBalance = balanceOf(from, id); // not scaled`\n- `uint256 oldToBalance = balanceOf(to, id); // not scaled`\n\nHere is the summary line by line:\n\n```solidity\nfunction _afterTokenTransfer(\n    address from,\n    address to,\n    uint256 id,\n    uint256 amount // scaled\n)\ninternal\noverride\n{\n    uint256 oldSupply = totalSupply(id); // not scaled\n    uint256 oldFromBalance = balanceOf(from, id); // not scaled\n    uint256 oldToBalance = balanceOf(to, id); // not scaled\n    if (from == address(0) && to != address(0)) {\n        oldSupply = _incrementTotalSupply(id, amount); // scaled\n        oldToBalance = oldToBalance - amount; // mix: (not scaled) - (scaled)\n        oldFromBalance = 0;\n        if (address(INCENTIVES_CONTROLLER) != address(0)) {\n            INCENTIVES_CONTROLLER.handleAction(id, to,\n                oldSupply, // scaled\n                oldToBalance // mix: (not scaled) - (scaled)\n            );\n        }\n    } else if (to == address(0) && from != address(0)) {\n        oldSupply = _decrementTotalSupply(id, amount); // scaled\n        oldFromBalance = oldFromBalance + amount; // mix: (not scaled) + (scaled)\n        oldToBalance = 0;\n        if (address(INCENTIVES_CONTROLLER) != address(0)) {\n            INCENTIVES_CONTROLLER.handleAction(id, from,\n                oldSupply, // scaled\n                oldFromBalance // mix: (not scaled) + (scaled)\n            );\n        }\n    } else {\n        oldFromBalance = oldFromBalance + amount; // mix: (not scaled) + (scaled)\n        oldToBalance = oldToBalance - amount; // mix: (not scaled) - (scaled)\n        if (address(INCENTIVES_CONTROLLER) != address(0)) {\n            INCENTIVES_CONTROLLER.handleAction(id, from,\n                oldSupply, // not scaled\n                oldFromBalance // mix: (not scaled) + (scaled)\n            );\n            if (from != to) {\n                INCENTIVES_CONTROLLER.handleAction(id, to,\n                    oldSupply, // not scaled\n                    oldToBalance // mix: (not scaled) - (scaled)\n                );\n            }\n        }\n    }\n}\n```\n\nFor the ATokens in `IncentivizedERC20`, the `_transfer`, `_mint`, and `_burn` functions supply the scaled total supply and balances to the incentives controller, which means the units of the non-rebasing aToken are used there.\n\n## Recommendation\nMake sure scaled units/amounts are supplied to `INCENTIVES_CONTROLLER.handleAction`:\n\n```diff\ndiff --git a/contracts/protocol/tokenization/ERC6909/ATokenERC6909.sol b/contracts/protocol/tokenization/ERC6909/ATokenERC6909.sol\nindex 2de411d..fc521b0 100644\n--- a/contracts/protocol/tokenization/ERC6909/ATokenERC6909.sol\n+++ b/contracts/protocol/tokenization/ERC6909/ATokenERC6909.sol\n@@ -390,21 +390,21 @@ contract ATokenERC6909 is IncentivizedERC6909, VersionedInitializable {\n * @param from The address tokens are transferred from.\n * @param to The address tokens are transferred to.\n * @param id The token ID being transferred.\n- * @param amount The amount being transferred.\n+ * @param amount The amount being transferred in shares.\n * @dev Updates incentives based on transfer type (mint/burn/transfer).\n+ * @dev this hook gets called from solday 's `ERC6909` which only deals with shares\n */\nfunction _afterTokenTransfer(address from, address to, uint256 id, uint256 amount)\ninternal\noverride\n{\n- uint256 oldSupply = totalSupply(id);\n- uint256 oldFromBalance = balanceOf(from, id);\n- uint256 oldToBalance = balanceOf(to, id);\n+ uint256 oldSupply = super.totalSupply(id);\n+ uint256 oldFromBalance = super.balanceOf(from, id);\n+ uint256 oldToBalance = super.balanceOf(to, id);\n // If the token was minted.\n if (from == address(0) && to != address(0)) {\n    oldSupply = _incrementTotalSupply(id, amount);\n    oldToBalance = oldToBalance - amount;\n-   oldFromBalance = 0;\n    if (address(INCENTIVES_CONTROLLER) != address(0)) {\n        INCENTIVES_CONTROLLER.handleAction(id, to, oldSupply, oldToBalance);\n    }\n@@ -412,7 +412,6 @@ contract ATokenERC6909 is IncentivizedERC6909, VersionedInitializable {\n} else if (to == address(0) && from != address(0)) {\n    oldSupply = _decrementTotalSupply(id, amount);\n    oldFromBalance = oldFromBalance + amount;\n-   oldToBalance = 0;\n    if (address(INCENTIVES_CONTROLLER) != address(0)) {\n        INCENTIVES_CONTROLLER.handleAction(id, from, oldSupply, oldFromBalance);\n    }\n```\n\nMoreover, this hook can be moved to `IncentivizedERC6909` to mimic the pattern from the `IncentivizedERC20` counterpart. In general, it might make sense to use Solidity's type system and override arithmetic operations to guarantee type safety during compilation and avoid mistakes like the above.\n\n**Astera**: Fixed in commit 92f8ffaf.  \n**Spearbit**: Fix verified.",
+    "summary": "\nThe bug report discusses a high-risk issue in the code of ATokenERC6909, specifically in the `_afterTokenTransfer` function. The code mixes scaled and unscaled parameters in arithmetic operations, which can lead to incorrect calculations. This function is used to update incentives for token transfers, but it does not properly handle the scaling of certain parameters. The report recommends fixing this issue by ensuring that all units/amounts are scaled properly when calling the `INCENTIVES_CONTROLLER.handleAction` function. It also suggests moving this function to the `IncentivizedERC6909` contract for consistency. The bug has been fixed in a recent commit by the Astera team and verified by Spearbit.",
+    "report_date": "2025-08-29T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Astera-Spearbit-Security-Review-December-2024.pdf",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Astera-Spearbit-Security-Review-December-2024.pdf",
+    "github_link": "",
+    "pdf_link": "https://solodit-bucket.s3.amazonaws.com/storage/reports/spearbit/Astera-Spearbit-Security-Review-December-2024.pdf",
+    "pdf_page_from": 14,
+    "contest_id": "",
+    "slug": "mix-of-scaled-and-non-scaled-parameters-in-_aftertokentransfer-spearbit-none-astera-pdf",
+    "firm_name": "Spearbit",
+    "firm_logo_square": "spearbit_square.png",
+    "protocol_name": "Astera",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Saw-mon and Natalie"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Cergyk"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Jonatas Martins"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Spearbit",
+        "logo_square": "spearbit_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Astera",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

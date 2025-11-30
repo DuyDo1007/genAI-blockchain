@@ -1,0 +1,45 @@
+{
+    "id": 62742,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 30,
+    "impact": "MEDIUM",
+    "finders_count": 1,
+    "protocol_id": 3440,
+    "title": "[M-03] Critical Variables Can Be Changed Mid-Round, Causing Severe Inconsistencies",
+    "content": "\n## Severity\n\nMedium Risk\n\n## Description\n\nThe protocol allows the admin to change `commissionPercent` and `baseStake` in the middle of an active round.  \nThese two variables are fundamental to round calculations, and modifying them mid-game can lead to severe inconsistencies between users:\n\n- **Changing Commission Percent Mid-Round**  \n  If the commission is updated while a round is ongoing, users who joined earlier are subject to a different fee structure compared to those who joined later.  \n  This creates unfairness, breaks predictability, and can lead to disputes over payouts.\n\n- **Changing Base Stake Mid-Round**  \n  If the base stake is changed during an active round, players who already joined did so under different requirements than those joining afterwards.  \n  This inconsistency may allow some players to enter with a lower stake or force others to meet a higher threshold, breaking the fairness and balance of the game.\n\nBoth cases result in **protocol-wide inconsistencies**, undermine trust in the system, and can make the round logic disputed.\n\n## Location of Affected Code\n\nFile: [contracts/Revolver.sol](https://github.com/xgrisha666x/revolver-contract/blob/b9c318f97f10a4f496bda8959aeb90696402e114/contracts/Revolver.sol)\n\n```solidity\n function setCommissionPercent(uint256 percent) external onlyAdmin {\n    if (percent > 10000) revert TooHighCommission();\n    commissionPercent = percent;\n}\n```\n\n```solidity\nfunction setBaseStake(uint256 _newStake) external onlyAdmin {\n    if (_newStake == 0) revert StakeTooLow();\n    baseStake = _newStake;\n}\n```\n\n## Recommendation\n\n- Restrict updates to `commissionPercent` and `baseStake` so they can only be applied **between rounds**, never during an active round.\n- Introduce versioning or effective-after mechanisms (e.g., changes only apply starting from the next round).\n\n## Team Response\n\nFixed.\n\n",
+    "summary": "\nThis bug report discusses an issue with the protocol that allows the admin to change certain variables in the middle of an active round. This inconsistency can lead to unfairness and disputes over payouts. The affected code is located in the Revolver.sol file and the recommendation is to restrict updates to these variables to only occur between rounds, or to introduce versioning or effective-after mechanisms. The team has responded by fixing the issue.",
+    "report_date": "2025-09-24T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/shieldify-security/audits-portfolio-md/blob/main/SoulsClub-Revolver-Security-Review.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "m-03-critical-variables-can-be-changed-mid-round-causing-severe-inconsistencies-shieldify-none-soulsclub-revolver-markdown",
+    "firm_name": "Shieldify",
+    "firm_logo_square": "Shieldify_square.png",
+    "protocol_name": "Soulsclub Revolver",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Shieldify Security"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Shieldify",
+        "logo_square": "Shieldify_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Soulsclub Revolver",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

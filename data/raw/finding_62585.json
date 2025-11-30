@@ -1,0 +1,45 @@
+{
+    "id": 62585,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 16,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3420,
+    "title": "[L-27] Redundant state management and inconsistency risk in `MarketplaceAdmin`",
+    "content": "\n_Resolved_\n\nThe `MarketplaceAdmin` contract manages the `marketplaceAddress` and maintains a separate set of parameters, including variables like `acceptedCurrency`, etc. \n\n```solidity\ncontract MarketplaceAdmin is UUPSUpgradeable, RoleBasedAccessControlConsumer, MarketplaceStorage { // <= MarketplaceStorage here\n    /// @notice The address of the Marketplace contract \n    address public marketplaceAddress;\n    ...\n}\n```\nThis duplication of state management is not a best practice, as it increases complexity and the potential for inconsistencies between the two contracts.\n\nAdditionally, during the setter functions like `updateAcceptedCurrency` function, the local state is modified before attempting to update the corresponding parameter in the `Marketplace` contract. \n\n\n```solidity\n        address oldCurrency = acceptedCurrency;\n        acceptedCurrency = newERC20TokenAddress;\n        emit AcceptedCurrencyUpdated(oldCurrency, newERC20TokenAddress);\n\n        // Also update the currency in the Marketplace contract if it exists\n        if (marketplaceAddress != address(0)) {\n            // This will revert if the Marketplace contract doesn't exist or doesn't have this function\n            try Marketplace(marketplaceAddress).setAcceptedCurrency(newERC20TokenAddress) {\n                // Successfully called the function\n            } catch {\n                // Silently ignore errors\n            }\n        }\n```\n\nThe use of a `try-catch` block to handle this update means that **if the call fails silently, the local state and the state in the `Marketplace` contract could become inconsistent**, leading to confusion and potential errors in future transactions.\n\n\nRecommendations:\n\nUse a Single Source of Truth to eliminate the redundancy.\n\n\n\n",
+    "summary": "",
+    "report_date": "2025-09-11T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/pashov/audits/blob/master/team/md/RipIt-security-review_2025-04-25.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "l-27-redundant-state-management-and-inconsistency-risk-in-marketplaceadmin-pashov-audit-group-none-ripit_2025-04-25-markdown",
+    "firm_name": "Pashov Audit Group",
+    "firm_logo_square": "Pashov_square.png",
+    "protocol_name": "RipIt_2025-04-25",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Pashov Audit Group"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Pashov Audit Group",
+        "logo_square": "Pashov_square.png"
+    },
+    "protocols_protocol": {
+        "name": "RipIt_2025-04-25",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

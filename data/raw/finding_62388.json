@@ -1,0 +1,45 @@
+{
+    "id": 62388,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 34,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 1408,
+    "title": "[FNG-18] Conditional early exit optimisation",
+    "content": "**Severity:** Informational\n\n**Description:** There are some conditionals that could be optimised by changing the order of elements by frequency/gas cost to allow for early exits and save gas on each function call.\n\nWe have identified the following locations:\n\n1. `CErc721.sol:repayBorrowFresh` on line 381, there is a storage read in the first element and a \n\n2. `CEther.sol:repayBorrowFresh` on line 172;\n\n3. `CToken.sol:repayBorrowFresh` on line 700.\n\nIn each of the above mentioned locations, there is a storage read in the first element and a local stack variable in the second element. Since this conditional won’t always be triggered, switching the elements would allow for an early exit without a storage read, saving gas on each partial repay.\n```\nif (accountTokens[borrower] == 0 && accountBorrowsNew == 0) {\n    comptroller.autoExitMarkets(borrower); // silent failure allowed\n}\n```\n\n**Remediation:**  Change the mentioned code locations to:\n```\nif (accountBorrowsNew == 0 && accountTokens[borrower] == 0) {\n```\n\n**Status:** Fixed\n\n- - -",
+    "summary": "",
+    "report_date": "2023-11-06T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/solodit/solodit_content/blob/main/reports/Hexens/2023-11-06-Fungify.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "fng-18-conditional-early-exit-optimisation-hexens-none-fungify-markdown",
+    "firm_name": "Hexens",
+    "firm_logo_square": "Hexens_square.png",
+    "protocol_name": "Fungify",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Hexens"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Hexens",
+        "logo_square": "Hexens_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Fungify",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

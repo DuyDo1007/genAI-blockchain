@@ -1,0 +1,60 @@
+{
+    "id": 62047,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 37,
+    "impact": "LOW",
+    "finders_count": 4,
+    "protocol_id": 3368,
+    "title": "Test Suite Cannot Be Executed",
+    "content": "**Update**\nMarked as \"Acknowledged\" by the client. The client provided the following explanation:\n\n> fixed\n\n![Image 74: Alert icon](https://certificate.quantstamp.com/full/sapien/ffb7e698-6178-46f0-8df8-52e537af70c0/static/media/success-icon-alert.4e26c8d3b65fdf9f4f0789a4086052ba.svg)\n\n**Update**\nMarked as \"Fixed\" by the client. Addressed in: `a66bb9ef5d8fafc1cefb56c58fba3d695075a261`. The client provided the following explanation:\n\n> The test suite has been updated and is passing, it is implemented in multiple commits, so please review from latest.\n\n![Image 75: Alert icon](https://certificate.quantstamp.com/full/sapien/ffb7e698-6178-46f0-8df8-52e537af70c0/static/media/success-icon-alert.4e26c8d3b65fdf9f4f0789a4086052ba.svg)\n\n**Update**\nMarked as \"Fixed\" by the client. Addressed in: `a66bb9ef5d8fafc1cefb56c58fba3d695075a261`. The client provided the following explanation:\n\n> The test suite has been updated and is passing, it is implemented in multiple commits, so please review from latest.\n\n**Description:** According to the README, the test suite can be executed by running `npx hardhat test`. However, the test are actually written with the syntax expected by Truffle, not hardhat. As a result the above mentioned command throws an error. Unfortunetaly, using Truffle does not work either since running `truffle test` also throws an error.\n\n**Recommendation:** A comprehensive test suite is crucial for smart contract development as these contracts are immutable once deployed and often handle significant financial value. Tests help catch vulnerabilities and logic errors before deployment, preventing potential losses, while also serving as living documentation of the system's intended behavior. Moreover, as contracts evolve, tests ensure that new changes don't break existing functionality, which is especially important for upgradeable contracts where new implementations must maintain expected behavior. Additionally, make sure to have at least 90% code coverage.",
+    "summary": "",
+    "report_date": "2025-03-30T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://certificate.quantstamp.com/full/sapien/ffb7e698-6178-46f0-8df8-52e537af70c0/index.html",
+    "sponsor_name": "",
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://certificate.quantstamp.com/full/sapien/ffb7e698-6178-46f0-8df8-52e537af70c0/index.html",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "test-suite-cannot-be-executed-quantstamp-sapien-markdown",
+    "firm_name": "Quantstamp",
+    "firm_logo_square": "quantstamp_square.png",
+    "protocol_name": "Sapien",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Paul Clemson"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Julio Aguilar"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Mostafa Yassin"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Tim Sigl"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Quantstamp",
+        "logo_square": "quantstamp_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Sapien",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

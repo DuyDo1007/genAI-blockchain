@@ -1,0 +1,45 @@
+{
+    "id": 62859,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 30,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3449,
+    "title": "[L-03] Redundant Token Credit Validation Can Cause Unnecessary Reverts",
+    "content": "\n## Severity\n\nLow Risk\n\n## Description\n\nThe `creditTokensToInvoice()` function validates that credited tokens for an invoice do not exceed the expected amount. It performs two checks:\n\n1. It reverts with `IM_TokenOverCredited` if `newCreditedAmount > tokenData[tokenIndex].amount`.\n2. It reverts with `IM_TokenAlreadyCredited` if `tokenData[tokenIndex].creditedAmount == tokenData[tokenIndex].amount`.\n\nThe second check is redundant because if the credited amount has already reached the target, any additional credit would already fail the first condition (`newCreditedAmount > amount`). This creates unnecessary complexity and may lead to confusion when interpreting revert reasons.\n\n## Location of Affected Code\n\nFile: [InvoiceManager.sol](https://github.com/etherspot/etherspot-modular-accounts/blob/9019f2a78c36e74bdb1df4029672998cb4631162/src/invoice_manager/InvoiceManager.sol#L216)\n\n```solidity\n function creditTokensToInvoice(address _sessionKey, address _token, uint256 _amount) external onlyRole(CREDIBLE_ACCOUNT_ROLE) {\n    // code\n\n    if (newCreditedAmount > tokenData[tokenIndex].amount) {\n        revert IM_TokenOverCredited(_sessionKey, _token, tokenData[tokenIndex].amount, newCreditedAmount);\n    }\n    if (tokenData[tokenIndex].creditedAmount == tokenData[tokenIndex].amount) {\n        revert IM_TokenAlreadyCredited(_sessionKey, _token);\n    }\n\n    // code\n}\n```\n\n## Impact\n\nIncreases code complexity and makes audits/maintenance harder without providing meaningful functional protection.\n\n## Recommendation\n\nRemove the redundant `AlreadyCredited` check to simplify logic and avoid confusion.\n\n## Team Response\n\nFixed.\n\n",
+    "summary": "",
+    "report_date": "2025-10-03T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/shieldify-security/audits-portfolio-md/blob/main/Etherspot-GasTankPaymasterModule-Extended-Security-Review.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "l-03-redundant-token-credit-validation-can-cause-unnecessary-reverts-shieldify-none-etherspot-gastankpaymastermodule-extended-markdown",
+    "firm_name": "Shieldify",
+    "firm_logo_square": "Shieldify_square.png",
+    "protocol_name": "Etherspot Gastankpaymastermodule Extended",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Shieldify Security"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Shieldify",
+        "logo_square": "Shieldify_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Etherspot Gastankpaymastermodule Extended",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

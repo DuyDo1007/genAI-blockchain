@@ -1,0 +1,50 @@
+{
+    "id": 62217,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 11,
+    "impact": "LOW",
+    "finders_count": 2,
+    "protocol_id": 3392,
+    "title": "Missing  `redeem` convenience function in the `StakingVault.sol`",
+    "content": "**Description:** `StakingVault.sol` implements a number of convenience functions: `stake(uint256 assets)` ,`unstake(uint256 assets)` and  `mint(uint256 shares)`:\n\n```solidity\nfunction mint(uint256 shares) external returns (uint256) {\n        return mint(shares, msg.sender);\n    }\n\n    function stake(uint256 assets) external returns (uint256) {\n        return deposit(assets, msg.sender);\n    }\n\n    function unstake(uint256 assets) external returns (uint256 shares) {\n        return withdraw(assets, msg.sender, msg.sender);\n    }\n```\n\nBut it does not have a convenience function for `redeem`, consider adding one such as:\n```solidity\nfunction redeem(uint256 shares) external returns (uint256 shares) {\n        return redeem(shares, msg.sender, msg.sender);\n    }\n```\n\n**Syntetika:**\nFixed in commit [1625c09](https://github.com/SyntetikaLabs/monorepo/commit/1625c09f07d8c43c7cfc3b051e12a3a95c26f32d).\n\n**Cyfrin:** Verified.",
+    "summary": "",
+    "report_date": "2025-08-01T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/solodit/solodit_content/blob/main/reports/Cyfrin/2025-08-01-cyfrin-syntetika-v2.0.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "missing-redeem-convenience-function-in-the-stakingvaultsol-cyfrin-none-syntetika-markdown",
+    "firm_name": "Cyfrin",
+    "firm_logo_square": "Cyfrin_square.jpg",
+    "protocol_name": "Syntetika",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Dacian"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Jorge"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Cyfrin",
+        "logo_square": "Cyfrin_square.jpg"
+    },
+    "protocols_protocol": {
+        "name": "Syntetika",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

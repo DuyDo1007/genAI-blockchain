@@ -1,0 +1,45 @@
+{
+    "id": 62383,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 34,
+    "impact": "MEDIUM",
+    "finders_count": 1,
+    "protocol_id": 1408,
+    "title": "[FNG-2] Inadequate constraints on Seize Share Mantissa in the protocol",
+    "content": "**Severity:** Medium\n\n**Path:** CToken.sol#L878-L894\n\n**Description:** In the current implementation of the protocol, the `protocolSeizeShareMantissa` parameter in comparison with Compound is not constant (`CTokenInterface.sol` line 113) and can be adjusted by the admin. This lack of constraints could potentially introduce risks and imbalances in the protocol's operation.\n\nAllowing the admin to modify this parameter without appropriate restrictions might lead to the following concerns:\n\n1. Risk of Overcapitalization: If an admin decides to set the `protocolSeizeShareMantissa` too high, it could lead to overcapitalization of the reserves, potentially causing inefficiencies in the allocation of assets and negatively impacting users' earnings.\n\n2. Imbalance in Collateral Seizure: An excessively high `protocolSeizeShareMantissa` may incentivize users to seek liquidations, potentially leading to a sudden surge in collateral seized by the protocol. This could create an imbalance in the ecosystem and undermine stability.\n```\n    function _setProtocolSeizeShare(uint newProtocolSeizeShareMantissa) virtual override external returns (uint) {\n        // Check caller is admin\n        if (msg.sender != admin) {\n            revert SetReserveFactorAdminCheck();\n        }\n\n        // Save current value for use in log\n        uint oldProtocolSeizeShareMantissa = protocolSeizeShareMantissa;\n\n        // Set liquidation incentive to new incentive\n        protocolSeizeShareMantissa = newProtocolSeizeShareMantissa;\n\n        // Emit event with old incentive, new incentive\n        emit NewProtocolSeizeShare(oldProtocolSeizeShareMantissa, newProtocolSeizeShareMantissa);\n\n        return NO_ERROR;\n    }\n```\n\n**Remediation:**  Define an upper bound or a reasonable range for the `protocolSeizeShareMantissa` parameter to prevent it from being set too high or too low.\n\n**Status:** Fixed\n\n- - -",
+    "summary": "\nThis bug report is about a problem in the CToken.sol file of the protocol. The `protocolSeizeShareMantissa` parameter, which is used for comparing with Compound, can be changed by the admin without any restrictions. This could cause potential risks and imbalances in the protocol's functioning. There are two main concerns with this: overcapitalization and imbalance in collateral seizure. To fix this issue, an upper limit or a reasonable range should be set for the `protocolSeizeShareMantissa` parameter. This bug has been fixed.",
+    "report_date": "2023-11-06T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/solodit/solodit_content/blob/main/reports/Hexens/2023-11-06-Fungify.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "fng-2-inadequate-constraints-on-seize-share-mantissa-in-the-protocol-hexens-none-fungify-markdown",
+    "firm_name": "Hexens",
+    "firm_logo_square": "Hexens_square.png",
+    "protocol_name": "Fungify",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Hexens"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Hexens",
+        "logo_square": "Hexens_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Fungify",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

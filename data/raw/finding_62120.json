@@ -1,0 +1,55 @@
+{
+    "id": 62120,
+    "kind": "GIT",
+    "auditfirm_id": 3,
+    "impact": "MEDIUM",
+    "finders_count": 3,
+    "protocol_id": 3135,
+    "title": "M-9: Stuck `stETH` rewards in queue contracts",
+    "content": "\nSource: https://github.com/sherlock-audit/2025-07-mellow-flexible-vaults-judging/issues/739 \n\nThis issue has been acknowledged by the team but won't be fixed at this time.\n\n## Found by \n0rpse, 0xc0ffEE, klaus\n\n### Summary\n\n`stETH` rewards can be stuck in queue contracts because the contracts are not compatible with rebasing tokens, specifically `stETH`.\n\n### Root Cause\n\nThe system integrates with `stETH` but the implementation is not compatible with `stETH` (since `stETH` is rebase token). For example with the contract `DepositQueue`\n1. At request deposit phase, [`assets` amount](https://github.com/sherlock-audit/2025-07-mellow-flexible-vaults/blob/main/flexible-vaults/src/queues/DepositQueue.sol#L77) of `stETH` is sent from depositor to the queue\n2. The request then needs to wait for deposit interval and oracle timeout\n3. When oracle reports valid price, the [amount `assets`](https://github.com/sherlock-audit/2025-07-mellow-flexible-vaults/blob/main/flexible-vaults/src/queues/DepositQueue.sol#L189) at step (1) is sent from queue to the vault\n\nIndeed, within the time period in step (2) above, Lido system can report rewards (happening daily, positive or negative) and the `stETH` share price increases in case positive, resulting the queue's `stETH` balance increases to be more than `assets`. So, this means that the reward part is not accounted by the queue\n\nOppositely, in negative case, the queue's `stETH` balance can decrease causing it is unable to execute the step (3) (although Lido claims that the negative case [has not happened](https://docs.lido.fi/guides/lido-tokens-integration-guide#accounting-oracle)).\n\nNote: the issue can also happen with other contracts which holds funds, such that RedeemQueue, Vault \n\n### Internal Pre-conditions\n\nNA\n\n### External Pre-conditions\n\nNA\n\n### Attack Path\n\n(Example above)\n\n### Impact\n\n- `stETH` rewards are unhandled, leaving it stuck in the contract\n\n### PoC\n\nUsing this `MockRebaseERC20` as mock for `stETH`\n```solidity\n// SPDX-License-Identifier: BUSL-1.1\npragma solidity 0.8.25;\n\nimport \"@openzeppelin/contracts/token/ERC20/ERC20.sol\";\n\ncontract MockRebaseERC20 is ERC20 {\n    constructor() ERC20(\"MockERC20\", \"ME20\") {}\n\n    uint256 sharePrice = 1e18;\n\n    uint256 constant DENOM = 1e18;\n\n    function setSharePrice(uint256 newValue) public {\n        sharePrice = newValue;\n    }\n\n    function toShares(uint256 value) public view returns (uint256 shares) {\n        shares = value * DENOM / sharePrice;\n    }\n\n    function balanceOf(address account) public view override returns (uint256) {\n        return (super.balanceOf(account) * sharePrice / DENOM);\n    }\n\n    function mint(address to, uint256 shares) external {\n        _mint(to, shares);\n    }\n\n    function _approve(address owner, address spender, uint256 value, bool emitEvent) internal override {\n        super._approve(owner, spender, toShares(value), emitEvent);\n    }\n\n    function _update(address from, address to, uint256 value) internal override {\n        value = toShares(value);\n        super._update(from, to, value);\n    }\n}\n\n```\n\nAdd the test `test_stETH` below to the test file `test/unit/queues/DepositQueue.t.sol`\n```solidity\n    function test_stETH() public {\n        skip(30 days);\n\n        delete assetsDefault;\n        asset = address(new MockRebaseERC20());\n        assetsDefault.push(asset);\n\n        Deployment memory deployment = createVault(vaultAdmin, vaultProxyAdmin, assetsDefault);\n        DepositQueue queue = DepositQueue(addDepositQueue(deployment, vaultProxyAdmin, asset));\n        IOracle.SecurityParams memory securityParams = deployment.oracle.securityParams();\n\n        address alice = makeAddr('alice');\n        pushReport(deployment.oracle, IOracle.Report({asset: asset, priceD18: 1e18}));\n        uint nextReportTs = block.timestamp + securityParams.timeout;\n\n        skip(1);\n        makeDeposit(alice, 10 ether, queue);\n        uint balanceBefore = MockRebaseERC20(asset).balanceOf(address(queue));\n\n        // @info share price increases\n        MockRebaseERC20(asset).setSharePrice(1.03e18);\n\n        uint balanceAfter = MockRebaseERC20(asset).balanceOf(address(queue));\n\n        assertGt(balanceAfter, balanceBefore);\n\n        vm.warp(nextReportTs);\n        pushReport(deployment.oracle, IOracle.Report({asset: asset, priceD18: 1e18}));\n\n        balanceAfter = MockRebaseERC20(asset).balanceOf(address(queue));\n        assertGt(balanceAfter, 0); // @info there is remaining asset here, which is basically rewards\n    }\n```\nRun the test and it succeeds. \n\nIt means that the increased asset (reward part) is still in the queue\n\n### Mitigation\n\nConsider either:\n- Explicitly handle `stETH` by transferring shares\n- Or only support `wstETH`, which is non-rebase wrapped of `stETH`\n\n\n",
+    "summary": "\nThis bug report discusses an issue with the `stETH` rewards in the Mellow Flexible Vaults project. The team has acknowledged the issue but will not be fixing it at this time. The bug was found by three individuals and the root cause is that the contracts are not compatible with rebasing tokens, specifically `stETH`. This means that the rewards can get stuck in the queue contracts and are not properly accounted for. The report includes a detailed explanation of the attack path and the impact of the bug. It also provides a proof of concept using a mock token and suggests two possible solutions to mitigate the issue. ",
+    "report_date": "2025-07-28T15:00:00.000Z",
+    "contest_prize_txt": "70000 USDC",
+    "contest_link": "https://app.sherlock.xyz/audits/contests/964",
+    "sponsor_name": "",
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "",
+    "github_link": "https://github.com/sherlock-audit/2025-07-mellow-flexible-vaults-judging/issues/739",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "964",
+    "slug": "m-9-stuck-steth-rewards-in-queue-contracts-sherlock-mellow-flexible-vaults-git",
+    "firm_name": "Sherlock",
+    "firm_logo_square": "sherlock_square.png",
+    "protocol_name": "Mellow Flexible Vaults",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "klaus"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "0rpse"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "0xc0ffEE"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Sherlock",
+        "logo_square": "sherlock_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Mellow Flexible Vaults",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

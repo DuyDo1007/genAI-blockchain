@@ -1,0 +1,45 @@
+{
+    "id": 62759,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 16,
+    "impact": "MEDIUM",
+    "finders_count": 1,
+    "protocol_id": 3443,
+    "title": "[M-01] Missing slippage protection allows unexpected asset amounts",
+    "content": "\n_Resolved_\n\n## Severity\n\n**Impact:** Medium\n\n**Likelihood:** Medium\n\n## Description\n\nThe `ERC4626` interaction functions in `StakedYuzuUSD`, `YuzuUSD`, and `YuzuILP` lack slippage protection mechanisms. Users call functions like `initiateRedeem()` expecting to receive a specific amount of assets based on the current preview, but the actual amount received can differ due to state changes between transaction submission and execution.\n\n- In `StakedYuzuUSD` and `YuzuUSD` contracts, users may suffer from changes in redemption fees. \n\n- In `YuzuILP` contract, users may suffer from both changes in fees and changes in pool size, as this pool is expected to also bear risk for `YuzuUSD`.\n\nThe lack of slippage protection means users cannot specify a minimum acceptable amount of assets they're willing to receive, potentially leading to unexpected outcomes.\n\n## Recommendation\n\nAllow users to specify their slippage tolerance when interacting with `StakedYuzuUSD`, `YuzuUSD`, and `YuzuILP` contracts.\n\nAn additional approach is to implement a deadline parameter that ensures transactions are only executed within a specific time window, reducing the likelihood of significant parameter changes between submission and execution.\n\n\n\n",
+    "summary": "\nThe report states that there is a bug in the `ERC4626` interaction functions in three different contracts: `StakedYuzuUSD`, `YuzuUSD`, and `YuzuILP`. This bug does not have a high impact, but it can still cause problems for users. When users call functions like `initiateRedeem()`, they may not receive the expected amount of assets due to changes in fees or pool size. This is because there is no protection in place to account for these changes. The report recommends adding a slippage tolerance feature or a deadline parameter to prevent unexpected outcomes for users.",
+    "report_date": "2025-09-28T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/pashov/audits/blob/master/team/md/YuzuUSD-security-review_2025-08-28.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "m-01-missing-slippage-protection-allows-unexpected-asset-amounts-pashov-audit-group-none-yuzuusd_2025-08-28-markdown",
+    "firm_name": "Pashov Audit Group",
+    "firm_logo_square": "Pashov_square.png",
+    "protocol_name": "YuzuUSD_2025-08-28",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Pashov Audit Group"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Pashov Audit Group",
+        "logo_square": "Pashov_square.png"
+    },
+    "protocols_protocol": {
+        "name": "YuzuUSD_2025-08-28",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

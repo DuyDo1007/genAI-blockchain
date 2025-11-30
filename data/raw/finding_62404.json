@@ -1,0 +1,45 @@
+{
+    "id": 62404,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 34,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3405,
+    "title": "[LOGLAB-14] Redundant and ineffective staleness check implementation",
+    "content": "**Severity:** Low\n\n**Path:** src/oracle/LogarithmOracle.sol#L110-115\n\n**Description:** The `LogarithmOracle` uses Chainlink data feeds to fetch assets prices. This oracle exposes the `latestRoundData` function to return pricing data.\n\nThere is a staleness check, the first part of which is redundant.\n```\nuint256 heartbeatDuration = _getLogarithmOracleStorage().heartbeatDurations[address(priceFeed)];\nif (block.timestamp > timestamp && block.timestamp - timestamp > heartbeatDuration) {\n    revert Errors.PriceFeedNotUpdated(asset, timestamp, heartbeatDuration);\n}\n```\nThe condition `block.timestamp - timestamp > heartbeatDuration` is sufficient to check for staleness. The additional condition `block.timestamp > timestamp` is redundant and adds no value. Furthermore, in unlikely cases where the price feed occasionally returns incorrect data (e.g., a `timestamp` value greater than `block.timestamp`), the staleness check does not revert as expected. This could result in inconsistent or invalid behavior, as the check fails to handle such edge cases properly.\n\n**Remediation:**  Consider deleting redundant check.\n\n**Status:** Fixed\n\n- - -",
+    "summary": "",
+    "report_date": "2024-11-25T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/solodit/solodit_content/blob/main/reports/Hexens/2024-11-25-BasisOS.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "loglab-14-redundant-and-ineffective-staleness-check-implementation-hexens-none-basisos-markdown",
+    "firm_name": "Hexens",
+    "firm_logo_square": "Hexens_square.png",
+    "protocol_name": "Basisos",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Hexens"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Hexens",
+        "logo_square": "Hexens_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Basisos",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

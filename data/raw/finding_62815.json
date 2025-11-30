@@ -1,0 +1,45 @@
+{
+    "id": 62815,
+    "kind": "GIT",
+    "auditfirm_id": 3,
+    "impact": "HIGH",
+    "finders_count": 1,
+    "protocol_id": 3398,
+    "title": "H-8: `Voter::finalize()` incorrect rewards distribution due to transfering WETH before calling `distributor::setTokensPerInterval()`",
+    "content": "\nSource: https://github.com/sherlock-audit/2025-09-bmx-deli-swap-judging/issues/242 \n\n## Found by \n0x73696d616f\n\n### Summary\n\n`Voter::finalize()` transfers the WETH, and then calls `distributor.setTokensPerInterval()`. However, this order of operations is incorrect and it will lead to the previous reward rate being applied for the transferred WETH, doing an instantaneous rewards increase that will be arbitraged and stolen.\n\nAs can be seen below, `RewardsDistributor::setTokensPerInterval()` calls `RewardTracker::updateRewards()`, which calls `RewardsDistributor::distribute()`. Now, if `pendingRewards()` will apply the last `tokensPerInterval`, accrue for the last time called, and send to users if there is enough balance. Due to having sent the WETH before calling `setTokensPerInterval()`, it will instantly distribute this rewards as soon as the function is called, and there won't be enough rewards for the next week. Thus, past stakers (and bots or attackers that knew about this) will steal instant rewards, and honest stakers will not collect them over the full week.\n\n[**RewardsDistributor**](https://basescan.org/address/0x0259083181ae54730f4fbb1c174a53e21bce5266#code)\n```solidity\n    function setTokensPerInterval(uint256 _amount) external onlyAdmin {\n        require(lastDistributionTime != 0, \"RewardDistributor: invalid lastDistributionTime\");\n        IRewardTracker(rewardTracker).updateRewards();\n        tokensPerInterval = _amount;\n        emit TokensPerIntervalChange(_amount);\n    }\n\n    function pendingRewards() public view override returns (uint256) {\n        if (block.timestamp == lastDistributionTime) {\n            return 0;\n        }\n\n        uint256 timeDiff = block.timestamp.sub(lastDistributionTime);\n        return tokensPerInterval.mul(timeDiff);\n    }\n\n    function distribute() external override returns (uint256) {\n        require(msg.sender == rewardTracker, \"RewardDistributor: invalid msg.sender\");\n        uint256 amount = pendingRewards();\n        if (amount == 0) { return 0; }\n\n        lastDistributionTime = block.timestamp;\n\n        uint256 balance = IERC20(rewardToken).balanceOf(address(this));\n        if (amount > balance) { amount = balance; }\n\n        IERC20(rewardToken).safeTransfer(msg.sender, amount);\n\n        emit Distribute(amount);\n        return amount;\n    }\n```\n\n[**RewardTracker**](https://basescan.org/address/0x38E5be3501687500E6338217276069d16178077E#code)\n```solidity\n    function updateRewards() external override nonReentrant {\n        _updateRewards(address(0));\n    }\n\n    function _updateRewards(address _account) private {\n        uint256 blockReward = IRewardDistributor(distributor).distribute();\n    ...\n```\n\n### Root Cause\n\nIn `Voter.sol:262`, it transfers WETH before calling [setTokensPerInterval()](https://github.com/sherlock-audit/2025-09-bmx-deli-swap/blob/main/deli-swap-contracts/src/Voter.sol#L263).\n\n### Internal Pre-conditions\n\nNone\n\n### External Pre-conditions\n\nNone\n\n### Attack Path\n\n1. Admin finalizes an epoch, sends WETH and sets the tokens per interval to distribute this amount of WETH over 1 week.\n2. Due to the logic above, part of this WETH, if not all, will be consumed instantly and rewards won't be distributed over the full week.\n\n### Impact\n\nStolen rewards.\n\n### PoC\n\n_No response_\n\n### Mitigation\n\nFirst call setTokensPerInterval(), then transfer the WETH.\n\n## Discussion\n\n**sherlock-admin2**\n\nThe protocol team fixed this issue in the following PRs/commits:\nhttps://github.com/morphex-labs/deli-swap-contracts/pull/20\n\n\n\n\n",
+    "summary": "\nThis bug report is about an incorrect order of operations in the Voter contract of the BMX Deli Swap protocol. The Voter contract transfers WETH and then calls a function called setTokensPerInterval, which sets the reward rate for the transferred WETH. This means that the previous reward rate is applied for the transferred WETH, resulting in an instantaneous increase in rewards that can be exploited and stolen. This is because the setTokensPerInterval function calls another function called updateRewards, which then calls a function called distribute. Since the WETH is already transferred before setTokensPerInterval is called, the rewards are instantly distributed and there won't be enough rewards for the next week. This allows attackers to steal rewards meant for honest stakers. The root cause of this bug is that the WETH is transferred before calling setTokensPerInterval. The impact of this bug is stolen rewards. The protocol team has fixed this issue in the latest code updates. To prevent this bug, the protocol team recommends calling setTokensPerInterval before transferring the WETH.",
+    "report_date": "2025-09-16T15:00:00.000Z",
+    "contest_prize_txt": "47000 USDC",
+    "contest_link": "https://app.sherlock.xyz/audits/contests/1154",
+    "sponsor_name": "",
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "",
+    "github_link": "https://github.com/sherlock-audit/2025-09-bmx-deli-swap-judging/issues/242",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "1154",
+    "slug": "h-8-voterfinalize-incorrect-rewards-distribution-due-to-transfering-weth-before-calling-distributorsettokensperinterval-sherlock-bmx-deli-swap-git",
+    "firm_name": "Sherlock",
+    "firm_logo_square": "sherlock_square.png",
+    "protocol_name": "BMX Deli Swap",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "0x73696d616f"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Sherlock",
+        "logo_square": "sherlock_square.png"
+    },
+    "protocols_protocol": {
+        "name": "BMX Deli Swap",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

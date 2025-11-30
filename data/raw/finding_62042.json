@@ -1,0 +1,60 @@
+{
+    "id": 62042,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 37,
+    "impact": "MEDIUM",
+    "finders_count": 4,
+    "protocol_id": 3368,
+    "title": "`calculateMultiplier` Will Always Return `maxMultiplier`",
+    "content": "**Update**\nMarked as \"Fixed\" by the client. Addressed in: `9bc4417`.\n\n![Image 54: Alert icon](https://certificate.quantstamp.com/full/sapien/ffb7e698-6178-46f0-8df8-52e537af70c0/static/media/success-icon-alert.4e26c8d3b65fdf9f4f0789a4086052ba.svg)\n\n**Update**\nMarked as \"Fixed\" by the client. Addressed in: `2dbe4303d2566707230b741c18ec2ca7b779b9a1`. The client provided the following explanation:\n\n> The calculateMultiplier() function (lines 454-490 in SapienStaking.sol) implements a tiered multiplier system that works correctly for amounts both above and below BASE_STAKE.\n\n![Image 55: Alert icon](https://certificate.quantstamp.com/full/sapien/ffb7e698-6178-46f0-8df8-52e537af70c0/static/media/success-icon-alert.4e26c8d3b65fdf9f4f0789a4086052ba.svg)\n\n**Update**\nMarked as \"Fixed\" by the client. Addressed in: `2dbe4303d2566707230b741c18ec2ca7b779b9a1`. The client provided the following explanation:\n\n> The calculateMultiplier() function (lines 454-490 in SapienStaking.sol) implements a tiered multiplier system that works correctly for amounts both above and below BASE_STAKE.\n\n**File(s) affected:**`SapienStaking.sol`\n\n**Description:** Currently, the function `calculateMultiplier()` will always return the `maxMultiplier` if the following condition is true:\n\n```\nif (amount >= BASE_STAKE) {\n            return maxMultiplier;\n        }\n```\n\nHowever, this condition will always be true, since during staking, it is required that the amount staked be greater than the `BASE_STAKE`:\n\n`require(amount >= BASE_STAKE, \"Amount must be greater than base stake\");`\n\n**Recommendation:** Consider reworking this function to prevent the maximum multiplier from being exploited.",
+    "summary": "\nThe client has marked a bug as \"Fixed\" and provided an explanation for the fix. The bug was found in the `SapienStaking.sol` file and affects the `calculateMultiplier()` function. The function currently always returns the `maxMultiplier` if the staked amount is greater than or equal to the `BASE_STAKE`, which is always true since the staked amount is required to be greater than the `BASE_STAKE`. The recommendation is to rework the function to prevent this exploit.",
+    "report_date": "2025-03-30T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://certificate.quantstamp.com/full/sapien/ffb7e698-6178-46f0-8df8-52e537af70c0/index.html",
+    "sponsor_name": "",
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://certificate.quantstamp.com/full/sapien/ffb7e698-6178-46f0-8df8-52e537af70c0/index.html",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "calculatemultiplier-will-always-return-maxmultiplier-quantstamp-sapien-markdown",
+    "firm_name": "Quantstamp",
+    "firm_logo_square": "quantstamp_square.png",
+    "protocol_name": "Sapien",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Paul Clemson"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Julio Aguilar"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Mostafa Yassin"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Tim Sigl"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Quantstamp",
+        "logo_square": "quantstamp_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Sapien",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

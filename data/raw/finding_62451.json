@@ -1,0 +1,50 @@
+{
+    "id": 62451,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 8,
+    "impact": "LOW",
+    "finders_count": 2,
+    "protocol_id": 3410,
+    "title": "L2LineaToken: _msgSender() Should Be Replaced With msg.sender ✓ Fixed",
+    "content": "...\n\nExport to GitHub ...\n\nSet external GitHub Repo ...\n\nExport to Clipboard (json)\n\nExport to Clipboard (text)\n\n#### Resolution\n\nThis has been fixed in [PR 15](https://github.com/Consensys/linea-tokens/pull/15) (last commit on the branch: [469fe87](https://github.com/Consensys/linea-tokens/tree/469fe87e1d9d6456f0c0affdd157642ccfecef96)).\n\n#### Description\n\nThere are three occurrences of `_msgSender()` in `L2LineaToken`, all in the `mint` and `burn` function:\n\n**src/L2/L2LineaToken.sol:L70-L94**\n\n```\n/**\n * @notice Mints the Linea token.\n * @dev NB: Only the L2 token bridge can call this function.\n * @param _account Account being minted for.\n * @param _amount The amount being minted for the account.\n */\nfunction mint(address _account, uint256 _amount) external {\n  require(_msgSender() == lineaCanonicalTokenBridge, CallerIsNotTokenBridge());\n\n  _mint(_account, _amount);\n}\n\n/**\n * @notice Burns the Linea token.\n * @dev NB: Only the L2 token bridge can call this function.\n * @dev Approval for the burn amount must be provided before this is invoked.\n * @param _account Account being burned for.\n * @param _value The amount being burned for the account.\n */\nfunction burn(address _account, uint256 _value) external {\n  require(_msgSender() == lineaCanonicalTokenBridge, CallerIsNotTokenBridge());\n\n  _spendAllowance(_account, _msgSender(), _value);\n  _burn(_account, _value);\n}\n```\n\nWhile in the current state of the codebase, `_msgSender()` returns `msg.sender` – which means there is no functional difference between the two – the function *could* be overridden to return a different value. In `mint` and `burn`, however, it seems certain that we’d always want to know if the call really comes from the canonical token bridge, even if some meta transaction functionality should ever be introduced.\n\nMoreover, `L2LineaToken` inherits from `MessageServiceBase` and uses its `onlyMessagingService` modifier, which has related functionality: checking whether the call comes from the message service. And this modifier uses `msg.sender`:\n\n**src/MessageServiceBase.sol:L48-L53**\n\n```\nmodifier onlyMessagingService() {\n  if (msg.sender != address(messageService)) {\n    revert CallerIsNotMessageService();\n  }\n  _;\n}\n```\n\n#### Recommendation\n\nWe recommend replacing `_msgSender()` with `msg.sender` in `L2LineaToken.mint` and `L2LineaToken.burn`.",
+    "summary": "",
+    "report_date": "2025-07-01T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://diligence.consensys.io/audits/2025/07/linea-token-and-airdrop-contracts/",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "l2lineatoken-_msgsender-should-be-replaced-with-msgsender-fixed-consensys-none-linea-token-and-airdrop-contracts-markdown",
+    "firm_name": "ConsenSys",
+    "firm_logo_square": "consensys_square.png",
+    "protocol_name": "Linea Token and Airdrop Contracts",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "George Kobakhidze"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": " Heiko Fisch\n                        "
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "ConsenSys",
+        "logo_square": "consensys_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Linea Token and Airdrop Contracts",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

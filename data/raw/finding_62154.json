@@ -1,0 +1,60 @@
+{
+    "id": 62154,
+    "kind": "PDF",
+    "auditfirm_id": 6,
+    "impact": "LOW",
+    "finders_count": 4,
+    "protocol_id": 3384,
+    "title": "Rounding directions are not applied correctly in _calcPM (part 1)",
+    "content": "## Security Issue Report\n\n## Severity\n**Low Risk**\n\n## Context\n`MarginViewUtils.sol#L64-L87`\n\n## Description/Recommendation\nIn the code snippet below, it is highlighted which rounding directions need to be applied versus the current one:\n\n```solidity\n// Based on where `pmAlone` is used, it would either need to be rounded up or down.\n// Currently it is rounded down.\nuint256 pmAlone = __calcPMFromRate(S.abs(), market.rMark, market.k_iThresh);\n(uint256 B_Long, uint256 pmLong) = (user.pmData.sumLongSize, user.pmData.sumLongPM);\nuint256 pmTotalLong;\n\nif (S < 0 && B_Long <= S.abs()) {\n    pmTotalLong = 0;\n} else {\n    if (S > 0) {\n        pmTotalLong = pmLong + pmAlone; // `pmAlone` needs to be rounded up. Currently rounded down,\n    } else {\n        pmTotalLong = pmLong > pmAlone ? pmLong - pmAlone : 0; // `pmAlone` needs to be rounded down. Currently rounded down,\n    }\n}\n\n(uint256 B_Short, uint256 pmShort) = (user.pmData.sumShortSize, user.pmData.sumShortPM);\nuint256 pmTotalShort;\n\nif (S > 0 && B_Short <= S.abs()) {\n    pmTotalShort = 0;\n} else {\n    if (S < 0) {\n        pmTotalShort = pmShort + pmAlone; // `pmAlone` needs to be rounded up. Currently rounded down,\n    } else {\n        pmTotalShort = pmShort > pmAlone ? pmShort - pmAlone : 0; // `pmAlone` needs to be rounded down. Currently rounded down,\n    }\n}\n```\n\n### Recommendations\n1. In general, one needs to make sure the value returned by `_calcPM(...)` is overestimated.\n2. The accumulated values of `user.pmData.sumLongPM`, `user.pmData.sumShortPM` in memory or storage would always need to round up.\n3. Two variants of `__calcPMFromRate` need to be defined, and depending on the call site, the variant with the correct rounding direction needs to be used.\n\n## Acknowledgements\n- **Pendle Finance**: Acknowledged. Won't fix as we will scale all to `1e18` to avoid having to be too strict with rounding.\n- **Spearbit**: Acknowledged.",
+    "summary": "",
+    "report_date": "2025-08-22T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Pendle-Spearbit-Security-Review-August-2025.pdf",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Pendle-Spearbit-Security-Review-August-2025.pdf",
+    "github_link": "",
+    "pdf_link": "https://solodit-bucket.s3.amazonaws.com/storage/reports/spearbit/Pendle-Spearbit-Security-Review-August-2025.pdf",
+    "pdf_page_from": 39,
+    "contest_id": "",
+    "slug": "rounding-directions-are-not-applied-correctly-in-_calcpm-part-1-spearbit-none-pendle-core-v3-pdf",
+    "firm_name": "Spearbit",
+    "firm_logo_square": "spearbit_square.png",
+    "protocol_name": "Pendle Core v3",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Saw-mon and Natalie"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Ethan"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Desmond Ho"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "RustyRabbit"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Spearbit",
+        "logo_square": "spearbit_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Pendle Core v3",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

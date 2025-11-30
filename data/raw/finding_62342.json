@@ -1,0 +1,50 @@
+{
+    "id": 62342,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 11,
+    "impact": "LOW",
+    "finders_count": 2,
+    "protocol_id": 3401,
+    "title": "Inconsistent type usage for `IssuanceHours.HOUR_IN_SECONDS`",
+    "content": "**Description:** In `IssuanceHours` the constant [`IssuanceHours.HOUR_IN_SECONDS`](https://github.com/ondoprotocol/rwa-internal/blob/a74d03f4a71bd9cac09e8223377b47f7d64ca8d4/contracts/globalMarkets/tokenManager/issuanceHours/IssuanceHours.sol#L38) field is declared as `uint`, while the rest of the codebase consistently uses `uint256`:\n```solidity\n/// Constant for the number of seconds in an hour\nuint constant HOUR_IN_SECONDS = 3_600;\n```\n\nConsider updating the field to use `uint256` to align with the project's standard type declarations.\n\n**Ondo:** Fixed in commit [`fe452a1`](https://github.com/ondoprotocol/rwa-internal/pull/470/commits/fe452a120f8afde757d19736c44b26d4b07fbca3)\n\n**Cyfrin:** Verified. `HOUR_IN_SECONDS` uses type `int256` (since that removes a cast in `_validateTimezoneOffset`)",
+    "summary": "",
+    "report_date": "2025-07-14T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/solodit/solodit_content/blob/main/reports/Cyfrin/2025-07-14-cyfrin-ondo-global-markets-v2.0.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "inconsistent-type-usage-for-issuancehourshour_in_seconds-cyfrin-none-ondo-global-markets-markdown",
+    "firm_name": "Cyfrin",
+    "firm_logo_square": "Cyfrin_square.jpg",
+    "protocol_name": "Ondo Global Markets",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Immeas"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Al-Qa'qa'"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Cyfrin",
+        "logo_square": "Cyfrin_square.jpg"
+    },
+    "protocols_protocol": {
+        "name": "Ondo Global Markets",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

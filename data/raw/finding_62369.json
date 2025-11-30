@@ -1,0 +1,45 @@
+{
+    "id": 62369,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 34,
+    "impact": "MEDIUM",
+    "finders_count": 1,
+    "protocol_id": 1390,
+    "title": "[ASTRO-8] Wrong Emergency Stop pattern usage",
+    "content": "**Severity:** Medium\n\n**Path:** Crate.sol\n\n**Description:** The contract  `Crate.sol` provides an Emergency Stop pattern, but some functions don’t have any checks to halt their usage, so users can withdraw or redeem after the owner has paused the contract. \n```\nfunction safeWithdraw(\n        uint256 _amount,\n        uint256 _minAmount,\n        uint256 _deadline,\n        address _receiver,\n        address _owner\n    ) external returns (uint256 shares) {\n        // This represents the amount of crTokens that we're about to burn\n        shares = convertToShares(_amount);\n        _withdraw(_amount, shares, _minAmount, _deadline, _receiver, _owner);\n    }\n```\n```\nfunction redeem(\n        uint256 _shares,\n        address _receiver,\n        address _owner\n    ) external returns (uint256 assets) {\n        return (\n            _withdraw(\n                convertToAssets(_shares),\n                _shares,\n                0,\n                block.timestamp,\n                _receiver,\n                _owner\n            )\n        );\n    }\n```\n```\nfunction safeRedeem(\n        uint256 _shares,\n        uint256 _minAmountOut, // Min_amount\n        uint256 _deadline,\n        address _receiver,\n        address _owner\n    ) external returns (uint256 assets) {\n        return (\n            _withdraw(\n                convertToAssets(_shares), // _amount\n                _shares, // _shares\n                _minAmountOut,\n                _deadline,\n                _receiver, // _receiver\n                _owner // _owner\n            )\n        );\n    }\n```\n\n**Remediation:**  Use `whenNotPaused` modifier for `safeWithdraw()`, `redeem()`, and `safeRedeem() `functions.\n\n**Status:**   Fixed\n\n\n- - -",
+    "summary": "\nThis bug report is about a contract called `Crate.sol` that has an Emergency Stop pattern. However, some functions in the contract do not have proper checks to stop their usage when the owner has paused the contract. This means that users can still withdraw or redeem funds even when the contract is supposed to be paused. To fix this, the `whenNotPaused` modifier should be added to the `safeWithdraw()`, `redeem()`, and `safeRedeem()` functions. This issue has been fixed.",
+    "report_date": "2023-04-17T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/solodit/solodit_content/blob/main/reports/Hexens/2023-04-17-Astrolab.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "astro-8-wrong-emergency-stop-pattern-usage-hexens-none-astrolab-markdown",
+    "firm_name": "Hexens",
+    "firm_logo_square": "Hexens_square.png",
+    "protocol_name": "Astrolab",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Hexens"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Hexens",
+        "logo_square": "Hexens_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Astrolab",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

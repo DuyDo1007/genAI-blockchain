@@ -1,0 +1,70 @@
+{
+    "id": 62110,
+    "kind": "GIT",
+    "auditfirm_id": 3,
+    "impact": "HIGH",
+    "finders_count": 5,
+    "protocol_id": 3135,
+    "title": "H-5: Incorrect performance fee calculation in `FeeManager`",
+    "content": "\nSource: https://github.com/sherlock-audit/2025-07-mellow-flexible-vaults-judging/issues/207 \n\n## Found by \n0xapple, blockace, dan\\_\\_vinci, davies0212, lodelux\n\n### Summary\n\nThe performance fee calculation in `FeeManager.calculateFee` uses an incorrect formula that doesn't properly convert price differences to share amounts. The current implementation leads to incorrect fee calculations.\n\n### Root Cause\n\nThe root cause is in the performance fee calculation formula in [`FeeManger.calculateFee`](https://github.com/sherlock-audit/2025-07-mellow-flexible-vaults/blob/main/flexible-vaults/src/managers/FeeManager.sol#L78) function :\n\n```solidity\nshares = Math.mulDiv(minPriceD18_ - priceD18, $.performanceFeeD6 * totalShares, 1e24);\n```\n\nThis formula incorrectly assumes that the price difference `(minPriceD18_ - priceD18)` can be directly multiplied by the total shares to calculate fee shares.\n\nFollowing formula comparison will be help to understand issue:\n- definition of price: `share = price * asset`\n- current formula: `feeShare = priceDifference * totalShare\n\nExample1:\nminPriceD18=100e18, priceD18=90e18, performanceFee=1e5(10%)\nfeeShare = 10e18 * 1e5 * totalShare / 1e24 = totalShare\nThis means that performance fee share is the same as total share. -> Incorrect result.\n\nExample2:\nLet's imagine that asset is USDC with decimal 6, and vault share price is $1.\nIn this case, `priceD18` for `USDC` is `1e30`, not `1e18` to ensure share decimal as 18.\n\n### Internal Pre-conditions\n\n.\n\n### External Pre-conditions\n\n.\n\n### Attack Path\n\n.\n\n### Impact\n\nIncorrect performance fees calculation.\n\n### PoC\n\n.\n\n### Mitigation\n\nThe formula should be corrected to properly convert the price difference to share amounts by including `priceD18` in the denominator:\n\n```solidity\nshares = Math.mulDiv(minPriceD18_ - priceD18, $.performanceFeeD6 * totalShares, 1e6 * priceD18);\n```\n\n\n## Discussion\n\n**sherlock-admin2**\n\nThe protocol team fixed this issue in the following PRs/commits:\nhttps://github.com/mellow-finance/flexible-vaults/pull/21/files\n\n\n\n\n",
+    "summary": "\nThis bug report discusses an issue found in the performance fee calculation of the Mellow Flexible Vaults protocol. The current formula used in the FeeManager.calculateFee function is incorrect and leads to incorrect fee calculations. The root cause of the issue is that the formula assumes that the price difference can be directly multiplied by the total shares, which is not the case. This can result in incorrect performance fee calculations. The report also includes a suggested correction to the formula to properly convert the price difference to share amounts. The protocol team has fixed this issue in their code.",
+    "report_date": "2025-07-28T15:00:00.000Z",
+    "contest_prize_txt": "70000 USDC",
+    "contest_link": "https://app.sherlock.xyz/audits/contests/964",
+    "sponsor_name": "",
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "",
+    "github_link": "https://github.com/sherlock-audit/2025-07-mellow-flexible-vaults-judging/issues/207",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "964",
+    "slug": "h-5-incorrect-performance-fee-calculation-in-feemanager-sherlock-mellow-flexible-vaults-git",
+    "firm_name": "Sherlock",
+    "firm_logo_square": "sherlock_square.png",
+    "protocol_name": "Mellow Flexible Vaults",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "dan\\_\\_vinci"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "lodelux"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "0xapple"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "blockace"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "dan\\_\\_vinci"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "davies0212"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Sherlock",
+        "logo_square": "sherlock_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Mellow Flexible Vaults",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

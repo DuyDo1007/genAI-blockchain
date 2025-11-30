@@ -1,0 +1,45 @@
+{
+    "id": 62544,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 16,
+    "impact": "HIGH",
+    "finders_count": 1,
+    "protocol_id": 3420,
+    "title": "[H-07] `SpinLottery` will break if the first `prizeId` is selected",
+    "content": "\n_Resolved_\n\n## Severity\n\n**Impact:** High\n\n**Likelihood:** Medium\n\n## Description\n\nInside the `_claimPrize` logic, if the randomly selected `prizeId` is equal to `firstPrizeId`, `firstPrizeId` will be incremented. However, `nextPrizeId` is also decremented.\n\n```solidity\n    function _claimPrize(uint8 rarity, uint256 randomValue) internal returns (address nftAddress, uint88 tokenId) {\n        PrizePool storage pool = prizePools[rarity];\n        if (pool.nextPrizeId <= pool.firstPrizeId) revert NoPrizesAvailable();\n        \n        // Calculate prize count and random index\n        uint256 prizeCount = pool.nextPrizeId - pool.firstPrizeId;\n        uint256 index = randomValue % prizeCount;\n        uint256 prizeId = pool.firstPrizeId + index;\n        \n        // Get prize data\n        uint256 packed = pool.prizeData[prizeId];\n        \n        // Remove prize using unordered removal pattern - more gas efficient than array management\n        // When a prize is removed, we move the last prize to its place if it's not already the last\n        if (prizeId != pool.nextPrizeId - 1) {\n            uint256 lastPrizeId = pool.nextPrizeId - 1;\n            pool.prizeData[prizeId] = pool.prizeData[lastPrizeId];\n            delete pool.prizeData[lastPrizeId];\n        } else {\n            delete pool.prizeData[prizeId];\n        }\n        \n        // If we've removed the first prize, increment firstPrizeId\n        if (prizeId == pool.firstPrizeId) {\n>>>         pool.firstPrizeId++;\n        }\n        \n        // Decrement nextPrizeId\n>>>     pool.nextPrizeId--;\n        \n        uint8 unpackedRarity;\n        (nftAddress, tokenId, unpackedRarity) = unpackPrize(packed);\n        assert(unpackedRarity == rarity);\n    }\n```\n\nThis will cause the prize selection function to break for the corresponding rarity. Consider the following scenario:\n\n- `pool.firstPrizeId` = 1 and `pool.nextPrizeId` = 3, meaning there are 2 possible prizes.\n\n- A user spins and wins the first prize (`prizeId` = 1).\n\n- `pool.firstPrizeId++` and `pool.nextPrizeId--` are performed, resulting in `pool.firstPrizeId` = 2 and `pool.nextPrizeId` = 2, meaning the other prize is lost and can no longer be played and claimed by users.\n\n## Recommendations\n\nRemove the `pool.firstPrizeId++` logic, as it is unnecessary because the `lastPrizeId` is moved to the first position.\n\n\n\n",
+    "summary": "\nThis bug report discusses an issue with a function called `_claimPrize` that is used to select a prize for a user. The problem occurs when a certain condition is met, causing the function to break and making it impossible for users to claim a specific prize. This happens because of a line of code that increments one variable and decrements another, resulting in the loss of a prize. The report recommends removing the line of code causing the issue to fix the problem.",
+    "report_date": "2025-09-11T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/pashov/audits/blob/master/team/md/RipIt-security-review_2025-04-25.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "h-07-spinlottery-will-break-if-the-first-prizeid-is-selected-pashov-audit-group-none-ripit_2025-04-25-markdown",
+    "firm_name": "Pashov Audit Group",
+    "firm_logo_square": "Pashov_square.png",
+    "protocol_name": "RipIt_2025-04-25",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Pashov Audit Group"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Pashov Audit Group",
+        "logo_square": "Pashov_square.png"
+    },
+    "protocols_protocol": {
+        "name": "RipIt_2025-04-25",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

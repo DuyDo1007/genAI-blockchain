@@ -1,0 +1,45 @@
+{
+    "id": 62864,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 30,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3449,
+    "title": "[L-08] Using `transfer` Instead of `call` When Sending ETH in `withdrawAllNative()` Function in `GasTank`",
+    "content": "\n## Severity\n\nLow Risk\n\n## Description\n\nWhen sending native ETH through the `GasTank::withdrawAllNative()` function, we use `transfer()` instead of a native low-level call. This is not the best practice when transferring ETH, as the transfer only uses `2300` gas, which is only enough for event emitting and not for fallback logic.\n\nKeeping in consideration that `to` can be a smart contract wallet, there can be a fallback logic there. For example, SafeWallet can consume > `2300` or the first time accessing it. If any smart wallet implements a fallback logic, the tx will fail.\n\nhttps://help.safe.global/en/articles/40813-why-can-t-i-transfer-eth-from-a-contract-into-a-safe\n\n## Location of Affected Code\n\nFile: [GasTankPaymaster.sol#L741](https://github.com/etherspot/etherspot-modular-accounts/blob/9019f2a78c36e74bdb1df4029672998cb4631162/src/paymaster/GasTankPaymaster.sol#L741)\n\n```solidity\nfunction withdrawAllNative(address payable _to) external onlyOwner {\n    uint256 nativeBalance = address(this).balance;\n    uint256 wNativeBalance = wrappedNative.balanceOf(address(this));\n    if (nativeBalance > 0) {\n>>      _to.transfer(nativeBalance);\n        emit GasTankPaymaster_NativeWithdrawn(_to, nativeBalance);\n    }\n    if (wNativeBalance > 0) {\n        SafeERC20.safeTransfer(wrappedNative, _to, wNativeBalance);\n        emit GasTankPaymaster_WrappedNativeWithdrawn(_to, wNativeBalance);\n    }\n}\n```\n\n## Impact\n\nThe receiver of the native token can't receive tokens if it is a Smart Contract wallet.\n\n## Recommendation\n\nWe should use `call()` instead of `transfer()` for transfering ETH\n\n## Team Response\n\nFixed.\n\n## [I-01] Slippage Configuration Limitation\n\n## Severity\n\nInfo Risk\n\n## Description\n\nThe `uniswapHelperConfig.slippage` parameter is stored as a `uint8`, which restricts the valid range to 0–255. Within the `addSlippage()` function, slippage is applied as:\n\n```solidity\namount * (10000 - slippage) / 10000\n```\n\nThis design caps the maximum effective slippage tolerance at approximately 2.55% (when slippage = 255) and the minimum at 0%.\n\nFor comparison, most DEXs typically allow users to configure slippage tolerances in the range of 0.5%–5%, sometimes higher for volatile or low-liquidity pairs. This limitation may result in failed swaps under normal market conditions if the required tolerance exceeds 2.55%.\n\n## Location of Affected Code\n\nFile: [UniswapHelper.sol#L62](https://github.com/etherspot/etherspot-modular-accounts/blob/9019f2a78c36e74bdb1df4029672998cb4631162/src/paymaster/utils/UniswapHelper.sol#L62)\n\n## Impact\n\nThis issue does not pose a direct security risk. However, the capped slippage tolerance (max ~2.55%) may be unintentionally restrictive compared to typical DEX configurations (~0.5%–5%). As a result, swaps could fail in certain market conditions, but the impact is limited to usability rather than security.\n\n## Recommendation\n\nIf higher slippage tolerances are intended to be supported, consider storing slippage as a larger data type (`uint16`), so the full basis-point range (`0–10000`) can be represented.\n\n## Team Response\n\nFixed.\n\n",
+    "summary": "",
+    "report_date": "2025-10-03T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/shieldify-security/audits-portfolio-md/blob/main/Etherspot-GasTankPaymasterModule-Extended-Security-Review.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "l-08-using-transfer-instead-of-call-when-sending-eth-in-withdrawallnative-function-in-gastank-shieldify-none-etherspot-gastankpaymastermodule-extended-markdown",
+    "firm_name": "Shieldify",
+    "firm_logo_square": "Shieldify_square.png",
+    "protocol_name": "Etherspot Gastankpaymastermodule Extended",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Shieldify Security"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Shieldify",
+        "logo_square": "Shieldify_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Etherspot Gastankpaymastermodule Extended",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

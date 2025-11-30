@@ -1,0 +1,45 @@
+{
+    "id": 62668,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 23,
+    "impact": "MEDIUM",
+    "finders_count": 1,
+    "protocol_id": 3435,
+    "title": "Inconsistent A Value in Calculations",
+    "content": "##### Description\nThis issue occurs in the `SelfPeggingAsset` contract, where calculations use a locally stored `A` parameter instead of fetching the current value from the `rampAController`. \n\nDuring ramping periods, this leads to inconsistencies because the stored `A` value does not reflect the controller’s intended updates. As a result, balance and invariant *D* computations rely on the outdated `A`, while the ramped `A` is only applied to buffer updates in the `_syncTotalSupply` function when the pool is imbalanced.\n\nThe issue is classified as **medium** severity because it may cause miscalculations that disrupt pool behavior and user interactions during `A` value transitions.\n##### Recommendation\nWe recommend updating the contract to consistently retrieve the current `A` value from the `rampAController` by calling `getCurrentA()` (or a similar method) in all functions where `A` is used for calculations. This ensures that dynamic updates are accurately reflected. ",
+    "summary": "\nThe `SelfPeggingAsset` contract has a bug where it uses a stored value instead of the current value for calculations, causing inconsistencies during ramping periods. This can lead to incorrect balance and invariant calculations and disrupt pool behavior. To fix this, the contract should be updated to retrieve the current `A` value from the `rampAController` in all functions where it is used for calculations.",
+    "report_date": "2025-09-19T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/mixbytes/audits_public/blob/master/NUTS%20Finance/Tapio/README.md#5-inconsistent-a-value-in-calculations",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "inconsistent-a-value-in-calculations-mixbytes-none-nuts-finance-markdown",
+    "firm_name": "MixBytes",
+    "firm_logo_square": "mixbytes_square.png",
+    "protocol_name": "NUTS Finance",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "MixBytes"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "MixBytes",
+        "logo_square": "mixbytes_square.png"
+    },
+    "protocols_protocol": {
+        "name": "NUTS Finance",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

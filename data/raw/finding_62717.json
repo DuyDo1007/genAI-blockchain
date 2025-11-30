@@ -1,0 +1,45 @@
+{
+    "id": 62717,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 32,
+    "impact": "MEDIUM",
+    "finders_count": 1,
+    "protocol_id": 3438,
+    "title": "[M-01] _currentDefaultAdmin Not set in SingleAdminAccessControl",
+    "content": "\n## Severity\n\nMedium\n\n## Description\n\nIn StakedUshBase.sol, which imports and inherits AdminControl, the constructor calls:\n\n```solidity\n_grantRole(DEFAULT_ADMIN_ROLE, _owner);\n```\n\nThis sets the default admin role to _owner. However, the contract does not initialize the _currentDefaultAdmin variable, leaving it as address(0).\n\nConsequently, in a scenario where the current default admin attempts to transfer the admin role by calling transferAdmin, followed by _pendingDefaultAdmin executing acceptAdmin, the _grantRole override logic executes:\n\n```solidity\n_revokeRole(DEFAULT_ADMIN_ROLE, _currentDefaultAdmin);\n```\n\nSince _currentDefaultAdmin is address(0), the call to _revokeRole effectively does nothing. The function then proceeds to grant the role to the new admin via:\n\n```solidity\nsuper._grantRole(role, account);\n```\n\nThe net effect is that both the original _owner and the new admin retain the DEFAULT_ADMIN_ROLE, resulting in two admins instead of a proper transfer.\n\nThis issue arises from the lack of proper initialization of _currentDefaultAdmin during contract deployment and highlights a gap in the role transfer logic that lead to unintended multi-admin privileges.\n\n## Team Response\n\nFixed.\n\n",
+    "summary": "\nThe report describes a bug in the StakedUshBase.sol contract where the default admin role is not properly transferred. This is due to the _currentDefaultAdmin variable not being initialized, which results in both the original admin and the new admin retaining admin privileges. This bug has been fixed by the development team.",
+    "report_date": "2025-08-26T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/Kann-Audits/Kann-Audits/blob/main/reports/md-format/private-audits-reports/ManifestFinance-security-review_2025-08-26.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "m-01-_currentdefaultadmin-not-set-in-singleadminaccesscontrol-kann-none-manifestfinance-security-review_2025-08-26-markdown",
+    "firm_name": "Kann",
+    "firm_logo_square": "Kann_Audits_square.png",
+    "protocol_name": "ManifestFinance-security-review_2025-08-26",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Kann"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Kann",
+        "logo_square": "Kann_Audits_square.png"
+    },
+    "protocols_protocol": {
+        "name": "ManifestFinance-security-review_2025-08-26",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

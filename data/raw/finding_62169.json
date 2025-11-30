@@ -1,0 +1,55 @@
+{
+    "id": 62169,
+    "kind": "GIT",
+    "auditfirm_id": 3,
+    "impact": "MEDIUM",
+    "finders_count": 3,
+    "protocol_id": 3130,
+    "title": "M-7: post burn state fee calculation model can be gamed by burning small amounts",
+    "content": "\nSource: https://github.com/sherlock-audit/2025-07-cap-judging/issues/449 \n\n## Found by \nkangaroo, lanrebayode77, moray5554\n\n### Summary\n\nProtocol suppose to incentives users for burning CAP for popular assets by 0 fee and penalised if asset we want to burn for is \"rare\" with fee up to 100%.\nThere are 2 main functions we need to pay attention to understand the issue\nMinterLogic.sol\n```solidity\n    function _amountOutBeforeFee(address _oracle, IMinter.AmountOutParams memory params)\n        internal\n        view\n        returns (uint256 amount, uint256 newRatio)\n    {\n        (uint256 assetPrice,) = IOracle(_oracle).getPrice(params.asset);\n        (uint256 capPrice,) = IOracle(_oracle).getPrice(address(this));\n\n        uint256 assetDecimalsPow = 10 ** IERC20Metadata(params.asset).decimals();\n        uint256 capDecimalsPow = 10 ** IERC20Metadata(address(this)).decimals();\n\n        uint256 capSupply = IERC20(address(this)).totalSupply();\n        uint256 capValue = capSupply * capPrice / capDecimalsPow;\n        uint256 allocationValue = IVault(address(this)).totalSupplies(params.asset) * assetPrice / assetDecimalsPow;\n\n        uint256 assetValue;\n        if (params.mint) {\n            assetValue = params.amount * assetPrice / assetDecimalsPow;\n            if (capSupply == 0) {\n                newRatio = 0;\n                amount = assetValue * capDecimalsPow / assetPrice;\n            } else {\n                newRatio = (allocationValue + assetValue) * RAY_PRECISION / (capValue + assetValue);\n                amount = assetValue * capDecimalsPow / capPrice;\n            }\n        } else {\n            assetValue = params.amount * capPrice / capDecimalsPow;\n            if (params.amount == capSupply) {\n                newRatio = RAY_PRECISION;\n                amount = assetValue * assetDecimalsPow / assetPrice;\n            } else {\n                if (allocationValue < assetValue || capValue <= assetValue) {\n                    newRatio = 0;\n                } else {\n                    newRatio = (allocationValue - assetValue) * RAY_PRECISION / (capValue - assetValue);\n                }\n                amount = assetValue * assetDecimalsPow / assetPrice;\n            }\n        }\n    }\n\n    function _applyFeeSlopes(IMinter.FeeData memory fees, IMinter.FeeSlopeParams memory params)\n        internal\n        pure\n        returns (uint256 amount, uint256 fee)\n    {\n        uint256 rate;\n        if (params.mint) {\n            rate = fees.minMintFee;\n            if (params.ratio > fees.optimalRatio) {\n                if (params.ratio > fees.mintKinkRatio) {\n                    uint256 excessRatio = params.ratio - fees.mintKinkRatio;\n                    rate += fees.slope0 + (fees.slope1 * excessRatio / (RAY_PRECISION - fees.mintKinkRatio));\n                } else {\n                    rate += fees.slope0 * (params.ratio - fees.optimalRatio) / (fees.mintKinkRatio - fees.optimalRatio);\n                }\n            }\n        } else {\n            if (params.ratio < fees.optimalRatio) {\n                if (params.ratio < fees.burnKinkRatio) {\n                    uint256 excessRatio = fees.burnKinkRatio - params.ratio;\n                    rate = fees.slope0 + (fees.slope1 * excessRatio / fees.burnKinkRatio);\n                } else {\n                    rate = fees.slope0 * (fees.optimalRatio - params.ratio) / (fees.optimalRatio - fees.burnKinkRatio);\n                }\n            }\n        }\n\n        if (rate > RAY_PRECISION) rate = RAY_PRECISION;\n        fee = params.amount * rate / RAY_PRECISION;\n        amount = params.amount - fee;\n    }\n```\n`_amountOutBeforeFee` calculates amount and the ratio (share of the asset in the pool) and `_applyFeeSlopes` applies slope depends on the ratio we got. The problem here, the ratio we calculating essentially is a post burn state ratio.Means, the fee will be applied to the whole amount like as whole amount  was burned at specific point in the slope. In reality, say, 30% of total amount can be burned above optimal ratio, another 20 bellow it, and another 50 bellow burn kink ratio - resulting lower fee than if we burn it one tx.\n\nLet's illustrate it with an example:\n```solidity\nfees = IMinter.FeeData({\n    ...\n    optimalRatio: 0.5e27,        // 50%\n    mintKinkRatio: 0.8e27,       // 80%\n    burnKinkRatio: 0.2e27,       // 20%\n    slope0: 0.2e27,              // 20% fee slope before kink\n    slope1: 0.8e27               // 80% fee slope after kink\n});\n```\nI willing to burn 1000e18 tokens and the ratio (we got from `_amountOutBeforeFee()`) will be 0.05e27(5% allocation)\nIf i do it one burn:\n```solidity\nexcessRatio = burnKinkRatio - ratio = 0.15e27\nrate = slope0 + (slope1 * excessRatio / burnKinkRatio) = 0.8e27 (80%) -> fee 800e18, receive 200e18\n```\nIf i split it into 2 500e18 calls :\n1st)\nrate = 0.2 + (0.8 * 0.08 / 0.2) = 0.2 + 0.32 = 0.52 (52%)\nfee = 500 * 0.52 = 260\nreceive = 240\n2nd)\nrate = 0.2 + (0.8 * 0.15 / 0.2) = 0.2 + 0.6 = 0.8 (80%)\nfee = 500 * 0.8 = 400\nreceive = 100\n\nIn our example splitting let us moving ratio 0.2 to 0.12 and pays fee on this ratio first, and then 0.12 to 0.05 (the final ratio in our one tx burn())\nIn reality, attacker will burn everything before optimal ratio and then start splitting as more as close we go to \"fee cliffs\".\n\n### Root Cause\n\n_amountOutBeforeFee(), _applyFeeSlopes() in MinterLogic.sol\n\n### Internal Pre-conditions\n\nNone, but at the fee cliff state or low volume basket it will drastically reduce the fee\n\n### External Pre-conditions\n\nnone\n\n### Attack Path\n\nattacker split burn() into multiple calls in order to save on fees\n\n### Impact\n\nUser avoids fees while burn()\n\n### PoC\n\n_No response_\n\n### Mitigation\n\n_No response_\n\n",
+    "summary": "\nThe bug report is about a protocol that is supposed to incentivize users for burning CAP (a type of token) for popular assets by charging no fees, but penalizing them with fees up to 100% if the asset they want to burn for is \"rare\". The report identifies two main functions that are causing the issue: `_amountOutBeforeFee` and `_applyFeeSlopes` in the `MinterLogic.sol` file. The problem is that the ratio being calculated is a post-burn state ratio, meaning that the fee is being applied to the entire amount as if it were burned at a specific point in the fee slope. This results in a higher fee than if the burn was split into multiple transactions. The report provides an example to illustrate this issue and suggests that an attacker could exploit this by splitting their burn into multiple calls to avoid paying fees. The impact of this bug is that users can avoid fees while burning tokens. The report does not mention any response or mitigation from the developers.",
+    "report_date": "2025-07-24T15:00:00.000Z",
+    "contest_prize_txt": "126000 USDC",
+    "contest_link": "https://app.sherlock.xyz/audits/contests/990",
+    "sponsor_name": "",
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "",
+    "github_link": "https://github.com/sherlock-audit/2025-07-cap-judging/issues/449",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "990",
+    "slug": "m-7-post-burn-state-fee-calculation-model-can-be-gamed-by-burning-small-amounts-sherlock-cap-git",
+    "firm_name": "Sherlock",
+    "firm_logo_square": "sherlock_square.png",
+    "protocol_name": "Cap",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "kangaroo"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "lanrebayode77"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "moray5554"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Sherlock",
+        "logo_square": "sherlock_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Cap",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

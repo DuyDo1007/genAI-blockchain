@@ -1,0 +1,45 @@
+{
+    "id": 62419,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 34,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 1826,
+    "title": "[EIGEN2-8] Redundant double check of max operator count in register operator",
+    "content": "**Severity:** Low\n\n**Path:** SlashingRegistryCoordinator.sol:registerOperator#L151-L225\n\n**Description:** The `registerOperator` function is called from the AllocationManager. The operator can specify a few parameters, such as the registration type. \n\nIn the case of the `NORMAL` registration type, the function simply calls the internal `_registerOperator` with `checkMaxOperatorCount: true`. This will trigger a check at the end of `_registerOperator` where the new total operator count is checked against the quorum’s `maxOperatorCount`.\n\nHowever, after calling `_registerOperator`, the function will again perform the same check by looping over the quorum numbers and checking the result against `maxOperatorCount`:\n```\nfor (uint256 i = 0; i < quorumNumbers.length; i++) {\n    uint8 quorumNumber = uint8(quorumNumbers[i]);\n\n    require(\n        numOperatorsPerQuorum[i] <= _quorumParams[quorumNumber].maxOperatorCount,\n        MaxOperatorCountReached()\n    );\n}\n```\nThis second check is exactly the same and performed right afterwards, making it redundant and a waste of gas.\n\n**Remediation:**  Remove the redundant check in `registerOperator`, as the parameter `checkMaxOperatorCount: true` already covers this.\n\n**Status:**  Fixed\n\n- - -",
+    "summary": "",
+    "report_date": "2025-04-22T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/solodit/solodit_content/blob/main/reports/Hexens/2025-04-22-EigenLayer.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "eigen2-8-redundant-double-check-of-max-operator-count-in-register-operator-hexens-none-eigenlayer-markdown",
+    "firm_name": "Hexens",
+    "firm_logo_square": "Hexens_square.png",
+    "protocol_name": "Eigenlayer",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Hexens"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Hexens",
+        "logo_square": "Hexens_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Eigenlayer",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

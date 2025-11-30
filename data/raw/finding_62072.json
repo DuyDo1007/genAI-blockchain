@@ -1,0 +1,60 @@
+{
+    "id": 62072,
+    "kind": "GIT",
+    "auditfirm_id": 2,
+    "impact": "MEDIUM",
+    "finders_count": 4,
+    "protocol_id": 2159,
+    "title": "[M-09] When code defaults on remaining liability, it does not delete remaining auction, which is problematic if the user has called fill with a `%` less than 100",
+    "content": "\n\n<https://github.com/code-423n4/2025-02-blend/blob/f23b3260763488f365ef6a95bfb139c95b0ed0f9/blend-contracts-v2/pool/src/auctions/bad_debt_auction.rs# L131>\n\n### Finding description\n```\n\npub fn fill_bad_debt_auction(...) {\n    ....\n\n    // bid only contains d_token asset amounts\n    backstop_state.rm_positions(e, pool, map![e], auction_data.bid.clone());\n    filler_state.add_positions(e, pool, map![e], auction_data.bid.clone());\n\n    ....\n\n    // If the backstop still has liabilities and less than 5% of the backstop threshold burn bad debt\n    if !backstop_state.positions.liabilities.is_empty() {\n        let pool_backstop_data = backstop_client.pool_data(&e.current_contract_address());\n        let threshold = calc_pool_backstop_threshold(&pool_backstop_data);\n        if threshold < 0_0000003 {\n            // ~5% of threshold\n            let reserve_list = storage::get_res_list(e);\n            for (reserve_index, liability_balance) in backstop_state.positions.liabilities.iter() {\n                let res_asset_address = reserve_list.get_unchecked(reserve_index);\n                let mut reserve = pool.load_reserve(e, &res_asset_address, true);\n                backstop_state.default_liabilities(e, &mut reserve, liability_balance);\n                pool.cache_reserve(reserve);\n\n                PoolEvents::defaulted_debt(e, res_asset_address, liability_balance);\n            }\n        }\n    }\n    backstop_state.store(e);\n}\n```\n\nWe can see that in the bottom of the code, if the backstop threshold goes below the certain `%` then it deletes the remaining liability by calling `backstop_state.default_liabilities`.\n\nHowever if we look at the function `fill` in `auction.rs` where users can pass in a variable `percent_filled`.\n```\n\npub fn fill(\n    ...\n--> percent_filled: u64,\n) -> AuctionData {\n    ...\n    let auction_data = storage::get_auction(e, &auction_type, user);\n--> let (to_fill_auction, remaining_auction) = scale_auction(e, &auction_data, percent_filled);\n    match AuctionType::from_u32(e, auction_type) {\n        AuctionType::UserLiquidation => {\n            fill_user_liq_auction(e, pool, &to_fill_auction, user, filler_state)\n        }\n        AuctionType::BadDebtAuction => {\n            fill_bad_debt_auction(e, pool, &to_fill_auction, filler_state)\n        }\n        AuctionType::InterestAuction => {\n            fill_interest_auction(e, pool, &to_fill_auction, &filler_state.address)\n        }\n    };\n\n    if let Some(auction_to_store) = remaining_auction {\n        storage::set_auction(e, &auction_type, user, &auction_to_store);\n    } else {\n        storage::del_auction(e, &auction_type, user);\n    }\n\n    to_fill_auction\n}\n```\n\nSo, if the user fills with like 50%, for example, `scale_auction` only passes along like 50% of the auction data to `fill_bad_debt_auction`, the remaining 50% is stored in `remaining_auction` and stored back into `storage::set_auction`.\n\nHence, right now the bug is that when the threshold goes below 5%, the code deletes the liability by defaulting on it, but does not delete any remaining auction, which allows users to steal backstop tokens.\n\n### Sequence\n\nLet’s explore what happens during such a case.\n\nBid token - the `dtokens` (debt) the auction winner will take on\n\n* From block 0 to 200, remains the same at the peak value. Then from block 200 to 400 begins to decrease. After block 400, its just zero\n\nLot token - The backstop token the pool will transfer to the auction winner.\n\n* From block 0 to 200, the amount of lot tokens given to winner scales upwards and peaks at block 200. Then from then on stays the same at that peaked value.\n* Suppose there is a bad debt auction.\n* `Alice` fills the bad debt auction, calling `fill` with `percent_filled = 50%`.\n* It goes below the threshold and the code deletes backstop remaining liability.\n* However, the code does not delete the 50% `remaining_auction` which is now set in the bad debt auction storage key (also prevents new bad debt from being created btw).\n* From now, all the way till block 400, **no auctioner can fill the auction**. This is because `<` block 400, the bid token is non-zero, and since the code defaulted the liability under backstop, the line `backstop_state.rm_positions` will panic.\n\nHence, the auction can only be filled after block 400. **But, now the issue is,** when the auction is filled at block 400 onwards, the user who fills the auction does not take on any debt in place of the backstop, but still **gets the lot amount of backstop tokens for FREE** (at the expense of backstop stakers).\n\n### Impact\n\nThis breaks the normal flow of the bad debt auction and causes serious loss for backstop stakers. If you think about, of course every auction can be like this, where everyone waits until block 400 to get the backstop token **for free, at the loss of the backstop stakers**.\n\n**However, that does not happen due to the free market the code facilitates.** Once the exchange becomes worth it, auctioners will rush to do the exchange, taking on debt in exchange for the backstop token because **they know that if they don’t, then others will anyway**.\n\nBut in this case, the fact that the code removes liability from backstop but not the `remaining_auction` means that **no one** can fill the auction before block 400 because **it will always panic due to the `rm_position`**, which now breaks the free market flow of regular bad debt auctions.\n\n* This loophole allows the first user to call `fill` at block 400 to **steal** all the backstop tokens in remaining lot amount **without taking on any debt**. (Which is also **despite the backstop already dropping below threshold**)\n\n### PoC\n\nPoC is written [here](https://gist.github.com/rscodes21/918ba121b5371afdc50a512a19145fff).\n\n### Recommendation\n\nDelete `remaining_auction` if the code is going to default liabilities. So that backstop stakers don’t lose tokens **for nothing** (since there isn’t any liability anymore) when the threshold is below 5% already.\n\n**markus\\_pl10 (Script3) confirmed**\n\n**[mootz12 (Script3) commented](https://code4rena.com/audits/2025-02-blend-v2-audit-certora-formal-verification/submissions/F-27?commentParent=X2WxY6FiSXj):**\n\n> Validated this is an issue.\n>\n> The 5% threshold was chosen as a “dust” limit where the expectations of the pool was that it could get up to that amount of backstop funds to cover its defaulted debt, otherwise, it was on it’s own. The pool only expects that much coverage, and the backstop assumes all it’s tokens can be used to cover bad debt.\n>\n> This does cause some unnecessary loss for suppliers, as generally fillers would have used the rest of the funds in the auction to cover additional bad debt.\n>\n> However, the worst case loss for suppliers and/or backstop depositors does not change, it just opens a scenario where both parties can have a worst case experience, at the gain of a filler.\n\n**[LSDan (judge) commented](https://code4rena.com/audits/2025-02-blend-v2-audit-certora-formal-verification/submissions/F-27?commentParent=X2WxY6FiSXj&commentChild=JyicTLW56EH):**\n\n> Good finding, but it requires a series of conditions to line up just right, so I can’t see it exceeding medium.\n\n**[mootz12 (Script3) commented](https://code4rena.com/audits/2025-02-blend-v2-audit-certora-formal-verification/submissions/F-27?commentParent=V6E7GMz4RQm):**\n\n> Fixed to:\n>\n> * Only process post auction actions like bad debt and defaulting if the auction was fully filled, and no remaining auction exists.\n> * Re-work `bad_debt` to handle any edge case where auction leaves an account in a state where debt can be either marked as bad debt or defaulted.\n\n**[Blend mitigated](https://github.com/code-423n4/2025-04-blend-mitigation?tab=readme-ov-file# mitigation-of-high--medium-severity-issues):**\n\n> [Commit 59acbc9](https://github.com/blend-capital/blend-contracts-v2/commit/59acbc9364b50ec9da4b8f1f3065abe4faba2d79); [Improvements](https://github.com/blend-capital/blend-contracts-v2/pull/49/commits/857249fdd372e344fd033ba2fe8adbb619eb5b31) to assign bad debt after user liquidations and clean up post liquidation actions.\n\n**Status:** Mitigation confirmed. Full details in reports from [0xAlix2](https://code4rena.com/audits/2025-04-blend-v2-mitigation-review/submissions/S-3), [Testerbot](https://code4rena.com/audits/2025-04-blend-v2-mitigation-review/submissions/S-71), [0x007](https://code4rena.com/audits/2025-04-blend-v2-mitigation-review/submissions/S-51), [oakcobalt](https://code4rena.com/audits/2025-04-blend-v2-mitigation-review/submissions/S-34) and [rscodes](https://code4rena.com/audits/2025-04-blend-v2-mitigation-review/submissions/S-87).\n\n---\n\n",
+    "summary": "\nThis bug report discusses a bug found in the code for the Blend project. The bug occurs in a specific function called \"fill_bad_debt_auction\" and can be triggered if the backstop threshold goes below a certain percentage. This causes the code to delete the remaining liability, but not the remaining auction, which allows users to steal backstop tokens without taking on any debt. This can lead to serious losses for backstop stakers. The report includes a sequence of events that can trigger the bug and a proof of concept. The recommendation is to delete the remaining auction if the code is going to default liabilities. The bug has been confirmed and mitigated by the Blend team. ",
+    "report_date": "2025-08-13T00:00:00.000Z",
+    "contest_prize_txt": "125000",
+    "contest_link": "https://code4rena.com/reports/2025-02-blend-v2-audit-certora-formal-verification",
+    "sponsor_name": "Blend",
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://code4rena.com/reports/2025-02-blend-v2-audit-certora-formal-verification",
+    "github_link": "https://code4rena.com/audits/2025-02-blend-v2-audit-certora-formal-verification/submissions/F-27",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "492",
+    "slug": "m-09-when-code-defaults-on-remaining-liability-it-does-not-delete-remaining-auction-which-is-problematic-if-the-user-has-called-fill-with-a-less-than-100-code4rena-blend-blend-git",
+    "firm_name": "Code4rena",
+    "firm_logo_square": "code4rena_square.png",
+    "protocol_name": "Blend",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "0xtheauditor"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "klau5"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "rscodes"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "aldarion"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Code4rena",
+        "logo_square": "code4rena_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Blend",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

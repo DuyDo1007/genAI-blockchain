@@ -1,0 +1,45 @@
+{
+    "id": 62691,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 23,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3435,
+    "title": "Unused Errors and Event",
+    "content": "##### Description\nThe following errors and event are declared but not used in the contracts:\n- `UnauthorizedAccount` in the `Keeper` contract\n- `PoolAlreadySet` in the `LPToken` contract\n- `UnauthorizedAccount`, `ZeroAddress`, `CannotChangeControllerDuringRamp`, `InitialANotMatchCurrentA`, `AccountIsZero`, `PastBlock`, `SameTokenInTokenOut`, `ImbalancedPool`  in the `SelfPeggingAsset` contract\n- `PoolSet` event in the `LPToken` contract\n\n##### Recommendation\nWe recommend either removing these errors and the event if they are unnecessary or using them in the appropriate places where the corresponding checks or logs are relevant.\n",
+    "summary": "",
+    "report_date": "2025-09-19T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/mixbytes/audits_public/blob/master/NUTS%20Finance/Tapio/README.md#21-unused-errors-and-event",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "unused-errors-and-event-mixbytes-none-nuts-finance-markdown",
+    "firm_name": "MixBytes",
+    "firm_logo_square": "mixbytes_square.png",
+    "protocol_name": "NUTS Finance",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "MixBytes"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "MixBytes",
+        "logo_square": "mixbytes_square.png"
+    },
+    "protocols_protocol": {
+        "name": "NUTS Finance",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

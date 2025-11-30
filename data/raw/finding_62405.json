@@ -1,0 +1,45 @@
+{
+    "id": 62405,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 34,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3405,
+    "title": "[LOGLAB-9] The change in priority after requestWithdraw may block the claiming of the withdrawal request",
+    "content": "**Severity:** Low\n\n**Path:** src/vault/LogarithmVault.sol#L408-L419, src/vault/LogarithmVault.sol#L762-L764\n\n**Description:** If the priority is changed after a withdraw request is made, the withdrawal might not be able to be claimed.\nThe issue is that the withdrawRequest saves the `accRequestedWithdrawAssets` without noting whether the `owner` was prioritized. Upon claiming, `accRequestedWithdrawAssets` was used in conjunction with `isPrioritized`, which may not match `accRequestedWithdrawAssets`.\n\nFor example, let's assume the `prioritizedAccRequestedWithdrawAssets` is 1e18, while `accRequestedWithdrawAssets` is 10e18.\n\n- Lines 408 - 419: If an `owner` requested withdrawal before they are prioritized, the `accRequestedWithdrawAssets` of their withdrawRequest will be set as `10e18 + assetsToRequest`. \n\n\n- Lines 762 - 764: Afterwards, the `owner` was prioritized. The withdrawRequest's `accRequestedWithdrawAssets` will be compared against `$.prioritizedProcessedWithdrawAssets`. In this case it would be 1e18, therefore the withdrawal will not be able to be claimed.\n\nIt is reversable; if the `owner` should be not anymore prioritized, they can then claim their withdrawal.\n```\nif (isPrioritized(owner)) {\n    _accRequestedWithdrawAssets = $.prioritizedAccRequestedWithdrawAssets + assetsToRequest;\n    $.prioritizedAccRequestedWithdrawAssets = _accRequestedWithdrawAssets;\n} else {\n    _accRequestedWithdrawAssets = $.accRequestedWithdrawAssets + assetsToRequest;\n    $.accRequestedWithdrawAssets = _accRequestedWithdrawAssets;\n}\n\n\nbytes32 withdrawKey = getWithdrawKey(owner, _useNonce(owner));\n$.withdrawRequests[withdrawKey] = WithdrawRequest({\n    requestedAssets: assetsToRequest,\n    accRequestedWithdrawAssets: _accRequestedWithdrawAssets,\n```\n```\nisExecuted = isPrioritizedAccount\n    ? accRequestedWithdrawAssetsOfRequest <= $.prioritizedProcessedWithdrawAssets\n    : accRequestedWithdrawAssetsOfRequest <= $.processedWithdrawAssets;\n```\n\n**Remediation:**  Consider saving the priority at the time of requestWithdraw.\n\n**Status:** Fixed\n\n- - -",
+    "summary": "",
+    "report_date": "2024-11-25T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/solodit/solodit_content/blob/main/reports/Hexens/2024-11-25-BasisOS.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "loglab-9-the-change-in-priority-after-requestwithdraw-may-block-the-claiming-of-the-withdrawal-request-hexens-none-basisos-markdown",
+    "firm_name": "Hexens",
+    "firm_logo_square": "Hexens_square.png",
+    "protocol_name": "Basisos",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Hexens"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Hexens",
+        "logo_square": "Hexens_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Basisos",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

@@ -1,0 +1,45 @@
+{
+    "id": 62683,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 23,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3435,
+    "title": "Missing Zero‑Address Check for Every Feed Entry",
+    "content": "##### Description\nThis issue has been identified within the constructor of the `ChainlinkCompositeOracleProvider` contract. \n\nOnly the first feed is validated:\n```solidity\nif (i == 0 && address(_configs[i].feed) == address(0)) revert InvalidFeed();\n```\nSubsequent feeds can be the zero address, causing `latestRoundData()` to revert at runtime.\n##### Recommendation\nWe recommend validating every feed.",
+    "summary": "",
+    "report_date": "2025-09-19T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/mixbytes/audits_public/blob/master/NUTS%20Finance/Tapio/README.md#13-missing-zeroaddress-check-for-every-feed-entry",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "missing-zeroaddress-check-for-every-feed-entry-mixbytes-none-nuts-finance-markdown",
+    "firm_name": "MixBytes",
+    "firm_logo_square": "mixbytes_square.png",
+    "protocol_name": "NUTS Finance",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "MixBytes"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "MixBytes",
+        "logo_square": "mixbytes_square.png"
+    },
+    "protocols_protocol": {
+        "name": "NUTS Finance",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

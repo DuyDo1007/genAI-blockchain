@@ -1,0 +1,45 @@
+{
+    "id": 62591,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 16,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3420,
+    "title": "[L-33] Trade fee calculation mismatch in documentation and implementation",
+    "content": "\n_Resolved_\n\nThe `tradeFee` variable is documented in `MarketplaceStorage.sol` as a \"percentage in BIPS (1% = 100)\" but is implemented in `executeTrade()` as a fixed amount in token units. The contract initializes `tradeFee` to `10e6` with a comment \"1 USDC,\" confirming it's intended as an absolute amount. This inconsistency creates confusion about how fees are calculated and could lead to admin errors when setting fee values.\n\nRecommendation:\nUpdate the natspac in `MarketplaceStorage.sol` to accurately reflect that `tradeFee` is a fixed token amount rather than a percentage. Change the comment to:\n```solidity\n/// @notice Fixed trade fee amount in token units (e.g., 10e6 = 1 USDC)\nuint256 public tradeFee;\n```\nAlternatively, if percentage-based fees are desired, modify the `executeTrade()` implementation to calculate fees as a percentage of trade value.\n\n\n",
+    "summary": "",
+    "report_date": "2025-09-11T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/pashov/audits/blob/master/team/md/RipIt-security-review_2025-04-25.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "l-33-trade-fee-calculation-mismatch-in-documentation-and-implementation-pashov-audit-group-none-ripit_2025-04-25-markdown",
+    "firm_name": "Pashov Audit Group",
+    "firm_logo_square": "Pashov_square.png",
+    "protocol_name": "RipIt_2025-04-25",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Pashov Audit Group"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Pashov Audit Group",
+        "logo_square": "Pashov_square.png"
+    },
+    "protocols_protocol": {
+        "name": "RipIt_2025-04-25",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

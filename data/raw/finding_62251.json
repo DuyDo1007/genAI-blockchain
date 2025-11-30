@@ -1,0 +1,55 @@
+{
+    "id": 62251,
+    "kind": "PDF",
+    "auditfirm_id": 9,
+    "impact": "LOW",
+    "finders_count": 3,
+    "protocol_id": 3394,
+    "title": "Supply cap bypass via return_repay_remainings_ﬂag race condition",
+    "content": "## Diﬃculty: Low\n\n## Type: Data Validation\n\n## Description\nThe `return_repay_remainings_flag` functionality creates a race condition that allows attackers to bypass the maximum token supply cap. \n\nWhen `return_repay_remainings_flag = true`, the master contract does not update `awaited_supply` to account for pending supplies, assuming that this flag only allows repayment of existing borrowings without new supply. However, this assumption is flawed because the protection logic in `user-supply.fc` is ineffective for fresh accounts with no existing borrows.\n\nThe code checks for both `repay_amount_principal > 0` and `supply_amount_principal > 0`, but for fresh accounts where `repay_amount_principal = 0`, the logic falls into the else block where the max cap check is performed:\n\n```plaintext\nif((return_repay_remainings_flag == true) & (repay_amount_principal > 0) &\n(supply_amount_principal > 0)) {\n    total_supply += 0;\n    total_borrow -= repay_amount_principal;\n    new_principal = 0;\n} else {\n    total_supply += supply_amount_principal;\n    total_borrow -= repay_amount_principal;\n    ;; max cap check and negative new total borrow check (only need this check in case\n    of return_repay_remainings_flag == false)\n    if (((total_supply > max_token_amount) & (max_token_amount != 0) &\n    (supply_amount_principal > 0)) | (total_borrow < 0)) {\n        reserve_and_send_rest(\n            fee::min_tons_for_storage,\n            master_address,\n            pack_supply_fail_message(\n                query_id, owner_address,\n                asset_id, supply_amount_current,\n                custom_response_payload, subaccount_id, return_repay_remainings_flag,\n                initial_sender\n            )\n        );\n        return ();\n    }\n}\n```\n*Figure 6.1: The logic for the return repay remaining flag in `contracts_internal/contracts/core/user-supply.fc#L56–L78`*\n\nHowever, because the `total_supply` is calculated in the master contract using `awaited_supply`, and `awaited_supply` is not updated when `return_repay_remainings_flag = true`, the max cap check uses stale data.\n\n```plaintext\nint total_supply_principal_with_awaited_supply =\n    total_supply_principal + principal_value_supply_calc(s_rate, awaited_supply);\n\ncell supply_user_message = pack_supply_user_message(\n    query_id,\n    asset_id, amount,\n    s_rate, b_rate,\n    dust, max_token_amount,\n    total_supply_principal_with_awaited_supply, total_borrow_principal,\n    tracking_supply_index, tracking_borrow_index,\n    custom_response_payload,\n    subaccount_id, return_repay_remainings_flag, custom_payload_recipient,\n    custom_payload_saturation_flag, initial_sender\n);\n\nint awaited_supply_with_incoming_amount = return_repay_remainings_flag ?\n    awaited_supply : awaited_supply + amount;\n```\n*Figure 6.2: The total_supply calculation and awaited_supply update in `contracts_internal/contracts/core/master-supply.fc#L36–L50`*\n\nDue to TON’s asynchronous nature, multiple concurrent supply transactions can be initiated before any complete, all seeing the same stale `awaited_supply` value when performing max cap checks. This allows attackers to inflate the token supply significantly beyond protocol limits, potentially destabilizing the economic model and risk management assumptions.\n\n## Recommendations\n- **Short term**: Always update `awaited_supply` regardless of the `return_repay_remainings_flag` value.\n- **Long term**: Implement explicit cap validation in the master contract before forwarding transactions to user contracts. This will ensure consistent enforcement regardless of user-level logic paths.",
+    "summary": "",
+    "report_date": "2025-08-22T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://github.com/trailofbits/publications/blob/master/reviews/2025-08-evaafinance-securityreview.pdf",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/trailofbits/publications/blob/master/reviews/2025-08-evaafinance-securityreview.pdf",
+    "github_link": "",
+    "pdf_link": "https://solodit-bucket.s3.amazonaws.com/storage/reports/trailofbits/2025-08-evaafinance-securityreview.pdf",
+    "pdf_page_from": 24,
+    "contest_id": "",
+    "slug": "supply-cap-bypass-via-return_repay_remainings_flag-race-condition-trailofbits-none-evaa-finance-pdf",
+    "firm_name": "TrailOfBits",
+    "firm_logo_square": "trailofbits_square.png",
+    "protocol_name": "EVAA Finance",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Kevin Valerio Trail of Bits PUBLIC"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Guillermo Larregay"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Quan Nguyen"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "TrailOfBits",
+        "logo_square": "trailofbits_square.png"
+    },
+    "protocols_protocol": {
+        "name": "EVAA Finance",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

@@ -1,0 +1,55 @@
+{
+    "id": 62276,
+    "kind": "PDF",
+    "auditfirm_id": 6,
+    "impact": "HIGH",
+    "finders_count": 3,
+    "protocol_id": 3396,
+    "title": "RewardsController uses inconsistent scaling in handleAction and can lead to transfer DoS to/from",
+    "content": "## Minipool Market\n\n**Severity:** High Risk  \n**Context:** RewardsController.sol#L139  \n\n## Description\n\n`RewardController.handleAction` has a special case to handle when a user is a minipool market:\n\n### Code Snippet\n```solidity\n// RewardsController.sol#L134-L145\nif (_isAtokenERC6909[user] == true) {\n    (uint256 assetID,) = IAERC6909(user).getIdForUnderlying(IAToken(msg.sender).WRAPPER_ADDRESS());\n    // For trancheATokens we calculate the total supply of the AERC6909 ID for the assetID.\n    // We subtract the current balance.\n    uint256 totalSupplyAsset = IAERC6909(user).scaledTotalSupply(assetID); // <<<\n    uint256 diff = totalSupplyAsset - userBalance;\n    _totalDiff[msg.sender] = _totalDiff[msg.sender] - lastReportedDiff[msg.sender][user] + diff;\n    lastReportedDiff[msg.sender][user] = diff;\n    userBalance = totalSupplyAsset;\n}\n```\n\nWe can see that the function fetches `scaledTotalSupply` in order to compute the difference between the shares of MLP aToken that are due to the minipool and what is actually held by the minipool. These \"shares\" which are not accounted for in `aToken.scaledTotalSupply` should be rewarded, and thus this is why `_totalDiff[msg.sender]` is computed and then added to totalSupply for updating the reward state:\n\n### Code Snippet\n```solidity\n// RewardsController.sol#L146-L148\n_updateUserRewardsPerAssetInternal(\n    msg.sender,\n    user,\n    userBalance,\n    totalSupply + _totalDiff[msg.sender] // <<<\n);\n```\n\nUnfortunately, it is inaccurate to use `IAERC6909(user).scaledTotalSupply` in this context, since the total supply is scaled according to the minipool market index, while all other amounts are only scaled according to the main lending pool index. To showcase how it can lead to DOS of transfers from the ERC6909 market, we will use a simple example:\n\n## Scenario\n\n**Preconditions:**\n\n| Params                     | Value     |\n|----------------------------|-----------|\n| asset                      | aWETH     |\n| MLP liquidity index        | 1         |\n| minipool liquidity index    | 1.05      |\n| initial total supply       | 0         |\n\n**Steps:**\n\n- Alice mints 100 aWETH by depositing in the main lending pool.\n- Alice deposits the 100 aWETH into minipool, and is minted 95.2 shares of aWETH6909. After this step, `aWETH6909.scaledTotalSupply` is 95.2e18.\n\n### Alice's Attempt to Withdraw\n\nAlice attempts to withdraw the 100 aWETH, but the following values are used in `RewardController.handleAction` during transfer:\n\n### Code Snippet\n```solidity\n// IncentivizedERC20.sol#L191-L199\nif (address(_getIncentivesController()) != address(0)) {\n    uint256 currentTotalSupply = _totalSupply;\n    _getIncentivesController().handleAction(sender, currentTotalSupply, oldSenderBalance); // <<<, !\n    if (sender != recipient) {\n        _getIncentivesController().handleAction(recipient, currentTotalSupply, oldRecipientBalance);\n    }\n}\n```\n\n| Params                     | Value     |\n|----------------------------|-----------|\n| sender                     | aWETH6909 |\n| currentTotalSupply         | 100e18    |\n| oldSenderBalance           | 100e18    |\n\nThis means `handleAction` will underflow (`scaledTotalSupply == 95.2e18`):\n\n### Code Snippet\n```solidity\n// RewardsController.sol#L134-L145\nif (_isAtokenERC6909[user] == true) {\n    (uint256 assetID,) = IAERC6909(user).getIdForUnderlying(IAToken(msg.sender).WRAPPER_ADDRESS());\n    // For trancheATokens we calculate the total supply of the AERC6909 ID for the assetID.\n    // We subtract the current balance.\n    uint256 totalSupplyAsset = IAERC6909(user).scaledTotalSupply(assetID);\n    uint256 diff = totalSupplyAsset - userBalance; // <<<\n    _totalDiff[msg.sender] = _totalDiff[msg.sender] - lastReportedDiff[msg.sender][user] + diff;\n    lastReportedDiff[msg.sender][user] = diff;\n    userBalance = totalSupplyAsset;\n}\n```\n\nAs a result, Alice is unable to withdraw her funds.\n\n## Recommendation\n\nWe should use `totalSupply` to keep units consistent:\n\n### Code Snippet\n```solidity\n// RewardsController.sol#L134-L145\nif (_isAtokenERC6909[user] == true) {\n    (uint256 assetID,) = IAERC6909(user).getIdForUnderlying(IAToken(msg.sender).WRAPPER_ADDRESS());\n    // For trancheATokens we calculate the total supply of the AERC6909 ID for the assetID.\n    // We subtract the current balance.\n    uint256 totalSupplyAsset = IAERC6909(user).totalSupply(assetID);\n    uint256 diff = totalSupplyAsset - userBalance;\n    _totalDiff[msg.sender] = _totalDiff[msg.sender] - lastReportedDiff[msg.sender][user] + diff;\n    lastReportedDiff[msg.sender][user] = diff;\n    userBalance = totalSupplyAsset;\n}\n```\n\nNote that it may seem a bit counterintuitive, because this total supply includes shares of the lending pool which are accrued as interest and have never been \"minted\" yet.\n\n---\n\n**Astera:** Fixed in commit 92f8ffaf.  \n**Spearbit:** Fix verified.",
+    "summary": "\nThe report discusses a bug in the Minipool Market where users are unable to withdraw their funds due to an inaccurate calculation of rewards. The code snippet provided shows that the function `handleAction` uses `scaledTotalSupply` to calculate the difference between the shares of MLP aToken that are due to the minipool and what is actually held by the minipool. However, this leads to a denial of service for transfers from the ERC6909 market. The report recommends using `totalSupply` instead to keep units consistent. The bug has been fixed in a recent commit.",
+    "report_date": "2025-08-29T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Astera-Spearbit-Security-Review-December-2024.pdf",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Astera-Spearbit-Security-Review-December-2024.pdf",
+    "github_link": "",
+    "pdf_link": "https://solodit-bucket.s3.amazonaws.com/storage/reports/spearbit/Astera-Spearbit-Security-Review-December-2024.pdf",
+    "pdf_page_from": 8,
+    "contest_id": "",
+    "slug": "rewardscontroller-uses-inconsistent-scaling-in-handleaction-and-can-lead-to-transfer-dos-tofrom-spearbit-none-astera-pdf",
+    "firm_name": "Spearbit",
+    "firm_logo_square": "spearbit_square.png",
+    "protocol_name": "Astera",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Saw-mon and Natalie"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Cergyk"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Jonatas Martins"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Spearbit",
+        "logo_square": "spearbit_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Astera",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

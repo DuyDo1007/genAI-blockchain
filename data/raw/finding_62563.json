@@ -1,0 +1,45 @@
+{
+    "id": 62563,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 16,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3420,
+    "title": "[L-05] No duplicate prize check in prize pool addition",
+    "content": "\n_Acknowledged_\n\nIn the `SpinLottery` contract, the function responsible for adding prizes checks whether the contract currently owns the specified NFT by verifying `nft.ownerOf(_tokenId) != address(this)`. However, it does not include a check to determine if the `packed` prize (which combines the NFT address, token ID, and rarity) has already been added to the prize pool.\n\n```solidity\n    function addPrize(address _nftAddress, uint256 _tokenId, uint8 _rarity) external onlyRole(lotteryManagerRoleId) {\n        if (_nftAddress == address(0)) revert ZeroAddress();\n        if (_tokenId > type(uint88).max) revert TokenIdTooLarge();\n        if (_rarity == 0 || _rarity > maxRarityId || !rarityConfigs[_rarity].active) revert InvalidRarity();\n\n        IERC721 nft = IERC721(_nftAddress);\n        if (nft.ownerOf(_tokenId) != address(this)) revert NFTNotOwnedByContract();\n\n        uint256 packed = packPrize(_nftAddress, uint88(_tokenId), _rarity);\n        _addPrizeToPool(_rarity, packed);\n\n        emit PrizeAdded(_nftAddress, _tokenId, _rarity);\n    }\n```\n\nThis oversight could lead to potential duplicate entries in the prize pool, affecting the `spin` process.\n\nTo prevent the addition of duplicate prizes, implement a check to verify whether the `packed` prize already exists in the prize pool before adding it.\n\n\n\n",
+    "summary": "",
+    "report_date": "2025-09-11T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/pashov/audits/blob/master/team/md/RipIt-security-review_2025-04-25.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "l-05-no-duplicate-prize-check-in-prize-pool-addition-pashov-audit-group-none-ripit_2025-04-25-markdown",
+    "firm_name": "Pashov Audit Group",
+    "firm_logo_square": "Pashov_square.png",
+    "protocol_name": "RipIt_2025-04-25",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Pashov Audit Group"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Pashov Audit Group",
+        "logo_square": "Pashov_square.png"
+    },
+    "protocols_protocol": {
+        "name": "RipIt_2025-04-25",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

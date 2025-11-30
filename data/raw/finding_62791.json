@@ -1,0 +1,50 @@
+{
+    "id": 62791,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 37,
+    "impact": "LOW",
+    "finders_count": 2,
+    "protocol_id": 3445,
+    "title": "Bridge Token Refund Address May Lock Refunded Tokens in Escrow",
+    "content": "**Update**\nMarked as \"Fixed\" by the client. Addressed in: `0b3928973a364958fa51a5d7df723440d1a31bc7`.\n\nAdditional fix in: `cc30db8cf23ed2b19652cde3c6c5e3ccad8d9c99`.\n\n**File(s) affected:**`contracts/CampTimelockEscrow.sol`\n\n**Description:** In the `_bridgeNativeTokens` function, the LayerZero `nativeOFTAdapter.send` call uses `address(this)` (the `CampTimelockEscrow` contract) as the refund address. This can result in refunded tokens becoming stuck in the escrow contract instead of being returned to the intended recipient.\n\n**Recommendation:** Set the refund address to the recipient address defined in `_sendParam.to` rather than the `CampTimelockEscrow` contract address.",
+    "summary": "",
+    "report_date": "2025-09-15T14:20:31.258Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://certificate.quantstamp.com/full/camp-re-audit/2a90a14d-4635-462c-905c-0b444e0d8cf8/index.html",
+    "sponsor_name": "",
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://certificate.quantstamp.com/full/camp-re-audit/2a90a14d-4635-462c-905c-0b444e0d8cf8/index.html",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "bridge-token-refund-address-may-lock-refunded-tokens-in-escrow-quantstamp-camp-re-audit-markdown",
+    "firm_name": "Quantstamp",
+    "firm_logo_square": "quantstamp_square.png",
+    "protocol_name": "Camp - Re-Audit",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Paul Clemson"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Darren Jensen"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Quantstamp",
+        "logo_square": "quantstamp_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Camp - Re-Audit",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

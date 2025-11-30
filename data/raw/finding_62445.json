@@ -1,0 +1,45 @@
+{
+    "id": 62445,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 34,
+    "impact": "MEDIUM",
+    "finders_count": 1,
+    "protocol_id": 3408,
+    "title": "[UFARM1-10] Fund creation DoS by front-running factory call",
+    "content": "**Severity:** Medium\n\n**Path:** FundFactory.sol:createFund#L47-L49\n\n**Description:** The FundFactory exposes the `createFund` function, which uses a beacon proxy and `CREATE2` to deploy a new UFarmFund contract. This function is called from UFarmCore in the corresponding `createFund` function.\n\nThe `salt` value for the `CREATE2` opcode is the application ID, passed to the FundFactory from UFarmCore:\n```\nfunction createFund(\n    address _fundManager,\n    bytes32 _applicationId\n)\n    external override\n    ownerOrHaveTwoPermissions(uint8(Permissions.UFarm.Member), uint8(Permissions.UFarm.ApproveFundCreation))\n    nonReentrant returns (address fund)\n{\n    uint256 nextFundId = _funds.length();\n    fund = fundFactory.createFund(_fundManager, _applicationId);\n    _funds.add(fund);\n    emit FundCreated(_applicationId, nextFundId, fund);\n}\n```\nAnd in UFarmFactory it uses the SafeOPS library:\n```\nfunction createFund(address _manager, bytes32 _salt) external onlyLinked returns (address fund) {\n    return SafeOPS._safeBeaconCreate2Deploy(fundImplBeacon, _salt, _getInitFundCall(_manager));\n}\n\nfunction _safeBeaconCreate2Deploy(\n\taddress _beacon,\n\tbytes32 _salt,\n\tbytes memory _initCall\n) internal returns (address addr) {\n\ttry new BeaconProxy{salt: _salt}(_beacon, _initCall) returns (BeaconProxy beaconProxy) {\n\t\treturn address(beaconProxy);\n\t} catch {\n\t\trevert BeaconProxyDeployFailed();\n\t}\n}\n```\nThe function reverts if the deployment fails, which would be the case if the contract already exists.\n\nThe `FundFactory.createFund` has no access control and as such, any attacker can deploy new UFarmFund contracts from the FundFactory. The newly deployed fund may not have been added to the UFarmCore fund whitelist, but the address and salt have now been taken.\n\nBy front-running application IDs in fund creation, an attacker can DoS fund creation, as the fund manager’s call would now revert.\n\n**Remediation:**  We would recommend to gate the `FundFactory.createFund` function to be callable only by the UFarmCore contract. \n\n**Status:** Fixed\n\n- - -",
+    "summary": "\nThe FundFactory contract has a function called `createFund` that is used to deploy a new contract called UFarmFund. This function is called from another contract called UFarmCore. However, there is a bug that allows anyone to use this function and deploy new UFarmFund contracts without proper authorization. This can lead to a denial of service attack and cause problems for the fund manager. To fix this bug, the `createFund` function should only be callable by the UFarmCore contract. This issue has been resolved.",
+    "report_date": "2025-06-10T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/solodit/solodit_content/blob/main/reports/Hexens/2025-06-10-Ufarm.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "ufarm1-10-fund-creation-dos-by-front-running-factory-call-hexens-none-ufarm-markdown",
+    "firm_name": "Hexens",
+    "firm_logo_square": "Hexens_square.png",
+    "protocol_name": "Ufarm",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Hexens"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Hexens",
+        "logo_square": "Hexens_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Ufarm",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

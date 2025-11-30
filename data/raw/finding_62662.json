@@ -1,0 +1,45 @@
+{
+    "id": 62662,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 23,
+    "impact": "HIGH",
+    "finders_count": 1,
+    "protocol_id": 3435,
+    "title": "Buffer Drainage Through Repeated Rebase Calls Due to Stale State Variables",
+    "content": "##### Description\nThis issue has been identified within the `rebase` function of the `SelfPeggingAsset` contract. \n\nWhen the old invariant `D` (`oldD`) exceeds the new invariant `D` (`newD`), the function calls `poolToken.removeTotalSupply(oldD - newD, true, true)` to reduce the total supply. However, it fails to update the contract's internal state variables `balances` and `totalSupply` to reflect this change. As a result, if `D` decreases, these variables remain unchanged while the buffer is reduced. Since `rebase` is an external, unprotected function that anyone can call, an attacker could repeatedly invoke it to drain the buffer entirely, operating on outdated state data with each call. \n\nThe issue is classified as **high** severity because it enables unauthorized depletion of the protocol's buffer, potentially leading to significant financial loss or disruption of the pool’s operations.\n##### Recommendation\nWe recommend updating the `balances` and `totalSupply` state variables after the `poolToken.removeTotalSupply` call when `oldD > newD` to ensure they accurately reflect the adjusted state. Additionally, consider implementing access controls (e.g., restricting `rebase` to authorized users) or a cooldown mechanism to prevent repeated exploitation.",
+    "summary": "\nThe `rebase` function in the `SelfPeggingAsset` contract has a bug that allows an attacker to drain the protocol's buffer by repeatedly calling the function. This is because the function does not update the `balances` and `totalSupply` state variables after reducing the total supply. To fix this, the variables should be updated and access controls should be considered to prevent exploitation. This bug is classified as high severity as it can lead to financial loss or disruption of the pool's operations.",
+    "report_date": "2025-09-19T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/mixbytes/audits_public/blob/master/NUTS%20Finance/Tapio/README.md#3-buffer-drainage-through-repeated-rebase-calls-due-to-stale-state-variables",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "buffer-drainage-through-repeated-rebase-calls-due-to-stale-state-variables-mixbytes-none-nuts-finance-markdown",
+    "firm_name": "MixBytes",
+    "firm_logo_square": "mixbytes_square.png",
+    "protocol_name": "NUTS Finance",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "MixBytes"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "MixBytes",
+        "logo_square": "mixbytes_square.png"
+    },
+    "protocols_protocol": {
+        "name": "NUTS Finance",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

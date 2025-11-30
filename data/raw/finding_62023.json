@@ -1,0 +1,55 @@
+{
+    "id": 62023,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 37,
+    "impact": "LOW",
+    "finders_count": 3,
+    "protocol_id": 3366,
+    "title": "Inconsistent Handling of Creation Fee when Burning Fees",
+    "content": "**Update**\nMarked as \"Acknowledged\" by the client. The client provided the following explanation:\n\n> Expect this to be fixed by the a CIP that reduces the create fee to zero.\n\n**File(s) affected:**`daml/splice-amulet/daml/Splice/AmuletRules.daml`\n\n**Description:** The`splitAndBurn`function is to burn fees via a self-transfer of an Amulet with the corresponding fee amount, thereby incurring a creation fee in addition the burned amount. The protocol handles this creation fee differently across various choices.\n\nIn`AmuletRules_BuyMemberTraffic`, the amount passed to`splitAndBurn`is calculated as`trafficCostAmulet - transferConfigAmulet.createFee.fee`. This ensures the user is charged exactly the`trafficCostAmulet`, with the`createFee`being effectively absorbed.\n\nFor choices involving`computeTransferPreapprovalFee`, the calculated`amuletPaid` is passed directly to`splitAndBurn` without deducting the creation fee. The client has noted this was an intentional decision for these preapproval-related functions, with the additional`createFee`serving as an economic disincentive against spamming these choices.\n\n**Recommendation:** The client is aware of this discrepancy and indicated that the`createFee` may be reduced to zero in the future, which would naturally resolve this inconsistency.\n\nIn the event that the`createFee`is not removed, consider aligning all calls to`splitAndBurn`to subtract the`createFee`from the primary calculated cost. If a base fee independent of the approval duration is desired, it should be explicitly defined in `computeTransferPreapprovalFee` rather than implicitly inherited from the `createFee`.",
+    "summary": "",
+    "report_date": "2025-08-14T13:19:40.214Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://certificate.quantstamp.com/full/canton-coin-an-implementation-of-splice-amulet/d95ae8a5-34b5-4245-8afc-bfd5435e4632/index.html",
+    "sponsor_name": "",
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://certificate.quantstamp.com/full/canton-coin-an-implementation-of-splice-amulet/d95ae8a5-34b5-4245-8afc-bfd5435e4632/index.html",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "inconsistent-handling-of-creation-fee-when-burning-fees-quantstamp-canton-coin-an-implementation-of-splice-amulet-markdown",
+    "firm_name": "Quantstamp",
+    "firm_logo_square": "quantstamp_square.png",
+    "protocol_name": "Canton Coin, an implementation of Splice Amulet",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Gereon Mendler"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Ibrahim Abouzied"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Jonathan Mevs"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Quantstamp",
+        "logo_square": "quantstamp_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Canton Coin, an implementation of Splice Amulet",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

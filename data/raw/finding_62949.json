@@ -1,0 +1,45 @@
+{
+    "id": 62949,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 16,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3464,
+    "title": "[L-03] Vault can be initialized with unexpected `feeBps`",
+    "content": "\n_Resolved_\n\n`VaultFactory.initializeVault()` calls `Vault.initialize()` passing `feeBps` as one of the parameters. This state variable can be changed by the owner, so the creator of the vault might initialize it with a different value than the one expected.\n\nConsider the following scenario:\n- Alice creates a vault and, at that time, the `feeBps` is 100 (1%).\n- Owner changes the `feeBps` to 500 (5%).\n- Alice initializes the vault assuming that a 1% fee will be applied, but in reality, a 5% fee will be applied.\n\nThe following change is suggested to ensure that the `feeBps` expected by the vault creator matches the one set in the factory:\n\n```diff\n  function initializeVault(\n    uint256 vaultId,\n    uint256 fixedSideCapacity,\n    uint256 variableSideCapacity,\n    uint256 duration,\n-   address variableAsset\n+   address variableAsset,\n+   uint256 expectedFeeBps\n  ) public {\n    // Get vault info for the vault we want to initialize and make sure msg.sender is the creator\n    require(vaultInfo[vaultId].creatorAddress == msg.sender, \"CMI\");\n\n+  require(feeBps == expectedFeeBps, \"FEE_MISMATCH\");\n```\n\n\n\n",
+    "summary": "",
+    "report_date": "2025-10-13T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/pashov/audits/blob/master/team/md/Saffron-security-review_2025-07-31.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "l-03-vault-can-be-initialized-with-unexpected-feebps-pashov-audit-group-none-saffron_2025-07-31-markdown",
+    "firm_name": "Pashov Audit Group",
+    "firm_logo_square": "Pashov_square.png",
+    "protocol_name": "Saffron_2025-07-31",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Pashov Audit Group"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Pashov Audit Group",
+        "logo_square": "Pashov_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Saffron_2025-07-31",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

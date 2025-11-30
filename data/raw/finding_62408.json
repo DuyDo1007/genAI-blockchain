@@ -1,0 +1,45 @@
+{
+    "id": 62408,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 34,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3405,
+    "title": "[LOGLAB-4] Invalidation of setLimitDecreaseCollateral Validation Logic when setting new setCollateralMinMax",
+    "content": "**Severity:** Low\n\n**Path:** src/hedge/offchain/OffChainConfig.sol#L63-L79 \n\n**Description:** `limitDecreaseCollateral()`  is designed to optimize gas usage and cost efficiency by enforcing a minimum threshold for decreasing collateral.  `decreaseCollateralMinMax()` sets the allowable minimum and maximum collateral that can be decreased. However, the interaction between the two setter functions could introduce a inconsistency.\n\nFunction to Set Limit (`setLimitDecreaseCollateral`):\n```\n  function setLimitDecreaseCollateral(uint256 limit) external onlyOwner {\n        OffChainConfigStorage storage $ = _getOffChainConfigStorage();\n        require(limit > $.decreaseCollateralMinMax[0]);\n        $.limitDecreaseCollateral = limit;\n    }\n```\nFunction to Set Min-Max (`setCollateralMinMax`):\n```\n  function setCollateralMinMax(\n        uint256 increaseCollateralMin,\n        uint256 increaseCollateralMax,\n        uint256 decreaseCollateralMin,\n        uint256 decreaseCollateralMax\n    ) external onlyOwner {\n        require(increaseCollateralMin < increaseCollateralMax && decreaseCollateralMin < decreaseCollateralMax);\n        OffChainConfigStorage storage $ = _getOffChainConfigStorage();\n        $.increaseCollateralMinMax = [increaseCollateralMin, increaseCollateralMax];\n        $.decreaseCollateralMinMax = [decreaseCollateralMin, decreaseCollateralMax];\n    }\n```\nRoot Cause\n\nThe issue exists due to the order of operations between the two functions:\n\n1. `setCollateralMinMax` is called, setting a valid range for `decreaseCollateralMinMax`.\n\n2. `setLimitDecreaseCollateral` is called, setting a `limitDecreaseCollateral` value that is acceptable `require(limit > $.decreaseCollateralMinMax[0])`.\n\n 3. `setCollateralMinMax` is called again, changing the `decreaseCollateralMinMax` range to new values. This invalidates the assumption that limitDecreaseCollateral is above the allowable `decreaseCollateralMin`, as the new `decreaseCollateralMinMax[0]` could now be greater than or lesser than `limitDecreaseCollateral`.\n ```\n function setCollateralMinMax(\n    uint256 increaseCollateralMin,\n    uint256 increaseCollateralMax,\n    uint256 decreaseCollateralMin,\n    uint256 decreaseCollateralMax\n) external onlyOwner {\n    require(increaseCollateralMin < increaseCollateralMax && decreaseCollateralMin < decreaseCollateralMax);\n    OffChainConfigStorage storage $ = _getOffChainConfigStorage();\n    $.increaseCollateralMinMax = [increaseCollateralMin, increaseCollateralMax];\n    $.decreaseCollateralMinMax = [decreaseCollateralMin, decreaseCollateralMax];\n}\n\n\nfunction setLimitDecreaseCollateral(uint256 limit) external onlyOwner {\n    OffChainConfigStorage storage $ = _getOffChainConfigStorage();\n    require(limit > $.decreaseCollateralMinMax[0]);\n    $.limitDecreaseCollateral = limit;\n}\n```\n\n**Remediation:**  Validate existing limit in `setCollateralMinMax` by adding a check in `setCollateralMinMax` to ensure that the current `limitDecreaseCollateral` remains valid with the updated `decreaseCollateralMinMax`.\n\n**Status:** Fixed\n\n- - -",
+    "summary": "",
+    "report_date": "2024-11-25T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/solodit/solodit_content/blob/main/reports/Hexens/2024-11-25-BasisOS.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "loglab-4-invalidation-of-setlimitdecreasecollateral-validation-logic-when-setting-new-setcollateralminmax-hexens-none-basisos-markdown",
+    "firm_name": "Hexens",
+    "firm_logo_square": "Hexens_square.png",
+    "protocol_name": "Basisos",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Hexens"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Hexens",
+        "logo_square": "Hexens_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Basisos",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

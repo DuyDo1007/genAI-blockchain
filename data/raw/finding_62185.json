@@ -1,0 +1,45 @@
+{
+    "id": 62185,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 16,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3389,
+    "title": "[L-12] Rounding in `_expectedSupplyAssets()` may exceed `supplyCap`",
+    "content": "\n_Acknowledged_\n\nThe `_supplyStrategy()` function is expected to ensure that the total assets supplied to a strategy vault never exceed its defined `supplyCap` immediately after a deposit. To achieve this, the `toSupply` value should be conservative, meaning it must not overestimate the available supply room:\n\n```solidity\n function _supplyStrategy(uint256 assets) internal {\n        for (uint256 i; i < supplyQueue.length; ++i) {\n            IERC4626 id = supplyQueue[i];\n\n            uint256 supplyCap = config[id].cap;\n            if (supplyCap == 0) continue;\n\n            uint256 supplyAssets = _expectedSupplyAssets(id);\n\n            uint256 toSupply =\n                UtilsLib.min(UtilsLib.min(supplyCap.zeroFloorSub(supplyAssets), id.maxDeposit(address(this))), assets);\n\n            if (toSupply > 0) {\n                // Using try/catch to skip vaults that revert.\n                try id.deposit(toSupply, address(this)) returns (uint256 suppliedShares) {\n                    config[id].balance = (config[id].balance + suppliedShares).toUint112();\n                    assets -= toSupply;\n                } catch {}\n            }\n\n            if (assets == 0) return;\n        }\n\n        if (assets != 0) revert ErrorsLib.AllCapsReached();\n    }\n\n```\n\nHere, the calculated `supplyAssets` reflects the most up-to-date and **slightly overestimated value (i.e., rounded up)**, so that `supplyCap.zeroFloorSub(supplyAssets)` rounds down.\n\nHowever, `supplyAssets` is calculated via `id.previewRedeem()` in which **it will round-down the redeemable assets**, which may result in `toSupply` being higher than should be provided to the vault.\n\n```solidity\n  function _expectedSupplyAssets(IERC4626 id) internal view returns (uint256) {\n        return id.previewRedeem(config[id].balance);\n    }\n```\n\n```solidity\n// @note : openzeppelin-contracts/contracts/token/ERC20/extensions/ERC4626.sol\n   /// @inheritdoc IERC4626\n    function previewRedeem(uint256 shares) public view virtual returns (uint256) {\n        return _convertToAssets(shares, Math.Rounding.Floor);\n    }\n```\n\n```solidity\n// @note : overridden `EulerEarn._convertToAssets()` function\n   /// @inheritdoc ERC4626\n    /// @dev The accrual of performance fees is taken into account in the conversion.\n    function _convertToAssets(uint256 shares, Math.Rounding rounding) internal view override returns (uint256) {\n        (uint256 feeShares, uint256 newTotalAssets,) = _accruedFeeAndAssets();\n\n        return _convertToAssetsWithTotals(shares, totalSupply() + feeShares, newTotalAssets, rounding);\n    }\n```\n\nThis could lead to the strategy vault breaching its `supplyCap` directly after the deposit.\n\n**Recommendations**\n\nConsider adjusting `_expectedSupplyAssets()` to round up its final result when used in `supplyCap` calculations inside the `_supplyStrategy()` function, to guarantee the supply cap is respected even in edge cases.\n\n\n### Euler comments\n\nWe acknowledge the finding, will keep as is. The interest accrual in strategies can also exceed the cap in the very next block, but it's not a concern.\n\n\n\n",
+    "summary": "",
+    "report_date": "2025-08-27T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/pashov/audits/blob/master/team/md/EulerEarn-security-review_2025-07-25.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "l-12-rounding-in-_expectedsupplyassets-may-exceed-supplycap-pashov-audit-group-none-eulerearn_2025-07-25-markdown",
+    "firm_name": "Pashov Audit Group",
+    "firm_logo_square": "Pashov_square.png",
+    "protocol_name": "EulerEarn_2025-07-25",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Pashov Audit Group"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Pashov Audit Group",
+        "logo_square": "Pashov_square.png"
+    },
+    "protocols_protocol": {
+        "name": "EulerEarn_2025-07-25",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

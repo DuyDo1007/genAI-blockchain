@@ -1,0 +1,60 @@
+{
+    "id": 62936,
+    "kind": "PDF",
+    "auditfirm_id": 6,
+    "impact": "LOW",
+    "finders_count": 4,
+    "protocol_id": 3462,
+    "title": "setVic should ensure that the newVic does not revert or report an incompatible interest rate per",
+    "content": "## Second\n\n## Severity: Low Risk\n\n**Context:** VaultV2.sol#L200\n\n**Description:** The current implementation of `setVic` does not perform any sanity checks on the `newVic` address. We have already suggested some basic compatibility checks in \"Extra check can be added when setting vic\" but Morpho could improve them by reverting the execution of the setter if the new VIC does indeed revert or report an \"incompatible\" interest rate value.\n\n**Recommendation:** Morpho should consider performing sanity checks on the new VIC address and revert the setter if `newVic.interestPerSecond` reverts or reports a value greater than `uint256(_totalAssets).mulDivDown(MAX_RATE_PER_SECOND, WAD)`.\n\n**Morpho:** Acknowledged. We don't think that it's the vault's role to provide such partial barriers. There are so many ways things can go wrong with a wrong VIC. One could even argue that adding this kind of checks gives a false sense of security, which must be avoided.\n\n**Spearbit:** Acknowledged.",
+    "summary": "",
+    "report_date": "2025-10-13T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Morpho-Vaults-v2-Spearbit-Security-Review-May-2025.pdf",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Morpho-Vaults-v2-Spearbit-Security-Review-May-2025.pdf",
+    "github_link": "",
+    "pdf_link": "https://solodit-bucket.s3.amazonaws.com/storage/reports/spearbit/Morpho-Vaults-v2-Spearbit-Security-Review-May-2025.pdf",
+    "pdf_page_from": 50,
+    "contest_id": "",
+    "slug": "setvic-should-ensure-that-the-newvic-does-not-revert-or-report-an-incompatible-interest-rate-per-spearbit-none-morpho-vaults-v2-pdf",
+    "firm_name": "Spearbit",
+    "firm_logo_square": "spearbit_square.png",
+    "protocol_name": "Morpho Vaults v2",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Saw-mon and Natalie"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Om Parikh"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Jonatas Martins"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Emmanuele Ricci"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Spearbit",
+        "logo_square": "spearbit_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Morpho Vaults v2",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

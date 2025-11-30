@@ -1,0 +1,45 @@
+{
+    "id": 62357,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 34,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 967,
+    "title": "[BAB-4] Missing upper limit checks",
+    "content": "**Severity:** Low\n\n**Path:** BabylonCore.sol:startListing (L62-68)\n\n**Description:** The function `BabylonCore.sol:startListing` (L62-68) doesn’t check an upper limit for some variables.\nFor example:\n\n- `timeStart` (creator can start a listing and indicate a timestamp for a very long period of time)\n\n- `totalTickets` (creator can start a listing and indicate a very large number of tickets )\n\n- `price` (creator can start listing and indicate a very high price for tickets)\n\nAs a result this would create fake listings that can potentially never succeed.\n```\nfunction startListing(\n    ListingItem calldata item,\n    IEditionsExtension.EditionInfo calldata edition,\n    uint256 timeStart,\n    uint256 price,\n    uint256 totalTickets,\n    uint256 donationBps\n) external;\n```\n\n**Remediation:**  Add constant variables with upper limits and check these against the parameters in `BabylonCore.sol:startListing`.\n\n**Status:**   Acknowledged\n\n\n- - -",
+    "summary": "",
+    "report_date": "2023-01-17T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/solodit/solodit_content/blob/main/reports/Hexens/2023-01-17-Babylon.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "bab-4-missing-upper-limit-checks-hexens-none-babylon-markdown",
+    "firm_name": "Hexens",
+    "firm_logo_square": "Hexens_square.png",
+    "protocol_name": "Babylon",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Hexens"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Hexens",
+        "logo_square": "Hexens_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Babylon",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

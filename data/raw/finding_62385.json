@@ -1,0 +1,45 @@
+{
+    "id": 62385,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 34,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 1408,
+    "title": "[FNG-3] Missing maximum limit on stalePriceDelay",
+    "content": "**Severity:** Low\n\n**Path:** ChainlinkPriceOracle.sol#L150-L157\n\n**Description:** In the contract `ChainlinkPriceOracle.sol` there is an issue related to the `stalePriceDelay` variable, which is used to determine how long it takes for a Chainlink price feed to be considered stale. Currently, this variable is set to a value of 1 day in comments. However, there is a lack of a maximum limit check when the `setStalePriceDelay` function is called. This means that the admin can set an unbounded value for `stalePriceDelay`, which effectively nullifies the purpose of having a \"stale price\" check.\n```\n    function setStalePriceDelay(uint _stalePriceDelay) external {\n        // Check caller = admin\n        if (msg.sender != admin) {\n            revert(\"unauthorized\");\n        }\n\n        stalePriceDelay = _stalePriceDelay;\n    }\n```\n\n**Remediation:**  Add a reasonable maximum limit for the `stalePriceDelay`.\n\n**Status:**  Fixed\n\n- - -",
+    "summary": "",
+    "report_date": "2023-11-06T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/solodit/solodit_content/blob/main/reports/Hexens/2023-11-06-Fungify.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "fng-3-missing-maximum-limit-on-stalepricedelay-hexens-none-fungify-markdown",
+    "firm_name": "Hexens",
+    "firm_logo_square": "Hexens_square.png",
+    "protocol_name": "Fungify",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Hexens"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Hexens",
+        "logo_square": "Hexens_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Fungify",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

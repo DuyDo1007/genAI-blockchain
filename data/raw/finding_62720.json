@@ -1,0 +1,45 @@
+{
+    "id": 62720,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 32,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3438,
+    "title": "[I-01] chainalysisOracleEnabled() function logic inverted",
+    "content": "\n## Severity\n\nLow\n\n## Description\n\nThe view function chainalysissOracleEnabled() returns true when the oracle is unset (i.e., disabled), and false when the oracle is actually configured. This behavior contradicts the function name, which suggests it should return true when the oracle is enabled.\n\n## Recommendation\n\nFix logic:\n\n```solidity\nfunction chainalysisOracleEnabled() public view returns (bool) {\n    return KycManagerStorageLib.getV1().chainalysisOracle != address(0);\n}\n```\n## Team Response\n\nFixed.\n\n",
+    "summary": "",
+    "report_date": "2025-08-26T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/Kann-Audits/Kann-Audits/blob/main/reports/md-format/private-audits-reports/ManifestFinance-security-review_2025-08-26.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "i-01-chainalysisoracleenabled-function-logic-inverted-kann-none-manifestfinance-security-review_2025-08-26-markdown",
+    "firm_name": "Kann",
+    "firm_logo_square": "Kann_Audits_square.png",
+    "protocol_name": "ManifestFinance-security-review_2025-08-26",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Kann"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Kann",
+        "logo_square": "Kann_Audits_square.png"
+    },
+    "protocols_protocol": {
+        "name": "ManifestFinance-security-review_2025-08-26",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

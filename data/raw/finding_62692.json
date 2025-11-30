@@ -1,0 +1,45 @@
+{
+    "id": 62692,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 23,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3435,
+    "title": "`getMintAmount()` Misreports Fees",
+    "content": "##### Description\nIn `SelfPeggingAsset.getMintAmount()`, the function sums per-token fees to report `feeAmount`. This does not match the actual fee charged, which should be the difference between the pre-fee and post-fee mint amounts. Because of non-linear effects and rounding in `_getD()`, the reported fee can be inaccurate. \n\nThe bug affects reporting and user expectations but not pool accounting, so severity is **low**.\n\n##### Recommendation\nWe recommend reporting `feeAmount` as `preFeeMint - postFeeMint`, similar to `getRedeemMultiAmount()`, instead of summing individual token fees.\n\n\n\n***\n",
+    "summary": "",
+    "report_date": "2025-09-19T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/mixbytes/audits_public/blob/master/NUTS%20Finance/Tapio/README.md#22-getmintamount-misreports-fees",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "getmintamount-misreports-fees-mixbytes-none-nuts-finance-markdown",
+    "firm_name": "MixBytes",
+    "firm_logo_square": "mixbytes_square.png",
+    "protocol_name": "NUTS Finance",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "MixBytes"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "MixBytes",
+        "logo_square": "mixbytes_square.png"
+    },
+    "protocols_protocol": {
+        "name": "NUTS Finance",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

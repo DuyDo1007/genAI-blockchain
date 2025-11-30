@@ -1,0 +1,45 @@
+{
+    "id": 62382,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 34,
+    "impact": "HIGH",
+    "finders_count": 1,
+    "protocol_id": 1408,
+    "title": "[FNG-16] Loans with CErc721 collateral can be made unliquidatable",
+    "content": "**Severity:** High\n\n**Path:** CErc721.sol:_seize#L470-L508\n\n**Description:** The `_seize` function for CErc721 will always round up to a token amount for full NFTs. This function is used for reward a liquidator in `Comptroller.sol:batchLiquidateBorrow `with the value that came from a liquidated debt of a borrower.\n\nIf the liquidation value is less than a full NFT amount, then the amount is rounded up to the nearest NFT on lines 475-479:\n```\nuint oneNFTAmount = doubleScale / exchangeRateStoredInternal();\nif (seizeTokens % oneNFTAmount != 0) {\n    // ensure whole nft seize size by rounding up to the next whole NFT\n    seizeTokens = ((seizeTokens / oneNFTAmount) + 1) * oneNFTAmount;\n}\n```\nHowever, this does work if the borrower owns less than 1 NFT in collateral, e.g. by transferring come CNFT tokens to another address and then creating a loan.\n\nAs a result, any loan that has a CErc721 as collateral can be forcefully made unliquidatable by the borrower, as the liquidation process would always revert.\n\nFor example:\n\n1. Borrower mints 1 CNFT from their NFT.\n\n2. Borrower transfer 1 wei CNFT to another address, keeping 0.9999 CNFT shares.\n\n3. Borrower can now create a loan with the 0.9999 CNFT, one that is almost as large as with the full NFT, e.g. 0.84999 the value of the NFT in USDC (with an 85% collateral factor).\n\n4. The liquidator can now never liquidate this loan, as it would result in an underflow revert, since the borrower does not own 1 CNFT.\n\nThis will create a strategy for borrowers to always profit from the protocol. \n\nFor example, if the loan become unhealthy, the protocol cannot liquidate this to obtain the collateral, creating bad debt. The borrower would be protected from the drop in price of their collateral. On the other hand, if the collateral increases in price, the borrower can simply repay the loan and re-obtain their collateral.\n```\n    function _seize(address liquidator, address borrower, uint seizeTokens) override external nonReentrant returns (uint) {\n        require(msg.sender == address(comptroller), \"unauthorized\");\n\n        accrueInterest();\n\n        uint oneNFTAmount = doubleScale / exchangeRateStoredInternal();\n        if (seizeTokens % oneNFTAmount != 0) {\n            // ensure whole nft seize size by rounding up to the next whole NFT\n            seizeTokens = ((seizeTokens / oneNFTAmount) + 1) * oneNFTAmount;\n        }\n\n        /* Fail if seize not allowed */\n        /*uint allowed = comptroller.seizeAllowed(address(this), seizerToken, liquidator, borrower, seizeTokens);\n        if (allowed != 0) {\n            revert LiquidateSeizeComptrollerRejection(allowed);\n        }*/\n\n        /* Fail if borrower = liquidator */\n        if (borrower == liquidator) {\n            revert LiquidateSeizeLiquidatorIsBorrower();\n        }\n\n        uint liquidatorSeizeTokens = seizeTokens;\n\n        /////////////////////////\n        // EFFECTS & INTERACTIONS\n        // (No safe failures beyond this point)\n\n        /* We write the calculated values into storage */\n        accountTokens[borrower] = accountTokens[borrower] - seizeTokens;\n        accountTokens[liquidator] = accountTokens[liquidator] + liquidatorSeizeTokens;\n\n        /* Emit a Transfer event */\n        emit Transfer(borrower, liquidator, liquidatorSeizeTokens);\n        //emit Transfer(borrower, address(this), protocolSeizeTokens);\n        //emit ReservesAdded(address(this), protocolSeizeAmount, totalReservesNew);\n\n        return seizeTokens;\n    }\n```\n\n**Remediation:**  The combination of transferrable CErc721 shares and the rounding for full NFTs are a source of trouble. We would like to recommend to not round up to the nearest NFT on liquidation.\n\nWe do not recommend making CErc721 shares non-transferrable. Even though this would mitigate the issue, it highly impacts the user experience and goes against the essence of the protocol. It would also not allow any 3rd party protocol to integrate with CErc721 (e.g. DEXs or yield aggregators).\n\n**Status:**   Fixed\n\n\n- - -",
+    "summary": "This bug report describes a high severity bug in the `_seize` function for CErc721. This function is used to reward liquidators in the `Comptroller.sol` with the value of a liquidated debt. However, the function always rounds up to a full NFT amount, which can cause issues if the borrower owns less than 1 NFT in collateral. This allows borrowers to create loans with almost the same value as a full NFT, but with less collateral, making it unliquidatable. The report recommends not rounding up to the nearest NFT on liquidation and not making CErc721 shares non-transferrable. The bug has been fixed.",
+    "report_date": "2023-11-06T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/solodit/solodit_content/blob/main/reports/Hexens/2023-11-06-Fungify.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "fng-16-loans-with-cerc721-collateral-can-be-made-unliquidatable-hexens-none-fungify-markdown",
+    "firm_name": "Hexens",
+    "firm_logo_square": "Hexens_square.png",
+    "protocol_name": "Fungify",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Hexens"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Hexens",
+        "logo_square": "Hexens_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Fungify",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

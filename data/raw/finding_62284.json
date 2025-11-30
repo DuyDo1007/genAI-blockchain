@@ -1,0 +1,55 @@
+{
+    "id": 62284,
+    "kind": "PDF",
+    "auditfirm_id": 6,
+    "impact": "MEDIUM",
+    "finders_count": 3,
+    "protocol_id": 3396,
+    "title": "setFlowLimit does not change the indices and interest rates",
+    "content": "## Security Advisory\n\n## Severity\n**Medium Risk**\n\n## Context\n`MiniPoolAddressProvider.sol#L349-L355`\n\n## Description\nChanging the flow limit of a reserve in a mini pool affects its virtual available liquidity. Therefore, it is essential to update the interest rates and the indices for that reserve in the mini pool. \n\nAdditionally, setting the flow limit to a non-zero value or resetting it to 0 can trigger the calculation of the minimum liquidity rate. This adds another reason why calling `setFlowLimit` should trigger an update of the interest rates and indices.\n\n## Recommendation\nEnsure that when `setFlowLimit` is called, the indices and interest rates are updated accordingly.\n\n## Status\n- **Astera**: Fixed in commit `696a5fa4`.\n- **Spearbit**: Fix verified.",
+    "summary": "\nThis report is about a bug in a code called MiniPoolAddressProvider. The bug is of medium risk and can cause problems with the virtual available liquidity. This means that when the flow limit of a reserve is changed, the interest rates and indices for that reserve in the mini pool should also be updated. However, this is not happening, and it is recommended that when the `setFlowLimit` function is called, the interest rates and indices should be updated as well. The bug has been fixed in a commit called `696a5fa4` and has been verified by a company called Spearbit.",
+    "report_date": "2025-08-29T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Astera-Spearbit-Security-Review-December-2024.pdf",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Astera-Spearbit-Security-Review-December-2024.pdf",
+    "github_link": "",
+    "pdf_link": "https://solodit-bucket.s3.amazonaws.com/storage/reports/spearbit/Astera-Spearbit-Security-Review-December-2024.pdf",
+    "pdf_page_from": 18,
+    "contest_id": "",
+    "slug": "setflowlimit-does-not-change-the-indices-and-interest-rates-spearbit-none-astera-pdf",
+    "firm_name": "Spearbit",
+    "firm_logo_square": "spearbit_square.png",
+    "protocol_name": "Astera",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Saw-mon and Natalie"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Cergyk"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Jonatas Martins"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Spearbit",
+        "logo_square": "spearbit_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Astera",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

@@ -1,0 +1,45 @@
+{
+    "id": 62176,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 16,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3389,
+    "title": "[L-03] Not revoking `USDT` approval when `permit2 == address(0)`",
+    "content": "\n_Resolved_\n\nIn the `SafeERC20Permit2Lib` library, the `revokeApprovalWithPermit2()` function is responsible for revoking token allowances when a vault's cap is set to zero (typically in preparation for removing a vault, possibly due to misbehavior or compromise).\n\nWhen `permit2` is `address(0)`, the function attempts to revoke the token allowance as follows:\n\n```solidity\n    function revokeApprovalWithPermit2(IERC20 token, address spender, address permit2) internal {\n        if (permit2 == address(0)) {\n            try token.approve(spender, 1) {} catch {} //<@audit : allownace not revoked for USDT\n        } else {\n            IAllowanceTransfer(permit2).approve(address(token), spender, 0, 0);\n        }\n    }\n```\n\nThis fallback logic fails silently for tokens like `USDT`, which require setting the allowance to zero before updating it to a non-zero value. As a result, the spender (the to-be-removed strategy vault) still retains an active approval, posing a potential security risk since a compromised vault could exploit this dangling allowance.\n\nRecommendation:\nConsider using `forceApprove()` to reset the allowance:\n```diff\n    function revokeApprovalWithPermit2(IERC20 token, address spender, address permit2) internal {\n        if (permit2 == address(0)) {\n-           try token.approve(spender, 1) {} catch {}\n+           try SafeERC20.forceApprove(token, spender, 1) {} catch {}\n        } else {\n            IAllowanceTransfer(permit2).approve(address(token), spender, 0, 0);\n        }\n    }\n```\n\n\n\n",
+    "summary": "",
+    "report_date": "2025-08-27T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/pashov/audits/blob/master/team/md/EulerEarn-security-review_2025-07-25.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "l-03-not-revoking-usdt-approval-when-permit2-address0-pashov-audit-group-none-eulerearn_2025-07-25-markdown",
+    "firm_name": "Pashov Audit Group",
+    "firm_logo_square": "Pashov_square.png",
+    "protocol_name": "EulerEarn_2025-07-25",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Pashov Audit Group"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Pashov Audit Group",
+        "logo_square": "Pashov_square.png"
+    },
+    "protocols_protocol": {
+        "name": "EulerEarn_2025-07-25",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

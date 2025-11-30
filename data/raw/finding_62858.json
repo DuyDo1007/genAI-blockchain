@@ -1,0 +1,45 @@
+{
+    "id": 62858,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 30,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3449,
+    "title": "[L-02] Missing Emiting `CredibleAccountModule_InvoiceManagerUpdated` Event When Calling `configure()` Function in `CredibleAccountModule`",
+    "content": "\n## Severity\n\nLow Risk\n\n## Description\n\nWhen changing the `invoiceManager`, we emit an event that the address of the invoice manager has been changed. This is done when changing it via the `CredibleAccountModule::setInvoiceManager()` function. But when changing the invoice manager through `CredibleAccountModule::configure()`, the event is not emitted.\n\n## Location of Affected Code\n\nFile: [CredibleAccountModule.sol#L107-L116](https://github.com/etherspot/etherspot-modular-accounts/blob/9019f2a78c36e74bdb1df4029672998cb4631162/src/modules/validators/CredibleAccountModule.sol#L107-L116)\n\n```solidity\nfunction configure(address _resourceLockValidator, address _invoiceManager) external onlyRole(DEFAULT_ADMIN_ROLE) {\n    // code\n    resourceLockValidator = _resourceLockValidator;\n    invoiceManager = _invoiceManager; // <<-- @audit emiting event is missing\n}\n```\n\nFile: [CredibleAccountModule.sol#L118-L125](https://github.com/etherspot/etherspot-modular-accounts/blob/9019f2a78c36e74bdb1df4029672998cb4631162/src/modules/validators/CredibleAccountModule.sol#L118-L125)\n\n```solidity\nfunction setInvoiceManager(address _invoiceManager) external onlyRole(DEFAULT_ADMIN_ROLE) {\n    // code\n    address current = invoiceManager;\n    invoiceManager = _invoiceManager;\n>>  emit CredibleAccountModule_InvoiceManagerUpdated(current, _invoiceManager);\n}\n```\n\n## Impact\n\nNot emitting events when changing critical variables\n\n## Recommendation\n\nWe should emit `CredibleAccountModule_InvoiceManagerUpdated` when changing the invoiceManager via `configure()` function, or we can make another event for `configure()` to show that both `resourceLockValidator` and `invoiceManager` addresses have been changed\n\n## Team Response\n\nFixed.\n\n",
+    "summary": "",
+    "report_date": "2025-10-03T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/shieldify-security/audits-portfolio-md/blob/main/Etherspot-GasTankPaymasterModule-Extended-Security-Review.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "l-02-missing-emiting-credibleaccountmodule_invoicemanagerupdated-event-when-calling-configure-function-in-credibleaccountmodule-shieldify-none-etherspot-gastankpaymastermodule-extended-markdown",
+    "firm_name": "Shieldify",
+    "firm_logo_square": "Shieldify_square.png",
+    "protocol_name": "Etherspot Gastankpaymastermodule Extended",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Shieldify Security"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Shieldify",
+        "logo_square": "Shieldify_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Etherspot Gastankpaymastermodule Extended",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

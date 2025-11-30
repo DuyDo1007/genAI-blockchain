@@ -1,0 +1,45 @@
+{
+    "id": 62643,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 30,
+    "impact": "MEDIUM",
+    "finders_count": 1,
+    "protocol_id": 3429,
+    "title": "[M-04] The System Might Skip Searching for Level 5 Users Under Certain Conditions",
+    "content": "\n## Severity\n\nMedium Risk\n\n## Description\n\nLet's consider the following scenario of a parent tree:\n`L0 => L2 =>L3 =>L4 => L5`\n\nThe L0 user chooses to start from the L2 dealer and everything is going smoothly until the `for` loop in the `BondDealerV1::_getHigherLevelParents()` function. This scenario will go as follows:\n\n1. `L0 =>L2` parenting connection will increase the `count` to 1 and the `currentLevel` variable to 2\n2. `L2 => L3` parenting connection will increase the `count` to 2 and the `currentLevel` variable to 3\n3. The problem arises when we go from Level 3 to Level 4. As the `count` variable will be increased to 3, the following equation will break from the loop and skip the search for the Level 5 user:\n   ` if (count == 6 - currentLevel || currentLevel == uint256(BondLevel.LEVEL_5)) break;`\n\nAs can be seen here, `currentLevel == 3` and `count == 3`, which will break from the for loop before the `L5` user is acknowledged.\n\n## Location of Affected Code\n\nFile: [src/BondDealer.sol#L275](https://github.com/batoshidao/berabtc-vault-token/blob/c68f412b3c7dfd99d3f6302a42bdf772ededb2a3/src/BondDealer.sol#L275)\n\n```solidity\nfunction _getHigherLevelParents(address user) internal view returns (UserInfo[] memory) {\n    UserInfo memory currentUser = userInfos[user];\n    require(currentUser.user != address(0), \"BondDealer: User does not exist\");\n    uint256 currentLevel = uint256(currentUser.level);\n    UserInfo[] memory higherLevelParents = new UserInfo[](6);\n    bool[6] memory found; // Track which levels have been found\n    uint256 count = 0;\n    address cur = currentUser.parent;\n    // Traverse up the parent chain\n    for (uint256 hop = 0; hop < 64 && cur != address(0); hop++) {\n        UserInfo memory parent = userInfos[cur];\n        uint256 parentLevel = uint256(parent.level);\n        // Only consider parents with higher level than current user\n        if (!found[parentLevel]) {\n            if (parentLevel > currentLevel || (hop == 0 && parentLevel > 0)) {\n                higherLevelParents[parentLevel] = parent;\n                found[parentLevel] = true;\n                count++;\n                // If we found all possible higher levels, we can stop\n@>              if (count == 6 - currentLevel || currentLevel == uint256(BondLevel.LEVEL_5)) break;\n            }\n        }\n        if (parentLevel > currentLevel) currentLevel = parentLevel;\n        cur = parent.parent;\n    }\n    // Create result array with only the found higher level parents\n    UserInfo[] memory result = new UserInfo[](count);\n    if (count > 0) {\n        uint256 resultIndex = 0;\n        for (uint256 i = 0; i < 6; i++) {\n            if (found[i]) {\n                result[resultIndex] = higherLevelParents[i];\n                resultIndex++;\n            }\n        }\n    }\n    return result;\n}\n```\n\n## Impact\n\nLevel 5 users may not be iterated through under those conditions\n\n## Recommendation\n\nSave the `currentLevel` from the original user and add 1 to it. This way, the `6- (currentLevel +1)` equation will give you all of the available spots to fill the `higherLevelParents` array. If at some point a level is bypassed, for example `L0=>L2`, remove 1 from this equation, as there will be 1 available spot less (because L1 is skipped and, respectively, 2 levels are skipped, remove 2 and so on ).\n\nThis will look like this:\n\n```diff\nfunction _getHigherLevelParents(address user) internal view returns (UserInfo[] memory) {\n        UserInfo memory currentUser = userInfos[user];\n        require(currentUser.user != address(0), \"BondDealer: User does not exist\");\n        uint256 currentLevel = uint256(currentUser.level);\n+      int256  ad = currentLevel + 1;\n        UserInfo[] memory higherLevelParents = new UserInfo[](6);\n        bool[6] memory found; // Track which levels have been found\n        uint256 count = 0;\n        address cur = currentUser.parent;\n        // Traverse up the parent chain\n        for (uint256 hop = 0; hop < 64 && cur != address(0); hop++) {\n            UserInfo memory parent = userInfos[cur];\n            uint256 parentLevel = uint256(parent.level);\n            // Only consider parents with higher level than current user\n            if (!found[parentLevel]) {\n                if (parentLevel > currentLevel || (hop == 0 && parentLevel > 0)) {\n                    higherLevelParents[parentLevel] = parent;\n                    found[parentLevel] = true;\n                    count++;\n                    // If we found all possible higher levels, we can stop\n-                    if (count == 6 - currentLevel || currentLevel == uint256(BondLevel.LEVEL_5)) break;\n+                    if (count == 6 - ad || currentLevel == uint256(BondLevel.LEVEL_5)) break;\n                }\n            }\n-            if (parentLevel > currentLevel) currentLevel = parentLevel;\n+            if (parentLevel > currentLevel){\n+             uint256 ad1 = parentLevel -  currentLevel;\n+             if( ad1 > 1 ) ad += ad1 - 1;\n+             currentLevel = parentLevel;\n+            }\n            cur = parent.parent;\n        }\n        // Create result array with only the found higher-level parents\n        UserInfo[] memory result = new UserInfo[](count);\n        if (count > 0) {\n            uint256 resultIndex = 0;\n            for (uint256 i = 0; i < 6; i++) {\n                if (found[i]) {\n                    result[resultIndex] = higherLevelParents[i];\n                    resultIndex++;\n                }\n            }\n        }\n        return result;\n}\n```\n\n## Team Response\n\nAcknowledged.\n\n",
+    "summary": "\nThis report is about a bug that affects a program. The bug can be found in the BondDealerV1::_getHigherLevelParents() function. The bug prevents the program from acknowledging the Level 5 user in the scenario where the user starts from the L2 dealer. This is because the `count` variable is increased to 3, which breaks the equation and skips the search for the Level 5 user. The impact of this bug is that Level 5 users may not be iterated through under those conditions. A recommendation to fix this bug is to save the `currentLevel` from the original user and add 1 to it. This way, the `6- (currentLevel +1)` equation will give you all of the available spots to fill the `higherLevelParents` array. The team has acknowledged the bug and will work on fixing it.",
+    "report_date": "2025-09-17T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/shieldify-security/audits-portfolio-md/blob/main/Terplayer-BVT-Staking&Distribution-Security-Review.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "m-04-the-system-might-skip-searching-for-level-5-users-under-certain-conditions-shieldify-none-terplayer-bvt-stakingdistribution-markdown",
+    "firm_name": "Shieldify",
+    "firm_logo_square": "Shieldify_square.png",
+    "protocol_name": "Terplayer Bvt Staking&Distribution",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Shieldify Security"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Shieldify",
+        "logo_square": "Shieldify_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Terplayer Bvt Staking&Distribution",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

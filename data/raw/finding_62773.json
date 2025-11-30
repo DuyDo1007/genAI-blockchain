@@ -1,0 +1,45 @@
+{
+    "id": 62773,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 16,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3443,
+    "title": "[L-13] StakedYuzuUSD violates the ERC4626 standard",
+    "content": "\n_Resolved_\n\nLook at the specification for maxWithdraw in [EIP4626]([https://eips.ethereum.org/EIPS/eip-4626#:~:text=type%3A uint256-,maxWithdraw,-Maximum amount of](https://eips.ethereum.org/EIPS/eip-4626#:~:text=type%3A%20uint256-,maxWithdraw,-Maximum%20amount%20of)):\n\n> MUST factor in both global and user-specific limits, like if withdrawals are entirely disabled (even temporarily) it MUST return 0.\n> \n\nIn `StakedYuzuUSD`, withdrawals are disabled:\n\n```solidity\n    function withdraw(uint256, address, address) public pure override returns (uint256) {\n        revert WithdrawNotSupported();\n    }\n```\n\nBut, `maxWithdraw` still returns a value based on `super.maxRedeem`, which is simply the share balance of the user and converts it into asset value:\n\n```\n    function maxWithdraw(address _owner) public view override returns (uint256) {\n        return previewRedeem(super.maxRedeem(_owner)); //@audit - supposed to return 0?\n    }\n```\n\nThis is in violation of the ERC4626 standard. The same argument can also be used for `maxRedeem` function as well, as `redeem` function has also been disabled. Although `maxRedeem` is being used in `initiateRedeem` , its recommended to use another function instead of `maxRedeem` to be in line with the specification.\n\nAlso, if the protocol intends to use `maxRedeem` in the same manner, there is also a note about returning 0 on temporary disablement:\n\n> MUST factor in both global and user-specific limits, like if redemption is entirely disabled (even temporarily) it MUST return 0.\n> \n\nSo, when the protocol decides to pause the contract, `maxRedeem` must return 0 too. As even `initiateRedeem` is paused as well, `maxRedeem` returning 0 will stay true to the standard.\n\n**Recommendations**\n\nReturn 0 from the above-mentioned functions, under the mentioned cases, to stay compliant with the ERC4626 standard.\n\n\n",
+    "summary": "",
+    "report_date": "2025-09-28T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/pashov/audits/blob/master/team/md/YuzuUSD-security-review_2025-08-28.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "l-13-stakedyuzuusd-violates-the-erc4626-standard-pashov-audit-group-none-yuzuusd_2025-08-28-markdown",
+    "firm_name": "Pashov Audit Group",
+    "firm_logo_square": "Pashov_square.png",
+    "protocol_name": "YuzuUSD_2025-08-28",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Pashov Audit Group"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Pashov Audit Group",
+        "logo_square": "Pashov_square.png"
+    },
+    "protocols_protocol": {
+        "name": "YuzuUSD_2025-08-28",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

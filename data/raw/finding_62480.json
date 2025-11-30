@@ -1,0 +1,70 @@
+{
+    "id": 62480,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 16,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3413,
+    "title": "[L-07] New rounds can start while current round is active, trapping funds",
+    "content": "\n_Resolved_\n\n`startNewRound()` is used to initiate a new round for a specific market.\n```solidity\nfunction startNewRound(uint256 marketId) external onlyOwner {\n        require(marketId < marketCount, \"Invalid market\");\n\n        // Get current price from DIA price feed\n        (uint128 price,) = getPrice(markets[marketId].tokenKey, markets[marketId].priceFeed);\n\n        // Increment round counter and create new round\n        currentRoundId[marketId]++;\n        marketRounds[marketId][currentRoundId[marketId]] = Round({\n            startTime: block.timestamp,\n            startPrice: price,\n            endPrice: 0,\n            ended: false\n        });\n        emit RoundStarted(marketId, currentRoundId[marketId], block.timestamp, price);\n    }\n```\nAs you can see, it does not check if a round is currently ongoing and increases `currentRoundId`. The issue is that `endRound()` relies on the stored `currentRoundId`, which may now point to an unfinished round.\n```solidity\nfunction endRound(uint256 marketId) external onlyOwner {\n@>      uint256 roundId = currentRoundId[marketId];\n        Round storage round = marketRounds[marketId][roundId];\n        require(!round.ended, \"Round already ended\");\n        require(block.timestamp >= round.startTime + 24 hours, \"Round not over yet\");\n\n        // Get final price from DIA\n        (uint128 price,) = getPrice(markets[marketId].tokenKey, markets[marketId].priceFeed); /\n\n        // Set final price and mark round as ended\n        round.endPrice = price;\n        round.ended = true;\n\n        // Calculate and transfer 5% fee to treasury\n        uint256 totalPool = predictions[marketId][roundId].length * PREDICTION_FEE; \n   \n        uint256 fee = (totalPool * 5) / 100;\n\n        if (fee > 0 && treasury != address(0)) {\n            IERC20(markets[marketId].token).transfer(treasury, fee);\n            emit FeeTransferred(marketId, roundId, treasury, fee);\n        }\n        emit RoundEnded(marketId, roundId, price, totalPool, fee);\n    }\n```\nThis causes a problem where, if `startNewRound()` is called while a round is still active and some users have already deposited tokens using `predict()`, their funds become permanently stuck in the contract. \n\nThis is because the only way to withdraw these funds is through `claimReward()`, which depends on `endRound()` being called to set `round.ended = true` for that round.\n```solidity\nfunction claimReward(uint256 marketId, uint256 roundId) external {\n        Round memory round = marketRounds[marketId][roundId];\n@>      require(round.ended, \"Round not ended\");\n        require(!hasClaimed[marketId][roundId][msg.sender], \"Already claimed\");\n\n///code...\n}\n```\nIn this case, it will be impossible to set `round.ended = true` because the new round has already started and the previous round cannot be ended, causing all funds from that round to be permanently locked in the contract.\n\n**Recommendations**\n\nTo solve the problem, check if a round is currently ongoing for the market and only allow starting a new round once the current round’s `ended` status is set to true. The same check should be applied to `startMultipleRounds()`.\n```diff\nfunction startNewRound(uint256 marketId) external onlyOwner {\n        require(marketId < marketCount, \"Invalid market\");\n+        Round memory currentRound = marketRounds[marketId][currentRoundId[marketId]];\n\n+        if (currentRound.startTime != 0) {\n+            require(currentRound.ended, \"Previous round not finshed\");\n+        }\n\n        // Get current price from DIA price feed\n        (uint128 price,) = getPrice(markets[marketId].tokenKey, markets[marketId].priceFeed);\n\n        // Increment round counter and create new round\n        currentRoundId[marketId]++;\n        marketRounds[marketId][currentRoundId[marketId]] = Round({\n            startTime: block.timestamp,\n            startPrice: price,\n            endPrice: 0,\n            ended: false\n        });\n        emit RoundStarted(marketId, currentRoundId[marketId], block.timestamp, price);\n    }\n\n```\n\n\n\n",
+    "summary": "",
+    "report_date": "2025-09-04T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/pashov/audits/blob/master/team/md/MCP-security-review_2025-08-07.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "l-07-new-rounds-can-start-while-current-round-is-active-trapping-funds-pashov-audit-group-none-mcp_2025-08-07-markdown",
+    "firm_name": "Pashov Audit Group",
+    "firm_logo_square": "Pashov_square.png",
+    "protocol_name": "MCP_2025-08-07",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Pashov Audit Group"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Pashov Audit Group",
+        "logo_square": "Pashov_square.png"
+    },
+    "protocols_protocol": {
+        "name": "MCP_2025-08-07",
+        "protocols_protocolcategoryscore": [
+            {
+                "protocols_protocolcategory": {
+                    "title": "NFT Lending"
+                },
+                "score": 0.5
+            },
+            {
+                "protocols_protocolcategory": {
+                    "title": "RWA"
+                },
+                "score": 0.5
+            },
+            {
+                "protocols_protocolcategory": {
+                    "title": "RWA Lending"
+                },
+                "score": 0.5
+            },
+            {
+                "protocols_protocolcategory": {
+                    "title": "Staking Pool"
+                },
+                "score": 0.5
+            }
+        ]
+    },
+    "issues_issuetagscore": []
+}

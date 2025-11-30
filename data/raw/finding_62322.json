@@ -1,0 +1,45 @@
+{
+    "id": 62322,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 16,
+    "impact": "HIGH",
+    "finders_count": 1,
+    "protocol_id": 3400,
+    "title": "[H-01] Incorrect timestamp comparison leads to cooldown bypass",
+    "content": "\n_Resolved_\n\n## Severity\n\n**Impact:** Medium\n\n**Likelihood:** High\n\n## Description\nIn `sdeusd.move`, unstake uses `clock::timestamp_ms(clock)` (milliseconds) to compare against `cooldown_end`, which is set using `clock_utils::timestamp_seconds(clock)` (seconds). As a result, the check:\n\n```rust\nassert!(current_time >= cooldown.cooldown_end || management.cooldown_duration == 0, EInvalidCooldown);\n```\nalways passes, since current_time (ms) is ~1000× larger than cooldown_end (s).\n\nCode in `update_user_cooldown`:\n\n```rust\nfun update_user_cooldown(\n    management: &mut SdeUSDManagement,\n    user: address,\n    amount: u64,\n    clock: &Clock,\n) {\n    if (management.cooldowns.contains(user)) {\n        let cooldown = management.cooldowns.borrow_mut(user);\n        cooldown.cooldown_end = clock_utils::timestamp_seconds(clock) + management.cooldown_duration;\n        cooldown.underlying_amount = cooldown.underlying_amount + amount;\n    } else {\n        management.cooldowns.add(user, UserCooldown {\n            cooldown_end: clock_utils::timestamp_seconds(clock) + management.cooldown_duration,\n            underlying_amount: amount,\n        })\n    };\n}\n```\n\nLater in the `unstake` function:\n\n```rust\n[...]\n    let current_time = clock::timestamp_ms(clock);\n    assert!(\n        current_time >= cooldown.cooldown_end || management.cooldown_duration == 0,//@audit-high compared to seconds ??\n        EInvalidCooldown\n    );\n[...]\n```\n\nFinding a full description.\n\n## Recommendations\nPerform the comparison using `clock_utils::timestamp_seconds` in unstake.\n\n\n\n",
+    "summary": "\nA bug was found in the `sdeusd.move` function where the cooldown duration is not properly checked. This results in the cooldown duration always passing, making it ineffective. The cause of this is the use of different time units in the code. The recommendation is to use the same time unit for comparison to fix the bug.",
+    "report_date": "2025-09-02T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/pashov/audits/blob/master/team/md/Elixir-security-review_2025-08-17.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "h-01-incorrect-timestamp-comparison-leads-to-cooldown-bypass-pashov-audit-group-none-elixir_2025-08-17-markdown",
+    "firm_name": "Pashov Audit Group",
+    "firm_logo_square": "Pashov_square.png",
+    "protocol_name": "Elixir_2025-08-17",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Pashov Audit Group"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Pashov Audit Group",
+        "logo_square": "Pashov_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Elixir_2025-08-17",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

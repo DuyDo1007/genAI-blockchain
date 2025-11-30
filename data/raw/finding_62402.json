@@ -1,0 +1,45 @@
+{
+    "id": 62402,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 34,
+    "impact": "MEDIUM",
+    "finders_count": 1,
+    "protocol_id": 3405,
+    "title": "[LOGLAB-22] Not all pendingDecreaseCollateral is utilized due to the max limit",
+    "content": "**Severity:** Medium\n\n**Path:** src/strategy/BasisStrategy.sol#L601-L607, src/strategy/BasisStrategy.sol#L752-L758\n\n**Description:** In scenarios where the strategy is partially deutilizing, the storage variable `pendingDecreaseCollateral` is added to `collateralDeltaToDecrease` on line 601 of the `BasisStrategy.spotSellCallback()` function. This represents the amount of collateral to be reduced from the position.\n\nFollowing this, the `_adjustPosition()` function is called to validate the position adjustment parameters before proceeding. Within `_adjustPosition()`, the `collateralDeltaAmount` is clamped—if its value exceeds a specific boundary `max`, it is capped at that `max`. \n\nThis behavior introduces an issue when `collateralDeltaAmount > max`, as not all of the `pendingDecreaseCollateral` is utilized. The remaining amount, calculated as `collateralDeltaAmount - max`, will not be removed from the position.\n```\ncollateralDeltaToDecrease += _pendingDecreaseCollateral;\nuint256 limitDecreaseCollateral = _hedgeManager.limitDecreaseCollateral();\nif (collateralDeltaToDecrease < limitDecreaseCollateral) {\n    $.pendingDecreaseCollateral = collateralDeltaToDecrease;\n} else {\n    collateralDeltaAmount = collateralDeltaToDecrease;\n}\n```\n```\nif (collateralDeltaAmount > 0) {\n    uint256 min;\n    uint256 max;\n    if (isIncrease) (min, max) = $.hedgeManager.increaseCollateralMinMax();\n    else (min, max) = $.hedgeManager.decreaseCollateralMinMax();\n    collateralDeltaAmount = _clamp(min, collateralDeltaAmount, max);\n}\n```\n\n**Remediation:**  When the collateralDeltaAmount is bigger than max, the pendingDecreaseCollateral should be assigned with collateralDeltaAmount - max.\n\n**Status:**  Fixed\n\n- - -",
+    "summary": "\nA bug has been reported in the BasisStrategy.sol file, specifically in the spotSellCallback() function on lines 601-607 and 752-758. The bug occurs when the strategy is partially deutilizing and the storage variable `pendingDecreaseCollateral` is added to `collateralDeltaToDecrease`. This causes an issue when `collateralDeltaAmount` exceeds a specific boundary `max` and is capped at that value. As a result, the remaining amount of `pendingDecreaseCollateral` is not utilized. The bug has been fixed by assigning `pendingDecreaseCollateral` with the value of `collateralDeltaAmount - max` when it is bigger than `max`. This bug has been marked as fixed.",
+    "report_date": "2024-11-25T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/solodit/solodit_content/blob/main/reports/Hexens/2024-11-25-BasisOS.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "loglab-22-not-all-pendingdecreasecollateral-is-utilized-due-to-the-max-limit-hexens-none-basisos-markdown",
+    "firm_name": "Hexens",
+    "firm_logo_square": "Hexens_square.png",
+    "protocol_name": "Basisos",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Hexens"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Hexens",
+        "logo_square": "Hexens_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Basisos",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

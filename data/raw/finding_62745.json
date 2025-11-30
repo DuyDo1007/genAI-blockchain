@@ -1,0 +1,45 @@
+{
+    "id": 62745,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 30,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3440,
+    "title": "[L-02] Missing Staleness Checks on VRF Randomness",
+    "content": "\n## Severity\n\nLow Risk\n\n## Description\n\nThe randomness returned by the VRF system is accepted without any staleness validation. This means a delayed or manipulated VRF callback can still be applied to a round even after its state has changed. Since the random number is directly used to determine which cell gets eliminated, a stale or predictable value allows an attacker (or compromised VRF system) to bias the outcome of the round. This undermines fairness and can result in the round being manipulated to favour specific participants.\n\n## Location of Affected Code\n\nFile: [contracts/Revolver.sol#531](https://github.com/xgrisha666x/revolver-contract/blob/b9c318f97f10a4f496bda8959aeb90696402e114/contracts/Revolver.sol#L531)\n\n```solidity\n function randomNumberCallback( uint256 requestId, uint256 randomNumber ) external onlyVRFSystem {\n    uint256 roundId = vrfRequestToRoundId[requestId];\n    Round storage round = rounds[roundId];\n    if (round.status != RoundStatus.WaitingVRF) revert InvalidState();\n\n    // collect only active and occupied cells\n    uint256[] memory occupiedCells = new uint256[](round.activeCellsCount);\n    uint256 occupiedCount;\n\n    for (uint256 i = 1; i <= NUM_CELLS; i++) {\n        if (round.cells[i].isActive && round.cells[i].players.length > 0) {\n            occupiedCells[occupiedCount] = i;\n            occupiedCount++;\n        }\n    }\n    // code\n}\n```\n\n## Recommendation\n\nConsider applying the following changes:\n\n- Add strict staleness checks so that VRF responses are only valid within a short and predefined time window after the request.\n- Reject any VRF responses that arrive after the round state has advanced.\n\n## Team Response\n\nAcknowledged.\n\n",
+    "summary": "",
+    "report_date": "2025-09-24T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/shieldify-security/audits-portfolio-md/blob/main/SoulsClub-Revolver-Security-Review.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "l-02-missing-staleness-checks-on-vrf-randomness-shieldify-none-soulsclub-revolver-markdown",
+    "firm_name": "Shieldify",
+    "firm_logo_square": "Shieldify_square.png",
+    "protocol_name": "Soulsclub Revolver",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Shieldify Security"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Shieldify",
+        "logo_square": "Shieldify_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Soulsclub Revolver",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

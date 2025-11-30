@@ -1,0 +1,45 @@
+{
+    "id": 62604,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 16,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3421,
+    "title": "[L-07] `onERC721Received` missing blocks safe NFT transfers and mints",
+    "content": "\n_Resolved_\n\nThe `SpinLottery` contract requires NFTs to be transferred or minted to it to be used as prizes, as verified by the ownership check.\n\n```solidity\nfunction addPrize(address _nftAddress, uint256 _tokenId, uint8 _rarity) external onlyRole(lotteryManagerRoleId) {\n    IERC721 nft = IERC721(_nftAddress);\n@>  if (nft.ownerOf(_tokenId) != address(this)) revert NFTNotOwnedByContract();\n\n    uint256 packed = packPrize(_nftAddress, uint88(_tokenId), _rarity);\n    _addPrizeToPool(_rarity, packed);\n\n    emit PrizeAdded(_nftAddress, _tokenId, _rarity);\n}\n```\n\nHowever, the contract lacks the `onERC721Received` implementation required by safe functions of ERC721. This prevents any external integrations that use safe methods from successfully sending NFTs to the contract.\n\nConsider implementing the `onERC721Received` interface in the `SpinLottery` contract.\n\n\n\n",
+    "summary": "",
+    "report_date": "2025-09-11T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/pashov/audits/blob/master/team/md/RipIt-security-review_2025-05-10.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "l-07-onerc721received-missing-blocks-safe-nft-transfers-and-mints-pashov-audit-group-none-ripit_2025-05-10-markdown",
+    "firm_name": "Pashov Audit Group",
+    "firm_logo_square": "Pashov_square.png",
+    "protocol_name": "RipIt_2025-05-10",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Pashov Audit Group"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Pashov Audit Group",
+        "logo_square": "Pashov_square.png"
+    },
+    "protocols_protocol": {
+        "name": "RipIt_2025-05-10",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

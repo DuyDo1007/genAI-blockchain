@@ -1,0 +1,55 @@
+{
+    "id": 62033,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 37,
+    "impact": "LOW",
+    "finders_count": 3,
+    "protocol_id": 3367,
+    "title": "EIP-712 `QA_DECISION_TYPEHASH` Declares `string` but Encodes `bytes32`",
+    "content": "**Update**\nMarked as \"Fixed\" by the client. Addressed in: `b38e69ebe7171ec897cb65285703bce77c3e593d`.\n\n**File(s) affected:**`SapienQA.sol`\n\n**Description:** The `QA_DECISION_TYPEHASH` in `SapienQA` is defined as:\n\n```\nkeccak256(\"QADecision(address userAddress,uint8 actionType,uint256 penaltyAmount,bytes32 decisionId,string reason)\")\n```\n\nHowever, when encoding the struct for signature verification, the `reason` field is encoded as `keccak256(bytes(reason))`, which is a `bytes32`, not a `string`. This means the actual encoded struct does not match the declared type hash, potentially breaking EIP-712 signature compatibility and causing signature verification to fail or be non-standard.\n\n**Recommendation:** Update the `QA_DECISION_TYPEHASH` to use `bytes32 reason` instead of `string reason` to match the actual encoding.",
+    "summary": "",
+    "report_date": "2025-07-02T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://certificate.quantstamp.com/full/sapien-2/9f938662-5bf7-4dc3-8774-3e7a12204cc3/index.html",
+    "sponsor_name": "",
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://certificate.quantstamp.com/full/sapien-2/9f938662-5bf7-4dc3-8774-3e7a12204cc3/index.html",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "eip-712-qa_decision_typehash-declares-string-but-encodes-bytes32-quantstamp-sapien-2-markdown",
+    "firm_name": "Quantstamp",
+    "firm_logo_square": "quantstamp_square.png",
+    "protocol_name": "Sapien - 2",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Paul Clemson"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Julio Aguilar"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Tim Sigl"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Quantstamp",
+        "logo_square": "quantstamp_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Sapien - 2",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

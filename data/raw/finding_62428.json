@@ -1,0 +1,45 @@
+{
+    "id": 62428,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 34,
+    "impact": "MEDIUM",
+    "finders_count": 1,
+    "protocol_id": 3407,
+    "title": "[ZLS1-1] All users can benefit from a discounted fee instead of the regular fee when performing a swap",
+    "content": "**Severity:** Medium\n\n**Path:** contracts/ZealousSwapPair.sol#L285-L311 \n\n**Description:** The function `ZealousSwapPair.swap()` facilitates token swaps and takes an input parameter `actualUser`, representing the true initiator of the swap (typically the caller of the router contract). This `actualUser` is used to determine fee eligibility - specifically, whether the user qualifies for a discount - within lines 287 to 291. If eligible, the swap fee is reduced from `regularFee` to `discountFee`.\n```\nfunction swap(\n    uint amount0Out,\n    uint amount1Out,\n    address to,\n    bytes calldata data,\n    address actualUser /// @audit There is no guarantee that actualUser is the actual caller\n) external lock {\n    ... \n    \n    {\n        // Scope for reserve{0,1}Adjusted to avoid stack-too-deep errors\n        if (discountManagerContract != address(0)) {\n            isDiscountEligible = IZealousSwapDiscountManager(\n                discountManagerContract\n            ).isDiscountEligible(actualUser);\n        }\n        uint balance0Adjusted = balance0.mul(10000).sub(\n            (\n                balance0 > _reserve0 - amount0Out\n                    ? balance0 - (_reserve0 - amount0Out)\n                    : 0\n            ).mul(isDiscountEligible ? discountFee : regularFee)\n        );\n        uint balance1Adjusted = balance1.mul(10000).sub(\n            (\n                balance1 > _reserve1 - amount1Out\n                    ? balance1 - (_reserve1 - amount1Out)\n                    : 0\n            ).mul(isDiscountEligible ? discountFee : regularFee)\n        );\n        require(\n            balance0Adjusted.mul(balance1Adjusted) >=\n                uint(_reserve0).mul(_reserve1).mul(10000 ** 2),\n            \"ZealousSwap: K\"\n        );\n    }\n    \n    ...\n```\nHowever, the function does not enforce that `actualUser` is the true caller of the swap. As a result, an attacker could bypass the router and call `swap` directly, supplying a discount - eligible address as `actualUser` - even if that address is not the one actually executing the transaction. This allows them to illegitimately benefit from a reduced swap fee.\n\n**Remediation:**  Consider implementing a whitelist of approved router addresses. If the caller of the `swap` function is not in the whitelist, enforce that `msg.sender` must match `actualUser`. This ensures that only trusted routers can pass a different address as `actualUser`, preventing misuse of the discount mechanism.\n```\n++ mapping(address => bool) public isWhitelistedRouter;\n\nfunction swap(\n    uint amount0Out,\n    uint amount1Out,\n    address to,\n    bytes calldata data,\n    address actualUser\n) external lock {\n++  if (!isWhitelistedRouter[msg.sender]) {\n++      require(\n++          msg.sender == actualUser, \n++          \"Incorrect actual user\"\n++      );\n++  }\n\n    ...\n}\n\n```\n\n**Status:**  Fixed\n\n- - -",
+    "summary": "\nThis bug report discusses a problem with the `swap()` function in the ZealousSwapPair.sol contract. The function is used for token swaps and takes in a parameter called `actualUser` to determine fee eligibility. However, the function does not verify that `actualUser` is actually the caller of the swap, which means an attacker could bypass the router and benefit from a reduced fee. The suggested solution is to implement a whitelist of approved router addresses and enforce that `msg.sender` must match `actualUser`. The bug has been fixed.",
+    "report_date": "2025-05-26T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/solodit/solodit_content/blob/main/reports/Hexens/2025-05-26-Zealous.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "zls1-1-all-users-can-benefit-from-a-discounted-fee-instead-of-the-regular-fee-when-performing-a-swap-hexens-none-zealous-markdown",
+    "firm_name": "Hexens",
+    "firm_logo_square": "Hexens_square.png",
+    "protocol_name": "Zealous",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Hexens"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Hexens",
+        "logo_square": "Hexens_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Zealous",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

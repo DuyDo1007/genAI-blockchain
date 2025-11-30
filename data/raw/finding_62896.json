@@ -1,0 +1,60 @@
+{
+    "id": 62896,
+    "kind": "PDF",
+    "auditfirm_id": 6,
+    "impact": "HIGH",
+    "finders_count": 4,
+    "protocol_id": 3419,
+    "title": "static_validate_system_transaction missing EIP-155 chain ID validation",
+    "content": "## Security Vulnerability Report\n\n## Severity\n**High Risk**\n\n## Context\n(No context files were provided by the reviewer)\n\n## Description\nThe function `static_validate_system_transaction` is missing chain ID validation. The only validation for `static_validate_system_transaction` is present in the following code block:\n\n```rust\nfn static_validate_system_transaction(\n    txn: &Recovered<TxEnvelope>,\n) -> Result<(), SystemTransactionError> {\n    if !Self::is_system_sender(txn.signer()) {\n        return Err(SystemTransactionError::UnexpectedSenderAddress);\n    }\n    if !txn.tx().is_legacy() {\n        return Err(SystemTransactionError::InvalidTxType);\n    }\n    if txn.tx().gas_price() != Some(0) {\n        return Err(SystemTransactionError::NonZeroGasPrice);\n    }\n    if txn.tx().gas_limit() != 0 {\n        return Err(SystemTransactionError::NonZeroGasLimit);\n    }\n    if !matches!(txn.tx().kind(), TxKind::Call(_)) {\n        return Err(SystemTransactionError::InvalidTxKind);\n    }\n    Ok(())\n}\n```\n\nThis missing validation can allow a malicious block proposer to include an invalid system transaction, which will fail during transaction validation in the execution layer. This can lead to failed epoch/snapshot changes, breaking validator set accounting.\n\nAdditional code references include:\n\n### Execute System Transaction\n```cpp\nResult<Receipt> ExecuteSystemTransaction<rev>::operator()()\n{\n    // ...\n    {\n        Transaction tx = tx_;\n        tx.gas_limit = 2/quotesingle.ts1000/quotesingle.ts1000; // required to pass intrinsic gas validation check\n        BOOST_OUTCOME_TRY(static_validate_transaction<rev>(\n            tx,\n            std::nullopt /* 0 base fee to pass validation */,\n            std::nullopt /* 0 blob fee to pass validation */,\n            chain_.get_chain_id(),\n            chain_.get_max_code_size(header_.number, header_.timestamp)));\n    }\n}\n```\n\n### Validate Transaction\n```cpp\n// EIP-155\nif (MONAD_LIKELY(tx.sc.chain_id.has_value())) {\n    if constexpr (rev < EVMC_SPURIOUS_DRAGON) {\n        return TransactionError::TypeNotSupported;\n    }\n    if (MONAD_UNLIKELY(tx.sc.chain_id.value() != chain_id)) {\n        return TransactionError::WrongChainId;\n    }\n}\n```\n\n## Recommendation\nValidate in monad-bft that the staking syscall has the correct chain ID.\n\n## Category Labs\nFixed in commit `aa71c71e`.\n\n## Spearbit\nFix verified.",
+    "summary": "\nThis report is about a high-risk security vulnerability found in the function `static_validate_system_transaction`. This function is missing chain ID validation, which can allow a malicious block proposer to include an invalid system transaction. This can lead to failed epoch/snapshot changes and break validator set accounting. The recommendation is to validate in monad-bft that the staking syscall has the correct chain ID. This issue has been fixed in commit `aa71c71e`.",
+    "report_date": "2025-09-19T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Monad-Spearbit-Security-Review-September-2025.pdf",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Monad-Spearbit-Security-Review-September-2025.pdf",
+    "github_link": "",
+    "pdf_link": "https://solodit-bucket.s3.amazonaws.com/storage/reports/spearbit/Monad-Spearbit-Security-Review-September-2025.pdf",
+    "pdf_page_from": 23,
+    "contest_id": "",
+    "slug": "static_validate_system_transaction-missing-eip-155-chain-id-validation-spearbit-none-monad-pdf",
+    "firm_name": "Spearbit",
+    "firm_logo_square": "spearbit_square.png",
+    "protocol_name": "Monad",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Haxatron"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Dtheo"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Guido Vranken"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Rikard Hjort"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Spearbit",
+        "logo_square": "spearbit_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Monad",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

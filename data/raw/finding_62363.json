@@ -1,0 +1,45 @@
+{
+    "id": 62363,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 34,
+    "impact": "MEDIUM",
+    "finders_count": 1,
+    "protocol_id": 3403,
+    "title": "[FTN-3] Incorrectly adding a validator contract",
+    "content": "**Severity:** Medium\n\n**Path:** beacon-chain/core/altair/deposit.go/ProcessDeposit()\n\n**Description:** When adding a validator’s contract, if the contract exists, a new contract object with a zero address is added.\n\nThe addition of a null contract is due to the fact that the check for the existence of a contract and its addition occur in different if blocks.\n```\nfunc ProcessDeposit(beaconState state.BeaconState, deposit *ethpb.Deposit, verifySignature bool) (state.BeaconState, bool, error) {\n    [...]\n    index, ok := beaconState.ValidatorIndexByPubkey(bytesutil.ToBytes48(pubKey))\n    if !ok {\n        [...]\n        if contractExist {\n            contracts = [][]byte{make([]byte, 20)}\n        }\n        if err := beaconState.AppendContracts(&ethpb.ContractsContainer{\n            Contracts: contracts,\n        }); err != nil {\n            return nil, newValidator, err\n        }\n    } else {\n        [...]\n    }\n\n    return beaconState, newValidator, nil\n}\n```\n\n**Remediation:**  \n```\nfunc ProcessDeposit(beaconState state.BeaconState, deposit *ethpb.Deposit, verifySignature bool) (state.BeaconState, bool, error) {\n    [...]\n    index, ok := beaconState.ValidatorIndexByPubkey(bytesutil.ToBytes48(pubKey))\n    if !ok {\n        [...]\n        if contractExist {\n            contracts = [][]byte{make([]byte, 20)}\n        } else {\n            err := beaconState.AppendContracts(&ethpb.ContractsContainer{Contracts: contracts,})\n            if err != nil {\n                return nil, newValidator, err\n            }\n        }\n    } else {\n        [...]\n    }\n\n    return beaconState, newValidator, nil\n}\n```\n\n**Status:**   Fixed\n\n\n- - -",
+    "summary": "\nThis bug report is about a problem in the code that handles adding a validator's contract. The issue is that when checking if the contract already exists, the code adds a new contract object with a zero address, even if the contract already exists. This is because the code checks for the existence of the contract and adds it in different parts of the code. The severity of this issue is medium. The bug has been fixed by changing the code so that it only adds a new contract if the contract does not already exist. The status of this bug is now fixed.",
+    "report_date": "2023-04-06T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/solodit/solodit_content/blob/main/reports/Hexens/2023-04-06-Bahamut.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "ftn-3-incorrectly-adding-a-validator-contract-hexens-none-bahamut-markdown",
+    "firm_name": "Hexens",
+    "firm_logo_square": "Hexens_square.png",
+    "protocol_name": "Bahamut",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Hexens"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Hexens",
+        "logo_square": "Hexens_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Bahamut",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

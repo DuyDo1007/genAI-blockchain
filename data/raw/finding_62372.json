@@ -1,0 +1,45 @@
+{
+    "id": 62372,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 34,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 1390,
+    "title": "[ASTRO-20] Redundant usage of SafeMath",
+    "content": "**Severity:** Low\n\n**Path:** Swap.sol \n\n**Description:** The contract uses Solidity `0.8.17`, which already checks arithmetic operations for over- and underflow. This is suboptimal and wastes gas on each function call containing these operations.\n```\nimport \"@openzeppelin/contracts/utils/math/SafeMath.sol\";\n[...]\ncontract Swap is Ownable {\n    using SafeMath for uint256;\n    [...]\n}    \n```\n\n**Remediation:**  Remove the import of OpenZeppelin’s SafeMath library and replace all the arithmetic operations with their Solidity equivalent.\n\n**Status:**  Fixed\n\n- - -",
+    "summary": "",
+    "report_date": "2023-04-17T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/solodit/solodit_content/blob/main/reports/Hexens/2023-04-17-Astrolab.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "astro-20-redundant-usage-of-safemath-hexens-none-astrolab-markdown",
+    "firm_name": "Hexens",
+    "firm_logo_square": "Hexens_square.png",
+    "protocol_name": "Astrolab",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Hexens"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Hexens",
+        "logo_square": "Hexens_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Astrolab",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

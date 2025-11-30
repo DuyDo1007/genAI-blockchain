@@ -1,0 +1,45 @@
+{
+    "id": 62556,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 16,
+    "impact": "MEDIUM",
+    "finders_count": 1,
+    "protocol_id": 3420,
+    "title": "[M-12] Inconsistent `pendingCounts` in `spin()` and `fulfillRandomness()` when 0",
+    "content": "\n_Resolved_\n\n## Severity\n\n**Impact:** High\n\n**Likelihood:** Low\n\n## Description\n\nInside `spin`, when `totalPending` equals 0, it will set the first active rarity `pendingCounts` to 1.\n\n```solidity\n    function spin(uint256 _totalSlots, uint256 _prizeCount) external whenNotPaused returns (uint256) {\n        // Validate slot configuration\n        if (_totalSlots == 0 || _prizeCount == 0 || _prizeCount > _totalSlots) {\n            revert InvalidSlotConfiguration();\n        }\n\n        // Calculate and verify prize distribution\n        uint256[] memory pendingCounts = new uint256[](maxRarityId + 1);\n        uint256 totalPending = 0;\n        \n        for (uint8 i = 1; i <= maxRarityId; i++) {\n            if (rarityConfigs[i].active) {\n                // @audit - each loop, price count should be decreased?\n                pendingCounts[i] = calculatePendingPrizesForRarity(_prizeCount, i);\n                totalPending += pendingCounts[i];\n            }\n        }\n        \n        // Ensure at least one prize will be allocated\n        if (totalPending == 0) {\n            // Find first active rarity and allocate one prize\n>>>         for (uint8 i = 1; i <= maxRarityId; i++) {\n                if (rarityConfigs[i].active) {\n                    pendingCounts[i] = 1;\n                    totalPending = 1;\n                    break;\n                }\n            }\n        }\n        \n        // Check if enough prizes are available considering pending ones\n        for (uint8 i = 1; i <= maxRarityId; i++) {\n            if (pendingCounts[i] > 0) {\n                uint256 available = getAvailablePrizes(i);\n                uint256 pending = prizePools[i].pendingCount;\n                \n                if (available - pending < pendingCounts[i]) {\n                    revert InsufficientPrizes();\n                }\n            }\n        }\n        \n       // ...\n        \n        // Increment pending counts\n        for (uint8 i = 1; i <= maxRarityId; i++) {\n            if (pendingCounts[i] > 0) {\n                prizePools[i].pendingCount += uint96(pendingCounts[i]);\n            }\n        }\n        \n       // ...\n    }\n```\n\nHowever, the same case is not considered when `fulfillRandomness` is triggered, which could cause an incorrect `pendingCount` for the corresponding rarity.\n\n## Recommendations\n\nConsider also considering `totalPending` equals 0 inside `fulfillRandomness`.\n\n\n\n",
+    "summary": "\nThe bug report states that there is an issue with the code in the `spin` function where, if the `totalPending` variable is equal to 0, it will set the `pendingCounts` variable for the first active rarity to 1. This could cause an incorrect `pendingCount` for that rarity. The report suggests that the same case should also be considered in the `fulfillRandomness` function to prevent this issue.",
+    "report_date": "2025-09-11T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/pashov/audits/blob/master/team/md/RipIt-security-review_2025-04-25.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "m-12-inconsistent-pendingcounts-in-spin-and-fulfillrandomness-when-0-pashov-audit-group-none-ripit_2025-04-25-markdown",
+    "firm_name": "Pashov Audit Group",
+    "firm_logo_square": "Pashov_square.png",
+    "protocol_name": "RipIt_2025-04-25",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Pashov Audit Group"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Pashov Audit Group",
+        "logo_square": "Pashov_square.png"
+    },
+    "protocols_protocol": {
+        "name": "RipIt_2025-04-25",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

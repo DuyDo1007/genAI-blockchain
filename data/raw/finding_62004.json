@@ -1,0 +1,55 @@
+{
+    "id": 62004,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 37,
+    "impact": "LOW",
+    "finders_count": 3,
+    "protocol_id": 3365,
+    "title": "Missing Break Statement During Wallet Validation",
+    "content": "**Update**\nMarked as \"Fixed\" by the client. Addressed in: `3ff99d904749405d03b0bfc2762e42e6538d1a8e`. Additional fix in: `ac3d0e3f39d73fea935db1e6b63ce45affcc4ba6` The client provided the following explanation:\n\n> Add missing break statement in wallet validation loop try..catch block for checkIfAccountExists\n\n**File(s) affected:**`wallet/index.ts`\n\n**Description:** In `validateWallet()`, the loop of wallet validation will continue in the case where a wallet has been validated and verified to exist, potentially leading to an unnecessary runtime crash. This function properly breaks the loop if there is an existing account found for a provided mnemonic but doesn't do so for private keys.\n\n**Recommendation:** If there is an existing wallet account found with the private key, break from the loop.",
+    "summary": "",
+    "report_date": "2025-08-26T12:12:16.438Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://certificate.quantstamp.com/full/saucer-swap-wallet/d30efab8-8abd-46b1-bba5-6360b87e3aa3/index.html",
+    "sponsor_name": "",
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://certificate.quantstamp.com/full/saucer-swap-wallet/d30efab8-8abd-46b1-bba5-6360b87e3aa3/index.html",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "missing-break-statement-during-wallet-validation-quantstamp-saucerswap-wallet-markdown",
+    "firm_name": "Quantstamp",
+    "firm_logo_square": "quantstamp_square.png",
+    "protocol_name": "SaucerSwap Wallet",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Albert Heinle"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Darren Jensen"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Jonathan Mevs"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Quantstamp",
+        "logo_square": "quantstamp_square.png"
+    },
+    "protocols_protocol": {
+        "name": "SaucerSwap Wallet",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

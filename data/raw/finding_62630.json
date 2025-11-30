@@ -1,0 +1,45 @@
+{
+    "id": 62630,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 16,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3422,
+    "title": "[L-09] Uninitialized fee splits cause loss of fee accounting",
+    "content": "\n_Resolved_\n\nThe fee split configurations `poolFeeSplitsBeforeMigration` and `poolFeeSplitsAfterMigration` are never initialized in the `initialize()` function, defaulting to (0,0). When `claimProtocolFees()` executes, it calls `splitFeesCollected()` with these zero percentages:\n\n```solidity\n(uint256 protocolFee, uint256 utilityFee) = splitFeesCollected(amount0, poolFeeSplitsBeforeMigration);\n// With (0,0) split: protocolFee = (0 * amount0) / 10000 = 0\n//                   utilityFee = (0 * amount0) / 10000 = 0\n```\n\nThe tokens are successfully collected from uniswap pools via `collectProtocol()`, but both `addToPoolHIP()` and `addToClaimer()` calls receive zero amounts, leaving collected fees untracked in the vault's balance.\n\nThis occurs every time `claimProtocolFees()` is called before the admin manually sets fee splits via `setPoolFeeSplits()`. The contract enforces that the new fee splits sum to 10,000, but doesn't prevent using the default (0,0) values.\n\nThis way **all collected protocol fees become permanently untracked in vault accounting, effectively vanishing from the protocol's fee distribution system until manual recovery.**\n\n**Recommendation**\n\nInitialize fee splits with sensible defaults during contract initialization.\n\n```solidity\nfunction initialize(address admin, address executer) external initializer {\n    // ... existing code ...\n    \n    // Initialize fee splits per comments: 25%/75% before, 50%/50% after\n    poolFeeSplitsBeforeMigration = FeeSplit(2500, 7500);\n    poolFeeSplitsAfterMigration = FeeSplit(5000, 5000);\n}\n```\n\nThis ensures fee accounting works correctly from deployment without requiring separate configuration transactions.\n\n\n\n",
+    "summary": "",
+    "report_date": "2025-09-12T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/pashov/audits/blob/master/team/md/Funnel-security-review_2025-08-27.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "l-09-uninitialized-fee-splits-cause-loss-of-fee-accounting-pashov-audit-group-none-funnel_2025-08-27-markdown",
+    "firm_name": "Pashov Audit Group",
+    "firm_logo_square": "Pashov_square.png",
+    "protocol_name": "Funnel_2025-08-27",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Pashov Audit Group"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Pashov Audit Group",
+        "logo_square": "Pashov_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Funnel_2025-08-27",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

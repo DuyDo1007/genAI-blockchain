@@ -1,0 +1,60 @@
+{
+    "id": 62897,
+    "kind": "PDF",
+    "auditfirm_id": 6,
+    "impact": "HIGH",
+    "finders_count": 4,
+    "protocol_id": 3419,
+    "title": "static_validate_system_transaction missing EIP-2 malleable signature validation",
+    "content": "## Security Advisory\n\n**Severity:** High Risk  \n\n**Context:** (No context files were provided by the reviewer)  \n\n**Description:**  \n`static_validate_system_transaction` is missing malleable signature validation. The only validation for `static_validate_system_transaction` is present in the following code block:\n\n```rust\nfn static_validate_system_transaction(\n    txn: &Recovered<TxEnvelope>,\n) -> Result<(), SystemTransactionError> {\n    if !Self::is_system_sender(txn.signer()) {\n        return Err(SystemTransactionError::UnexpectedSenderAddress);\n    }\n    if !txn.tx().is_legacy() {\n        return Err(SystemTransactionError::InvalidTxType);\n    }\n    if txn.tx().gas_price() != Some(0) {\n        return Err(SystemTransactionError::NonZeroGasPrice);\n    }\n    if txn.tx().gas_limit() != 0 {\n        return Err(SystemTransactionError::NonZeroGasLimit);\n    }\n    if !matches!(txn.tx().kind(), TxKind::Call(_)) {\n        return Err(SystemTransactionError::InvalidTxKind);\n    }\n    Ok(())\n}\n```\n\nThis can allow a malicious block proposer to include an invalid system transaction by flipping the `s` value of the system transaction to the upper-half of the curve. This will fail during transaction validation in the execution layer, which can lead to failed epoch/snapshot changes, breaking validator set accounting.\n\nAnother relevant code snippet from `execute_system_transaction.cpp`:\n\n```cpp\nResult<Receipt> ExecuteSystemTransaction<rev>::operator()()\n{\n    // ...\n    {\n        Transaction tx = tx_;\n        tx.gas_limit = 2/quotesingle.ts1000/quotesingle.ts1000; // required to pass intrinsic gas validation check\n        BOOST_OUTCOME_TRY(static_validate_transaction<rev>(\n            tx,\n            std::nullopt /* 0 base fee to pass validation */ ,\n            std::nullopt /* 0 blob fee to pass validation */ ,\n            chain_.get_chain_id(),\n            chain_.get_max_code_size(header_.number, header_.timestamp)));\n    }\n}\n```\n\nValidation in `validate_transaction.cpp`:\n\n```cpp\n// EIP-2\nif (MONAD_UNLIKELY(!silkpre::is_valid_signature(\n    tx.sc.r, tx.sc.s, rev >= EVMC_HOMESTEAD))) {\n    return TransactionError::InvalidSignature;\n}\n```\n\n**Recommendation:**  \nValidate that the `s` value of the system transaction signature is in the lower-half of the curve. \n\n**Example:**  \nImplementation in `validation.rs`:\n\n```rust\nfn eip_2(tx: &TxEnvelope) -> Result<(), TransactionError> {\n    // verify that s is in the lower half of the curve\n    if tx.signature().normalize_s().is_some() {\n        return Err(TransactionError::UnsupportedTransactionType);\n    }\n    Ok(())\n}\n```\n\n**Category:** Labs  \n**Status:** Fixed in commit `aa71c71e`.  \n**Spearbit:** Fix verified.",
+    "summary": "\nThis bug report discusses a security issue in a piece of code called `static_validate_system_transaction`. This code is responsible for validating certain transactions in a system. However, it has a vulnerability that could allow a malicious user to include an invalid transaction, which could break important functions. The report recommends adding a validation check to ensure that the transaction signature is in the lower half of the curve. This issue has been fixed in a recent commit. ",
+    "report_date": "2025-09-19T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Monad-Spearbit-Security-Review-September-2025.pdf",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Monad-Spearbit-Security-Review-September-2025.pdf",
+    "github_link": "",
+    "pdf_link": "https://solodit-bucket.s3.amazonaws.com/storage/reports/spearbit/Monad-Spearbit-Security-Review-September-2025.pdf",
+    "pdf_page_from": 24,
+    "contest_id": "",
+    "slug": "static_validate_system_transaction-missing-eip-2-malleable-signature-validation-spearbit-none-monad-pdf",
+    "firm_name": "Spearbit",
+    "firm_logo_square": "spearbit_square.png",
+    "protocol_name": "Monad",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Haxatron"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Dtheo"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Guido Vranken"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Rikard Hjort"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Spearbit",
+        "logo_square": "spearbit_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Monad",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

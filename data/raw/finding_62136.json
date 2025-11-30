@@ -1,0 +1,60 @@
+{
+    "id": 62136,
+    "kind": "PDF",
+    "auditfirm_id": 6,
+    "impact": "LOW",
+    "finders_count": 4,
+    "protocol_id": 3380,
+    "title": "ECDSA.recover() reverts on failure",
+    "content": "## Security Assessment Report\n\n## Severity\nLow Risk\n\n## Context\n- `UserOpECDSAVerifier.sol#L22-L38`\n- `UserOpMultiSigVerifier.sol#L28`\n- `UserOpMultiSigVerifier.sol#L51`\n- `UserOpWebAuthnCosignVerifier.sol#L43`\n\n## Description\n`ECDSA.recover()` is used in several verifiers. However, this function reverts if no valid address can be recovered. This way, no alternative signature check can be used.\n\n## Recommendation\nConsider using `ECDSA.tryRecover()`.\n\n## Stackup\nThis is the intended behavior; it should revert on an `InvalidSignature()` error if a bad signature is given. This is also how most ECDSA-based smart accounts work (e.g., `SimpleAccount`). \n\nNote that this won't interfere with gas estimations with dummy signers since those signatures are still expected to be structurally valid. If dummy signatures were allowed to be invalid, then the gas estimation would be inaccurate anyways.\n\nThis expected behavior has been explicitly outlined in PR 43.\n\n## Spearbit\nAcknowledged.",
+    "summary": "",
+    "report_date": "2025-08-18T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Stackup-Spearbit-Security-Review-July-2025.pdf",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Stackup-Spearbit-Security-Review-July-2025.pdf",
+    "github_link": "",
+    "pdf_link": "https://solodit-bucket.s3.amazonaws.com/storage/reports/spearbit/Stackup-Spearbit-Security-Review-July-2025.pdf",
+    "pdf_page_from": 8,
+    "contest_id": "",
+    "slug": "ecdsarecover-reverts-on-failure-spearbit-none-stackup-keystore-pdf",
+    "firm_name": "Spearbit",
+    "firm_logo_square": "spearbit_square.png",
+    "protocol_name": "Stackup Keystore",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Tnch"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Kaden"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Hake"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Gerard Persoon"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Spearbit",
+        "logo_square": "spearbit_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Stackup Keystore",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

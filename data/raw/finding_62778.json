@@ -1,0 +1,55 @@
+{
+    "id": 62778,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 37,
+    "impact": "HIGH",
+    "finders_count": 3,
+    "protocol_id": 3426,
+    "title": "Malicious Deposit with Dust-Sensitive `minAmount` Can Cause Denial of Service on `batchRelease()` Function",
+    "content": "**Update**\nMarked as \"Fixed\" by the client. Addressed in: `b7c7f7e589e706a63e0378b4bd0ae6a8d2fef6e2`.\n\n**File(s) affected:**`CampTimelockEscrowNativeOFT.sol`\n\n**Description:** The `batchRelease()` function in `CampTimelockEscrowNativeOFT` processes deposits sequentially in a loop. When processing each deposit, it calls `_bridgeNativeTokens()`, which internally triggers LayerZero's dust removal mechanism via `_removeDust()`. This function rounds down the amount by removing decimal precision dust to ensure compatibility across chains with different token decimals.\n\nHowever, a malicious user can exploit this mechanism by setting a `_minAmount` parameter that becomes incompatible with the dust-adjusted amount. The LayerZero `OFTCore` contract performs a slippage check that reverts if the dust-adjusted amount falls below the user-specified `_minAmount`:\n\n```\n// In OFTCore._debitView()\namountSentLD = _removeDust(_amountLD);\namountReceivedLD = amountSentLD;\n\n// Check for slippage - this will revert if dust removal reduces amount below minAmount\nif (amountReceivedLD < _minAmountLD) {\n    revert SlippageExceeded(amountReceivedLD, _minAmountLD);\n}\n```\n\nWhen this revert occurs during the `batchRelease` loop, it causes the entire transaction to revert. Since deposits are processed sequentially and there's no error handling around individual deposit processing, a single malicious deposit can permanently block the processing of all subsequent deposits in the queue, effectively creating a Denial of Service condition.\n\nAnother simpler attack could be that `minAmount` is simply larger than the `_originalAmount`, and since there is no validation, it will always fail too. The fix with dust adjusted value should fix both scenarios.\n\n**Exploit Scenario:**\n\n1.   Alice (legitimate user) calls `bridgeOut()` with 10 ETH, creating a deposit that gets queued for processing.\n2.   Bob (attacker) analyzes the dust calculation parameters and calls `bridgeOut()` with carefully chosen parameters: `_originalAmount = 1.0000123 ETH` and `_minAmount = 1.0000120 ETH`.\n3.   Bob's deposit is queued after Alice's deposit.\n4.   After the `holdPeriod` expires, a keeper calls `batchRelease()` to process the matured deposits.\n5.   The function successfully processes Alice's deposit first.\n6.   When processing Bob's deposit, `_removeDust()` rounds down `1.0000123 ETH` to `1.0000100 ETH` (assuming appropriate decimal conversion rate).\n7.   The slippage check `1.0000100 ETH < 1.0000120 ETH` fails, causing `SlippageExceeded` revert.\n8.   The entire `batchRelease()` transaction reverts, and the cursor position is not updated.\n9.   All future calls to `batchRelease()` will attempt to process Bob's malicious deposit first, causing the same revert and permanently blocking the queue.\n\n**Recommendation:** Add a validation check in the `bridgeOut()` function to ensure that `_minAmount` is compatible with the dust-adjusted amount before allowing the deposit to be queued:\n\n```\nfunction bridgeOut(address _to, uint128 _gaslimit, uint256 _originalAmount, uint256 _minAmount) external payable nonReentrant {\n\n    // Prevent DoS by ensuring minAmount is compatible with dust removal\n    uint256 dustAdjustedAmount = removeDust(_originalAmount);\n    require(_minAmount <= dustAdjustedAmount, \"CampTimelockEscrowNativeOFT: minAmount exceeds dust-adjusted amount\");\n\n    if (whitelist[msg.sender]) {\n        _bridgeNativeTokens(_to, _originalAmount, _minAmount, _gaslimit);\n    } else {\n        // ... rest of escrow logic\n    }\n}\n```",
+    "summary": "A bug has been reported in the `CampTimelockEscrowNativeOFT.sol` file where a malicious user can exploit the `_removeDust()` function to cause a Denial of Service (DoS) condition. This is due to a lack of validation in the `batchRelease()` function, which processes deposits sequentially and does not handle errors for individual deposits. The exploit involves setting a `_minAmount` parameter that is incompatible with the dust-adjusted amount, causing a revert and blocking the processing of subsequent deposits. The recommendation is to add a validation check in the `bridgeOut()` function to prevent this exploit. The bug has been marked as \"Fixed\" by the client and addressed in the `b7c7f7e589e706a63e0378b4bd0ae6a8d2fef6e2` update.",
+    "report_date": "2025-09-15T14:22:57.388Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://certificate.quantstamp.com/full/camp/ae830654-5f2b-4d21-aba2-1de572092da6/index.html",
+    "sponsor_name": "",
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://certificate.quantstamp.com/full/camp/ae830654-5f2b-4d21-aba2-1de572092da6/index.html",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "malicious-deposit-with-dust-sensitive-minamount-can-cause-denial-of-service-on-batchrelease-function-quantstamp-camp-markdown",
+    "firm_name": "Quantstamp",
+    "firm_logo_square": "quantstamp_square.png",
+    "protocol_name": "Camp",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Paul Clemson"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Gereon Mendler"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Andy Lin"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Quantstamp",
+        "logo_square": "quantstamp_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Camp",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

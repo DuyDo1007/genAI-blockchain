@@ -1,0 +1,50 @@
+{
+    "id": 62940,
+    "kind": "PDF",
+    "auditfirm_id": 6,
+    "impact": "LOW",
+    "finders_count": 2,
+    "protocol_id": 3463,
+    "title": "Revert if zero shares are minted for an adapter in a morpho market",
+    "content": "## Vulnerability Report\n\n## Severity\n**Low Risk**\n\n## Context\nMorphoMarketV1Adapter.sol#L74\n\n## Description\nIn some cases when the `IMorpho(morpho).supply(...)` is called, 0 shares could be minted for the MorphoMarketV1Adapter. Thus, in these cases, the assets provided would get donated to Morpho.\n\n## Recommendation\nUse the returned values from `IMorpho(morpho).supply(...)` to ensure that there are non-zero shares minted.\n\n## Morpho\nAcknowledged. There is this comment already:\n\n```solidity\n/// @dev This adapter must be used with Morpho Market v1 that are protected against inflation attacks\n/// with an initial supply.\n```\n\nFollowing resource is relevant: [OpenZeppelin Documentation](https://docs.openzeppelin.com/contracts/5.x/erc4626#inflation-attack).\n\nAnd note that preventing minting zero shares is not enough; you can lose as much but still mint one share (etc...).\n\n## Spearbit\nAcknowledged.",
+    "summary": "",
+    "report_date": "2025-10-13T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Morpho-Vaults-v2-fixes-Spearbit-Security-Review-August-2025.pdf",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Morpho-Vaults-v2-fixes-Spearbit-Security-Review-August-2025.pdf",
+    "github_link": "",
+    "pdf_link": "https://solodit-bucket.s3.amazonaws.com/storage/reports/spearbit/Morpho-Vaults-v2-fixes-Spearbit-Security-Review-August-2025.pdf",
+    "pdf_page_from": 8,
+    "contest_id": "",
+    "slug": "revert-if-zero-shares-are-minted-for-an-adapter-in-a-morpho-market-spearbit-none-morpho-vaults-v2-fix-review-pdf",
+    "firm_name": "Spearbit",
+    "firm_logo_square": "spearbit_square.png",
+    "protocol_name": "Morpho Vaults v2 Fix Review",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Saw-mon and Natalie"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "MiloTruck"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Spearbit",
+        "logo_square": "spearbit_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Morpho Vaults v2 Fix Review",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

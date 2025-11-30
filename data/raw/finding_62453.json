@@ -1,0 +1,50 @@
+{
+    "id": 62453,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 8,
+    "impact": "LOW",
+    "finders_count": 2,
+    "protocol_id": 3410,
+    "title": "Frontrunning L1 LineaToken Supply Syncs  Acknowledged",
+    "content": "...\n\nExport to GitHub ...\n\nSet external GitHub Repo ...\n\nExport to Clipboard (json)\n\nExport to Clipboard (text)\n\n#### Resolution\n\nThe Linea team acknowledged this as low risk due to how they expect their operations to run. In particular, any token mints on the L1 are not intended to be followed by a supply sync call immediately after in the same transaction or block, removing the frontrunning risk.\n\n#### Description\n\nThe `LineaToken` contract consists of two parts - one on the L1 and one on the L2. The true token lives on the L1, and, therefore, its true total supply is governed by its L1 `totalSupply()` function. Similarly, all mints and burns that actually affect the true number of tokens in circulation also happen on the L1 contract.\n\nHowever, the L2 token is what will primarily help with governance use cases, such as voting, as can be seen by the choice to make it inherit from the `ERC20VotesUpgradeable` contract, whereas the L1 token does not. As a result, the L2 token requires knowing the true total supply of the token, i.e. the one from L1, to make meaningful governance proposals and execute upon them as that would require quorum from all possible tokens.\n\nIn order to do that, the L1 token contract has a function that initiates the sync:\n\n**src/L1/LineaToken.sol:L72-L86**\n\n```\n  /**\n   * @notice Synchronizes the total supply of the L1 token to the L2 token.\n   * @dev This function sends a message to the L2 token contract to sync the total supply.\n   * @dev NB: This function is permissionless on purpose, allowing anyone to trigger the sync.\n   * @dev This function can only be called after the L2 token address has been set.\n   */\n  function syncTotalSupplyToL2() external {\n    uint256 totalSupply = totalSupply();\n\n    /// @dev Fee is set to 0 and should be automatically claimed on Linea.\n    IMessageService(l1MessageService).sendMessage(l2TokenAddress, 0, abi.encodeCall(IL2LineaToken.syncTotalSupplyFromL1, (block.timestamp, totalSupply)));\n\n    emit L1TotalSupplySyncStarted(block.timestamp, totalSupply);\n  }\n}\n```\n\nThis simply collects the current token supply, `block.timestamp` and calls the Linea `l1MessageService` contract responsible for transferring messages. On the L2 side, the token contract expects its the message service contract to transfer this message and only accepts it if the original caller is the L1 token contract:\n\n**src/L2/L2LineaToken.sol:L96-L111**\n\n```\n/**\n * @notice Synchronizes the total supply of the L1 Linea token from L1 Ethereum.\n * @dev NB: This function can only be called by the Linea Message Service.\n * @dev NB: This function must have originated from the Linea token on L1 Ethereum.\n * @param _l1LineaTokenTotalSupplySyncTime The L1 block.timestamp when the Linea token on L1 total supply was\n * computed.\n * @param _l1LineaTokenSupply The total supply of the L1 Linea token.\n */\nfunction syncTotalSupplyFromL1(uint256 _l1LineaTokenTotalSupplySyncTime, uint256 _l1LineaTokenSupply) external onlyMessagingService onlyAuthorizedRemoteSender {\n  require(l1LineaTokenTotalSupplySyncTime < _l1LineaTokenTotalSupplySyncTime, LastSyncMoreRecent());\n\n  l1LineaTokenSupply = _l1LineaTokenSupply;\n  l1LineaTokenTotalSupplySyncTime = _l1LineaTokenTotalSupplySyncTime;\n\n  emit L1LineaTokenTotalSupplySynced(_l1LineaTokenTotalSupplySyncTime, _l1LineaTokenSupply);\n}\n```\n\nThe interesting part is the check `require(l1LineaTokenTotalSupplySyncTime < _l1LineaTokenTotalSupplySyncTime, LastSyncMoreRecent());`. While it does achieve its primary objective of not allowing older supply syncs to overwrite its state, it also prevents several updates from the same block.\n\nIn very specific circumstances, this could open up an attack vector. For example, if Linea L1 token mints would happen in the same block as the supply syncs, for example to make sure the L2 side has current total supply numbers, an attacker could listen to these transactions in the mempool, frontrun the mint transaction with their own sync call, and send the old supply numbers over to the L2. Since the updated supply sync call would be in the same block, both of those transactions would have the same `block.timestamp`. As a result, once they reach the L2, the first sync with old numbers would successfully execute, whereas the second one would not as it wouldn’t pass the `require()` statement.\n\nThe impact would simply be that another sync would have to be initiated from the L1 in the next block or later. Thankfully, the `syncTotalSupplyToL2()` function is externally accessible with no special permissions, so anyone could call it again. However, this would still make a brief window appear where the L1 token supply and its corresponding `l1LineaTokenSupply` value are not synchronized. Depending on the case, such as if anyone even notices this discrepancy, it could impact governance votes and proposals for longer than preferable.\n\n#### Recommendation\n\nConsider token supply and syncs operations carefully, such as ensuring the syncs happen correctly after any supply changes on the L1 side.",
+    "summary": "",
+    "report_date": "2025-07-01T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://diligence.consensys.io/audits/2025/07/linea-token-and-airdrop-contracts/",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "frontrunning-l1-lineatoken-supply-syncs-acknowledged-consensys-none-linea-token-and-airdrop-contracts-markdown",
+    "firm_name": "ConsenSys",
+    "firm_logo_square": "consensys_square.png",
+    "protocol_name": "Linea Token and Airdrop Contracts",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "George Kobakhidze"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": " Heiko Fisch\n                        "
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "ConsenSys",
+        "logo_square": "consensys_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Linea Token and Airdrop Contracts",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

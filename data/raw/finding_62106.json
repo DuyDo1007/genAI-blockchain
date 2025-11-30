@@ -1,0 +1,260 @@
+{
+    "id": 62106,
+    "kind": "GIT",
+    "auditfirm_id": 3,
+    "impact": "HIGH",
+    "finders_count": 44,
+    "protocol_id": 3135,
+    "title": "H-1: `Consensus`.`checkSignatures` doesn't check duplication of signers",
+    "content": "\nSource: https://github.com/sherlock-audit/2025-07-mellow-flexible-vaults-judging/issues/13 \n\n## Found by \n0xShoonya, 0xc0ffEE, 7, 8olidity, ARMoh, Brene, Caramelo10, Cybrid, Etherking, GypsyKing18, Ivcho332, Kodyvim, MaCree, Mishkat6451, Pandabear30, Pexy, PratRed, Sparrow\\_Jac, ZanyBonzy, akhoronko, aman, anchabadze, blockace, boredpukar, bughuntoor, ch13fd357r0y3r, coin2own, edger, iFindTheBugs2, illoy\\_sci, jasonxiale, joicygiore, jolyon, kangaroo, kazan, ke1caM, klaus, makeWeb3safe, rsam\\_eth, silver\\_eth, t.aksoy, teoslaf1, weblogicctf, zxriptor\n\n### Summary\n\n[`SignatureQueue`.`validateOrder`](https://github.com/sherlock-audit/2025-07-mellow-flexible-vaults/blob/main/flexible-vaults/src/queues/SignatureQueue.sol#L105) checks signatures using [`Consensus`.`checkSignatures`](https://github.com/sherlock-audit/2025-07-mellow-flexible-vaults/blob/main/flexible-vaults/src/permissions/Consensus.sol#L21C14-L48).\nBut this doesn't check duplication of signers, so malicious attacker can bypass `threshold` checking.\n\n### Root Cause\n\n[`SignatureDepositQueue`.`deposit`](https://github.com/sherlock-audit/2025-07-mellow-flexible-vaults/blob/main/flexible-vaults/src/queues/SignatureDepositQueue.sol#L12) and [`SignatureRedeemQueue`.`redeem`](https://github.com/sherlock-audit/2025-07-mellow-flexible-vaults/blob/main/flexible-vaults/src/queues/SignatureRedeemQueue.sol#L14) uses [`SignatureQueue`.`validateOrder`](https://github.com/sherlock-audit/2025-07-mellow-flexible-vaults/blob/main/flexible-vaults/src/queues/SignatureQueue.sol#L105).\nThis checks signatures using [`Consensus`.`checkSignatures`](https://github.com/sherlock-audit/2025-07-mellow-flexible-vaults/blob/main/flexible-vaults/src/permissions/Consensus.sol#L21C14-L48).\n```solidity\n    function checkSignatures(bytes32 orderHash, Signature[] calldata signatures) public view returns (bool) {\n        ConsensusStorage storage $ = _consensusStorage();\n @>     if (signatures.length == 0 || signatures.length < $.threshold) {\n            return false;\n        }\n        for (uint256 i = 0; i < signatures.length; i++) {\n            address signer = signatures[i].signer;\n            (bool exists, uint256 signatureTypeValue) = $.signers.tryGet(signer);\n            if (!exists) {\n                return false;\n            }\n            SignatureType signatureType = SignatureType(signatureTypeValue);\n            if (signatureType == SignatureType.EIP712) {\n                address recoveredSigner = ECDSA.recover(orderHash, signatures[i].signature);\n                if (recoveredSigner == address(0) || recoveredSigner != signer) {\n                    return false;\n                }\n            } else if (signatureType == SignatureType.EIP1271) {\n                bytes4 magicValue = IERC1271(signer).isValidSignature(orderHash, signatures[i].signature);\n                if (magicValue != IERC1271.isValidSignature.selector) {\n                    return false;\n                }\n            } else {\n                return false;\n            }\n        }\n        return true;\n    }\n```\nThis checks `signatures.length < $.threshold` but this doesn't check duplication of signers.\nSo attacker can bypass threshold and deposit or redeem using invalid order.\n\n### Internal Pre-conditions\n\n.\n\n### External Pre-conditions\n\n.\n\n### Attack Path\n\n1. Attacker prepares incorrect order.\n2. Attacker gets one valid signature.\n3. Attacker uses `SignatureDepositQueue` or `SignatureRedeemQueue` using `signatures` that has duplication of one valid signature.\n4. Attacker succeed to order.\n\n### Impact\n\nAttacker can get profit using incorrect order bypassing threshold.\n\n### PoC\n\n.\n\n### Mitigation\n\nCheck duplication of signers.\n\n## Discussion\n\n**sherlock-admin2**\n\nThe protocol team fixed this issue in the following PRs/commits:\nhttps://github.com/mellow-finance/flexible-vaults/pull/5/files\n\n\n\n\n",
+    "summary": "\nThis bug report discusses a vulnerability found in the Mellow Flexible Vaults protocol, which was discovered by multiple individuals. The issue lies in the `SignatureQueue.validateOrder` function, which checks signatures using the `Consensus.checkSignatures` function. However, this does not check for duplicated signers, allowing a malicious attacker to bypass the `threshold` check. This vulnerability can be exploited by preparing an incorrect order, obtaining one valid signature, and then using `SignatureDepositQueue` or `SignatureRedeemQueue` with duplicated signatures to successfully execute the order and gain profit. The suggested mitigation is to check for duplication of signers. The protocol team has already addressed this issue in a recent pull request.",
+    "report_date": "2025-07-28T15:00:00.000Z",
+    "contest_prize_txt": "70000 USDC",
+    "contest_link": "https://app.sherlock.xyz/audits/contests/964",
+    "sponsor_name": "",
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "",
+    "github_link": "https://github.com/sherlock-audit/2025-07-mellow-flexible-vaults-judging/issues/13",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "964",
+    "slug": "h-1-consensuschecksignatures-doesnt-check-duplication-of-signers-sherlock-mellow-flexible-vaults-git",
+    "firm_name": "Sherlock",
+    "firm_logo_square": "sherlock_square.png",
+    "protocol_name": "Mellow Flexible Vaults",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "illoy\\_sci"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "jasonxiale"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Brene"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "klaus"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "silver\\_eth"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "zxriptor"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "ZanyBonzy"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "0xShoonya"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "aman"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "ke1caM"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "weblogicctf"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "akhoronko"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Ivcho332"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "iFindTheBugs2"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Caramelo10"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "ARMoh"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "blockace"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Pabear30"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "7"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Mishkat6451"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Pexy"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "kazan"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "kangaroo"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "ch13fd357r0y3r"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "anchabadze"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "jolyon"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "boredpukar"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "makeWeb3safe"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "edger"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Kodyvim"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "rsam\\_eth"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "t.aksoy"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Etherking"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "MaCree"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "GypsyKing18"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "8olidity"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "PratRed"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "bughuntoor"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "joicygiore"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Cybrid"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "teoslaf1"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "0xc0ffEE"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Sparrow\\_Jac"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "coin2own"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Sherlock",
+        "logo_square": "sherlock_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Mellow Flexible Vaults",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

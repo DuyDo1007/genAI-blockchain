@@ -1,0 +1,55 @@
+{
+    "id": 62014,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 37,
+    "impact": "MEDIUM",
+    "finders_count": 3,
+    "protocol_id": 3363,
+    "title": "Staker Is Not Updated in Some Cases",
+    "content": "**Update**\nThe client fixed the issue in commit `f797e3043714ac28f58aed6bdb059f3398368f91` and provided the following explanation:\n\n> Already fixed in this commit on Apr 4\n\n**File(s) affected:**`contracts/Factory.vy`\n\n**Description:** If the `Factory` creates a market using `add_market()` before a `staker_impl` is set, a staker can be added later by calling the `fill_staker_vpool()` function. However, this function does not call the `LT.setStaker()` function to update the staker in the `LT` contract.\n\n**Recommendation:** Add the missing external call to mirror the behavior in `add_market()`.",
+    "summary": "\nA bug was reported in a program called `Factory.vy`, where a function called `fill_staker_vpool()` was not updating the staker in the `LT` contract. This was only happening if a market was created using `add_market()` before a `staker_impl` was set. The client has fixed the issue and provided a commit number for reference. The recommendation is to add an external call to fix the issue.",
+    "report_date": "2025-08-14T16:12:11.589Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://certificate.quantstamp.com/full/yield-basis/e07ecad3-524c-4609-b4f6-71ed7fdc3281/index.html",
+    "sponsor_name": "",
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://certificate.quantstamp.com/full/yield-basis/e07ecad3-524c-4609-b4f6-71ed7fdc3281/index.html",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "staker-is-not-updated-in-some-cases-quantstamp-yield-basis-markdown",
+    "firm_name": "Quantstamp",
+    "firm_logo_square": "quantstamp_square.png",
+    "protocol_name": "Yield Basis",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Gereon Mendler"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Cameron Biniamow"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Jonathan Mevs"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Quantstamp",
+        "logo_square": "quantstamp_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Yield Basis",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

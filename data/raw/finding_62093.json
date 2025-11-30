@@ -1,0 +1,50 @@
+{
+    "id": 62093,
+    "kind": "GIT",
+    "auditfirm_id": 2,
+    "impact": "HIGH",
+    "finders_count": 2,
+    "protocol_id": 1174,
+    "title": "[H-02] NAV calculation inconsistency due to underlying token position in pool configuration",
+    "content": "\n\nThe `computeNAV` function in `PanopticVaultAccountant.sol` contains a logical flaw that causes identical vault positions to report different NAV values based on their pool configuration. The issue comes from inconsistent handling of the vault’s underlying token balance when calculating nav.\n\nThe problem:\n\n1. `When pools contain the underlying token`: The underlying token balance is included in `poolExposure` calculations [code](https://github.com/code-423n4/2025-06-panoptic/blob/8ef6d867a5fb6ffd1a6cc479a2380a611d452b4a/src/accountants/PanopticVaultAccountant.sol# L197-L202) within the loop, and the per-pool `Math.max(poolExposure0 + poolExposure1, 0)` is applied to the combined exposure.\n\n   [PanopticVaultAccountant.sol# L250](https://github.com/code-423n4/2025-06-panoptic/blob/8ef6d867a5fb6ffd1a6cc479a2380a611d452b4a/src/accountants/PanopticVaultAccountant.sol# L250)\n2. `When pools don't contain the underlying token`: The underlying token balance is added after all pool calculations are complete and after the `Math.max(_, 0)` protection has already been applied per pool.\n\n   [PanopticVaultAccountant.sol# L254-L258](https://github.com/code-423n4/2025-06-panoptic/blob/8ef6d867a5fb6ffd1a6cc479a2380a611d452b4a/src/accountants/PanopticVaultAccountant.sol# L254-L258)\n\nThis creates a scenario where the timing of when underlying token balances are included in the NAV calculation determines whether they can offset negative pool exposures or are lost entirely.\n```\n\n// Inside the pool processing loop:\nnav += uint256(Math.max(poolExposure0 + poolExposure1, 0)); // Applied per pool\n\n// After loop completion:\nif (!skipUnderlying) {\n    nav += IERC20Partial(underlyingToken).balanceOf(_vault); // Added to already-processed NAV\n}\n```\n\nHence, Vaults with underlying tokens in their pool configuration report lower NAV values than economically identical vaults without such configuration.\n\nManagers while executing `fulfillDeposit()` or `fullfillWithdrawals()`, the txn will execute without any reverts. Otherwise, it would have been underflowed [here](https://github.com/code-423n4/2025-06-panoptic/blob/8ef6d867a5fb6ffd1a6cc479a2380a611d452b4a/src/HypoVault.sol# L522-L524) and the calculated share price will be incorrect putting the protocol and users to risk.\n\n**Example:**\n\nTwo vaults with identical economic positions:\n\n* **Pool exposure**: -150 USDC (net losses from options trading)\n* **Underlying balance**: +50 USDC (cash reserves)\n* **Expected NAV**: max (-150 + 50, 0) = 0 USDC\n\n**Vault A** (underlying token USDC appears in ETH/USDC pool):\n```\n\npoolExposure = -150 + 50 = -100 USDC (underlying included)\nnav += max(-100, 0) = 0\nskipUnderlying = true\nFinal NAV = 0 USDC  (Correct by coincidence)\n```\n\n**Vault B** (underlying token USDC not in ETH/WBTC pool):\n```\n\npoolExposure = -150 USDC (underlying not included)\nnav += max(-150, 0) = 0\nskipUnderlying = false\nnav += 50 USDC (underlying added after)\nFinal NAV = 50 USDC  (Incorrect - should be 0)\n```\n\n### Recommended mitigation steps\n\nPut nav calculation outside of the `for loop`.\n```\n\n    {\n        for loop pools\n        ....\n    }\n    bool skipUnderlying = false;\n    for (uint256 i = 0; i < underlyingTokens.length; i++) {\n        if (underlyingTokens[i] == underlyingToken) skipUnderlying = true;\n    }\n    if (!skipUnderlying) {\n        totalExposure += int256(IERC20Partial(underlyingToken).balanceOf(_vault));\n    }\n\n    // Apply Math.max to final aggregated exposure\n    nav = uint256(Math.max(totalExposure, 0));\n    \n```\n\n    where totalExposure is net poolExposure0 + poolExposure1 for all pools\n```\n\n---\n\n",
+    "summary": "\nThe `computeNAV` function in `PanopticVaultAccountant.sol` has a problem that causes identical vault positions to report different NAV values based on their pool configuration. This is due to inconsistent handling of the vault's underlying token balance when calculating NAV. When pools contain the underlying token, the balance is included in the calculation within the loop, but when pools don't contain the underlying token, the balance is added after the calculation is complete. This can result in different NAV values for economically identical vaults. To fix this issue, the recommended mitigation step is to put the NAV calculation outside of the for loop and apply the `Math.max` function to the final aggregated exposure. This will ensure that the NAV value is calculated correctly for all vaults. ",
+    "report_date": "2025-08-13T00:00:00.000Z",
+    "contest_prize_txt": "18000",
+    "contest_link": "https://code4rena.com/reports/2025-06-panoptic-hypovault",
+    "sponsor_name": "Panoptic",
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://code4rena.com/reports/2025-06-panoptic-hypovault",
+    "github_link": "https://code4rena.com/audits/2025-06-panoptic-hypovault/submissions/F-219",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "510",
+    "slug": "h-02-nav-calculation-inconsistency-due-to-underlying-token-position-in-pool-configuration-code4rena-panoptic-panoptic-git",
+    "firm_name": "Code4rena",
+    "firm_logo_square": "code4rena_square.png",
+    "protocol_name": "Panoptic",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "kvar"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "dhank"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Code4rena",
+        "logo_square": "code4rena_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Panoptic",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

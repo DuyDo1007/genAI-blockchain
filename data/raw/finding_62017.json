@@ -1,0 +1,55 @@
+{
+    "id": 62017,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 37,
+    "impact": "LOW",
+    "finders_count": 3,
+    "protocol_id": 3363,
+    "title": "`LT` Does Not Expose Burn Functionality",
+    "content": "**Update**\nThe client acknowledged the issue and provided the following explanation:\n\n> Proper token burns are disallowed to, for example, limit LP token inflation attacks. However, indeed, people are free to transfer the token to an address which cannot be accessed\n\n**File(s) affected:**`contracts/LT.vy`\n\n**Description:** The `LT` contract also serves as a ERC20 liquidity token. The `_transfer` function attempts to stop token burns by disallowing transfers to the zero address or the token contract, but no other burn function is exposed to properly handle this. Users may still choose to burn tokens by transferring them to irretrievable addresses instead, making lively tokens harder to track.\n\n**Recommendation:** Expose a `burn()` function to properly handle this.",
+    "summary": "",
+    "report_date": "2025-08-14T16:12:11.589Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://certificate.quantstamp.com/full/yield-basis/e07ecad3-524c-4609-b4f6-71ed7fdc3281/index.html",
+    "sponsor_name": "",
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://certificate.quantstamp.com/full/yield-basis/e07ecad3-524c-4609-b4f6-71ed7fdc3281/index.html",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "lt-does-not-expose-burn-functionality-quantstamp-yield-basis-markdown",
+    "firm_name": "Quantstamp",
+    "firm_logo_square": "quantstamp_square.png",
+    "protocol_name": "Yield Basis",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Gereon Mendler"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Cameron Biniamow"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Jonathan Mevs"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Quantstamp",
+        "logo_square": "quantstamp_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Yield Basis",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

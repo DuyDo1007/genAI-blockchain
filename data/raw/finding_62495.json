@@ -1,0 +1,50 @@
+{
+    "id": 62495,
+    "kind": "GIT",
+    "auditfirm_id": 3,
+    "impact": "MEDIUM",
+    "finders_count": 2,
+    "protocol_id": 3104,
+    "title": "M-3: Single sided strategy cant do trades for ETH pools",
+    "content": "\nSource: https://github.com/sherlock-audit/2025-06-notional-exponent-judging/issues/279 \n\n## Found by \nelolpuer, mstpr-brainbot\n\n### Summary\n\nWhen users deposit the \"asset\" into the single-sided Curve LP strategy, the asset is sold for the Curve pool’s underlying tokens.\nHowever, there is an edge case when one of the pool’s underlying tokens is **ETH**, in which case the trade execution fails because the `TRADING_MODULE` sends back **ETH** when ETH is requested, but the code expects **WETH** to be received.\n\n\n### Root Cause\n\nFirst, when the ConvexCurve yield strategy is deployed, `TOKEN_1` and `TOKEN_2` are written to storage as follows:\n[https://github.com/sherlock-audit/2025-06-notional-exponent/blob/82c87105f6b32bb362d7523356f235b5b07509f9/notional-v4/src/single-sided-lp/CurveConvex2Token.sol#L54-L55](https://github.com/sherlock-audit/2025-06-notional-exponent/blob/82c87105f6b32bb362d7523356f235b5b07509f9/notional-v4/src/single-sided-lp/CurveConvex2Token.sol#L54-L55)\n\nCurve pools use the address `0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE` to show that one of the pool’s assets is native ETH. Here, we can see that if that’s the case, it’s set to `ETH_ADDRESS`, which is `address(0)`. We can also confirm this from the comments above those lines.\n\n[https://github.com/sherlock-audit/2025-06-notional-exponent/blob/82c87105f6b32bb362d7523356f235b5b07509f9/notional-v4/src/single-sided-lp/AbstractSingleSidedLP.sol#L181-L219](https://github.com/sherlock-audit/2025-06-notional-exponent/blob/82c87105f6b32bb362d7523356f235b5b07509f9/notional-v4/src/single-sided-lp/AbstractSingleSidedLP.sol#L181-L219)\n\nNow, when the user deposits the asset token and wants to sell some of it for the other underlying Curve token, which is native ETH, then `trade.buyToken` will be `address(0)`, which translates to `ETH_ADDRESS` in the Notional codebase.\n\n```solidity\ntrade = Trade({\n    tradeType: t.tradeType,\n    sellToken: address(asset),\n    buyToken: address(tokens[i]),\n    amount: t.tradeAmount,\n    limit: t.minPurchaseAmount,\n    deadline: block.timestamp,\n    exchangeData: t.exchangeData\n});\n```\n\nAfter `executeTrade` is called in `TRADING_MODULE`, the strategy contract will receive native ETH not WETH!\nWe can also confirm from the TradingModule implementation that if the `buyToken` is ETH (`address(0)`), it's ensured that even WETH receivables are withdrawn to ETH, making sure the user receives native ETH instead of WETH:\n[https://github.com/notional-finance/leveraged-vaults/blob/7e0abc3e118db0abb20c7521c6f53f1762fdf562/contracts/trading/TradingUtils.sol#L164-L172](https://github.com/notional-finance/leveraged-vaults/blob/7e0abc3e118db0abb20c7521c6f53f1762fdf562/contracts/trading/TradingUtils.sol#L164-L172)\n\nAfter these operations, the contract now has some asset balance and some native ETH balance and is ready to LP into the Curve pool with `msg.value`. The following lines are next:\n[https://github.com/sherlock-audit/2025-06-notional-exponent/blob/82c87105f6b32bb362d7523356f235b5b07509f9/notional-v4/src/single-sided-lp/CurveConvex2Token.sol#L180-L196](https://github.com/sherlock-audit/2025-06-notional-exponent/blob/82c87105f6b32bb362d7523356f235b5b07509f9/notional-v4/src/single-sided-lp/CurveConvex2Token.sol#L180-L196)\n\n```solidity\nuint256 msgValue;\nif (TOKEN_1 == ETH_ADDRESS) {\n    msgValue = _amounts[0];\n} else if (TOKEN_2 == ETH_ADDRESS) {\n    msgValue = _amounts[1];\n}\nif (msgValue > 0) WETH.withdraw(msgValue);\n```\n\nAs we can see here, `msgValue` will indeed be greater than 0, and then `WETH.withdraw` will be called. However, we already have ETH balance and no WETH — so the withdraw will revert.\n\n\n### Internal Pre-conditions\n\n1. Curve pool used has ETH as underlying\n\n### External Pre-conditions\n\nNone needed\n\n### Attack Path\n\nHappens naturally\n\n### Impact\n\nUsers wont be able to deposit on both tokens if the asset is one of the curve lp.\nIf the asset is not one of the curve lp then users will not be able to deposit at all\nIf the reward token is WETH then everything can be messed up because of withdrawing the WETH.\n\nSo, high.\n\n### PoC\n\n_No response_\n\n### Mitigation\n\nRemove the WETH.withdraw since the ETH is received natively to yield strategy\n\n",
+    "summary": "\nThe bug report discusses an issue where the trading code expects to receive WETH when ETH is requested, but instead receives ETH. This happens when users deposit assets into the single-sided Curve LP strategy and one of the underlying tokens is ETH. This causes the trade execution to fail and prevents users from depositing on both tokens. The root cause is traced back to the way the ConvexCurve yield strategy is deployed, where the address for ETH is set to `address(0)` instead of `0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE`. The impact of this bug is considered to be high as it can prevent users from depositing at all and can also cause issues with the reward token WETH. The suggested mitigation is to remove the `WETH.withdraw` function since ETH is received natively to the yield strategy.",
+    "report_date": "2025-07-18T15:00:00.000Z",
+    "contest_prize_txt": "75500 USDC",
+    "contest_link": "https://app.sherlock.xyz/audits/contests/1001",
+    "sponsor_name": "",
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "",
+    "github_link": "https://github.com/sherlock-audit/2025-06-notional-exponent-judging/issues/279",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "1001",
+    "slug": "m-3-single-sided-strategy-cant-do-trades-for-eth-pools-sherlock-notional-exponent-git",
+    "firm_name": "Sherlock",
+    "firm_logo_square": "sherlock_square.png",
+    "protocol_name": "Notional Exponent",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "mstpr-brainbot"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "elolpuer"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Sherlock",
+        "logo_square": "sherlock_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Notional Exponent",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

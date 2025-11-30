@@ -1,0 +1,45 @@
+{
+    "id": 62603,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 16,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3421,
+    "title": "[L-06] Role ID collision between `PacketStore` and `WhitelistRegistry` contracts",
+    "content": "\n_Resolved_\n\nBoth the `PacketStore` and `WhitelistRegistry` contracts define role ID `6` for unrelated purposes:\n\n```solidity\n//File: src/PacketStore.sol\nuint256 private constant PRICE_MANAGER_ROLE = 6;\n\n//File: src/WhitelistRegistry.sol\nuint256 public constant WHITELIST_MANAGER_ROLE = 6;\n```\n\nBoth contracts use `RoleBasedAccessControl`, which uses ERC1155 tokens to manage roles. Since they share the same role ID, any address granted one role effectively has both roles, as the access control system cannot distinguish between them.\n\nIt does violate the principle of least privilege and could lead to confusion in role management.\n\nConsider assigning unique role IDs for each distinct role in the system.\n\n\n\n",
+    "summary": "",
+    "report_date": "2025-09-11T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/pashov/audits/blob/master/team/md/RipIt-security-review_2025-05-10.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "l-06-role-id-collision-between-packetstore-and-whitelistregistry-contracts-pashov-audit-group-none-ripit_2025-05-10-markdown",
+    "firm_name": "Pashov Audit Group",
+    "firm_logo_square": "Pashov_square.png",
+    "protocol_name": "RipIt_2025-05-10",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Pashov Audit Group"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Pashov Audit Group",
+        "logo_square": "Pashov_square.png"
+    },
+    "protocols_protocol": {
+        "name": "RipIt_2025-05-10",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

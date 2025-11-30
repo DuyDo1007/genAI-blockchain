@@ -1,0 +1,45 @@
+{
+    "id": 62596,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 16,
+    "impact": "MEDIUM",
+    "finders_count": 1,
+    "protocol_id": 3421,
+    "title": "[M-01] Failure in `sendNFTs()` leaves NFTs stuck and causes asset loss",
+    "content": "\n_Resolved_\n\n## Severity\n\n**Impact:** Medium\n\n**Likelihood:** Medium\n\n## Description\n\nIn the `CardAllocationPool` contract, when random card NFTs are being allocated to the owner (the owner of the `packetId`), if the `sendNFTs` function fails to transfer the selected cards, **these cards will be permanently stuck in the contract**:\n\n```solidity\n function fulfillRandomWords(uint256 requestId, uint256[] memory randomWords) internal {\n        //...\n\n        // Select random cards using the provided randomness\n        uint256[] memory selectedCards = selectRandomCards(cardBundles, randomWords[0]);\n\n        // Transfer cards to owner\n        try this.sendNFTS(selectedCards, request.owner) {\n            RipFunPacks(packetNFTAddress).finalizeOpen(request.packetId, selectedCards, \"\");\n            emit PacketOpenFulfilled(requestId, request.packetId, selectedCards);\n        } catch {}\n\n        //...\n    }\n```\n\nThe `sendNFTS()` invocation occurs within a `try/catch` block, where the catch does not revert any state changes or implement any functionality to reallocate the failed-to-send `selectedCards`. As a result, the cards remain **permanently stuck in the contract** and can not be re-utilized in future random selections. Additionally, there is no mechanism to allow the redeem manager to recover these cards.\n\nSince the `cardBundles` are removed from the `packetTypeToCardBundles` array, the physical items associated with these cards NFTs **become permanently unredeemable**.\n\nA similar issue in `SpinLottery.fulfillRandomness()` function when `_distributePrize()` fails.\n\n## Recommendations\n\nImplement a mechanism to re-add the failed-to-send cards NFTs to the `packetTypeToCardBundles` array, or introduce a mechanism to enable the redeem manager to recover these cards NFTs.\n\n\n\n",
+    "summary": "\nThe bug report is about an issue in the `CardAllocationPool` contract where randomly selected cards are getting stuck and cannot be used again. This happens when the `sendNFTs` function fails to transfer the selected cards to the owner. The problem is that there is no mechanism in place to re-add these cards or allow the redeem manager to recover them. This also causes physical items associated with these cards to become permanently unredeemable. The report recommends implementing a mechanism to re-add the stuck cards or allowing the redeem manager to recover them.",
+    "report_date": "2025-09-11T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/pashov/audits/blob/master/team/md/RipIt-security-review_2025-05-10.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "m-01-failure-in-sendnfts-leaves-nfts-stuck-and-causes-asset-loss-pashov-audit-group-none-ripit_2025-05-10-markdown",
+    "firm_name": "Pashov Audit Group",
+    "firm_logo_square": "Pashov_square.png",
+    "protocol_name": "RipIt_2025-05-10",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Pashov Audit Group"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Pashov Audit Group",
+        "logo_square": "Pashov_square.png"
+    },
+    "protocols_protocol": {
+        "name": "RipIt_2025-05-10",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

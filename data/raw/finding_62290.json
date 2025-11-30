@@ -1,0 +1,55 @@
+{
+    "id": 62290,
+    "kind": "PDF",
+    "auditfirm_id": 6,
+    "impact": "MEDIUM",
+    "finders_count": 3,
+    "protocol_id": 3396,
+    "title": "Using the index for rewardTokens could result in incorrect reward token transfers inRewardForwarder",
+    "content": "## Contract Analysis\n\n## Severity: Medium Risk\n\n### Context\n`RewardForwarder.sol#L68-L70`\n\n### Description\nIn the `RewardForwarder` contract, rewards are distributed based on an index of reward tokens retrieved by the `RewardsController` as shown below:\n\n```solidity\nfunction claimRewardsFor(address claimee, address token) public returns (uint256[] memory) {\n    require(isRegisteredClaimee[claimee], \"Not registered\");\n    address[] memory assets = new address[](1);\n    assets[0] = token;\n    (address[] memory rewardTokens_, uint256[] memory claimedAmounts_) = // <<<\n        rewardsController.claimAllRewardsOnBehalf(assets, claimee, address(this));\n    for (uint256 i = 0; i < rewardTokens_.length; i++) {\n        claimedRewards[claimee][token][i] += claimedAmounts_[i]; // <<<\n    }\n    return claimedAmounts_;\n}\n```\n\nThe rewards are then claimed using the `rewardTokens` index to transfer tokens to the forwarder:\n\n```solidity\nfunction forwardRewards(address claimee, address token, uint256 rewardTokenIndex) public {\n    address rewardToken = rewardTokens[rewardTokenIndex]; // <<<\n    uint256 amount = claimedRewards[claimee][token][rewardTokenIndex];\n    require(amount != 0, \"No rewards to forward\");\n    claimedRewards[claimee][token][rewardTokenIndex] = 0; // <<<\n    address forwarder = forwarders[claimee][rewardTokenIndex];\n    require(forwarder != address(0), \"No forwarder set\");\n    IERC20(rewardToken).transfer(forwarder, amount); // <<<\n}\n```\n\nA mismatch can occur when the `rewardTokens` arrays differ between contracts. For example, if `RewardForwarder` has `[TokenA]` while `RewardController` has `[TokenB]`, the `claimRewardsFor` function will record claimed amounts for `TokenB`, but `forwardRewards` will transfer `TokenA` instead.\n\nAdditionally, updating the `rewardTokens` array in `RewardForwarder` can lead to incorrect token distributions. For instance, if `rewardTokens` initially contains `[TokenA]`, the `rewardToken` will use index `0`, and if a user has `claimedRewards[claimee][token][0] = 100`, the function will transfer `100 TokenA`. However, if `rewardTokens` is updated to `[TokenB]`, the same amount will be transferred in `TokenB` rather than `TokenA`.\n\n### Recommendation\nConsider updating the function to use the token address instead of the index when claiming the tokens.\n\n### Audit Results\n- **Astera:** Fixed in commit e44fb3fe.\n- **Spearbit:** Fix verified.",
+    "summary": "\nThe \"RewardForwarder\" contract has a bug that can result in incorrect distribution of reward tokens. This happens because the contract uses an index of reward tokens to transfer the tokens, but this index can be different between different contracts. This means that the tokens claimed in one contract may be transferred to a different token address in another contract, leading to incorrect distributions. To fix this bug, the contract should use the actual token address instead of the index when claiming and transferring the tokens. This bug has already been fixed by the developers and verified by two auditing companies. ",
+    "report_date": "2025-08-29T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Astera-Spearbit-Security-Review-December-2024.pdf",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Astera-Spearbit-Security-Review-December-2024.pdf",
+    "github_link": "",
+    "pdf_link": "https://solodit-bucket.s3.amazonaws.com/storage/reports/spearbit/Astera-Spearbit-Security-Review-December-2024.pdf",
+    "pdf_page_from": 25,
+    "contest_id": "",
+    "slug": "using-the-index-for-rewardtokens-could-result-in-incorrect-reward-token-transfers-inrewardforwarder-spearbit-none-astera-pdf",
+    "firm_name": "Spearbit",
+    "firm_logo_square": "spearbit_square.png",
+    "protocol_name": "Astera",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Saw-mon and Natalie"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Cergyk"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Jonatas Martins"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Spearbit",
+        "logo_square": "spearbit_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Astera",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

@@ -1,0 +1,55 @@
+{
+    "id": 62353,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 11,
+    "impact": "LOW",
+    "finders_count": 3,
+    "protocol_id": 3402,
+    "title": "Deployment script requires unencrypted private key",
+    "content": "**Description:** The deployment script [`deploy.sh`](https://github.com/Licredity/licredity-v1-core/blob/e8ae10a7d9f27529e39ca277bf56cef01a807817/deploy.sh#L29-L44) requires a private key to be stored in clear text inside the `.env` file:\n\n```bash",
+    "summary": "",
+    "report_date": "2025-09-01T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/solodit/solodit_content/blob/main/reports/Cyfrin/2025-09-01-cyfrin-licredity-v2.0.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "deployment-script-requires-unencrypted-private-key-cyfrin-none-licredity-markdown",
+    "firm_name": "Cyfrin",
+    "firm_logo_square": "Cyfrin_square.jpg",
+    "protocol_name": "Licredity",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Immeas"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Alexzoid"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "ChainDefenders](https://x.com/ChDefendersEth) ([0x539](https://x.com/1337web3) & [PeterSR"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Cyfrin",
+        "logo_square": "Cyfrin_square.jpg"
+    },
+    "protocols_protocol": {
+        "name": "Licredity",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

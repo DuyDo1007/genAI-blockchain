@@ -1,0 +1,60 @@
+{
+    "id": 62911,
+    "kind": "PDF",
+    "auditfirm_id": 6,
+    "impact": "LOW",
+    "finders_count": 4,
+    "protocol_id": 3419,
+    "title": "Undeﬁned behavior in RLP encoding functions with empty inputs",
+    "content": "## Low Risk Issue Report\n\n## Severity\nLow Risk\n\n## Context\n`encode.hpp#L94`\n\n## Description\n`rlp::encode_list` and `rlp::encode_string` consume a `byte_string_view` (an alias for `std::basic_string_view<unsigned char>`) whose `data()` method may or may not return NULL if it provides a view of zero bytes (e.g. the `size()` method returns 0). These functions invoke `memcpy` with the source parameter set to `s.data()`. It is undefined behavior to invoke `memcpy` with a NULL pointer. Hence, undefined behavior occurs in `rlp::encode_list` and `rlp::encode_string` if invoked with an empty `byte_string_view` whose `data()` method returns NULL.\n\n## Proof of Concept\nAdd to `category/core/test/encode_test.cpp`:\n\n```cpp\nmonad::rlp::encode_string(buf, byte_string_view{});\nmonad::rlp::encode_list(buf, byte_string_view{});\n```\n\nCompile the project with `-fsanitize=undefined` and then run:\n\n```\n./build/category/core/test/encode_test\n```\n\n**Output:**\n\n```\nRunning main() from ./googletest/src/gtest_main.cc\n[==========] Running 6 tests from 1 test suite.\n[----------] Global test environment set-up.\n[----------] 6 tests from rlp\n[ RUN ] rlp.impl_length_length\n[ OK ] rlp.impl_length_length (0 ms)\n[ RUN ] rlp.impl_encode_length\n[ OK ] rlp.impl_encode_length (0 ms)\n[ RUN ] rlp.string_length\n[ OK ] rlp.string_length (0 ms)\n[ RUN ] rlp.encode_string\n/home/jhg/monad-rlp-ub/monad-9aa5450f064b16f8c330ae47dffdc3ace51d46be/category/core/rlp/encode.hpp:94:3 ⌋\n1: runtime error: null pointer passed as argument 2, which is declared to never be null↪→\n/usr/include/string.h:44:28: note: nonnull attribute specified here\nSUMMARY: UndefinedBehaviorSanitizer: undefined-behavior /home/jhg/monad-rlp-ub/monad-9aa5450f064b16f8c3 ⌋\n30ae47dffdc3ace51d46be/category/core/rlp/encode.hpp:94:31↪→\n[ OK ] rlp.encode_string (1 ms)\n[ RUN ] rlp.list_length\n[ OK ] rlp.list_length (0 ms)\n[ RUN ] rlp.encode_list\n/home/jhg/monad-rlp-ub/monad-9aa5450f064b16f8c330ae47dffdc3ace51d46be/category/core/rlp/encode.hpp:140: ⌋\n31: runtime error: null pointer passed as argument 2, which is declared to never be null↪→\n/usr/include/string.h:44:28: note: nonnull attribute specified here\nSUMMARY: UndefinedBehaviorSanitizer: undefined-behavior /home/jhg/monad-rlp-ub/monad-9aa5450f064b16f8c3 ⌋\n30ae47dffdc3ace51d46be/category/core/rlp/encode.hpp:140:31↪→\n[ OK ] rlp.encode_list (0 ms)\n[----------] 6 tests from rlp (2 ms total)\n[----------] Global test environment tear-down\n[==========] 6 tests from 1 test suite ran. (2 ms total)\n[ PASSED ] 6 tests.\n```\n\n## Recommendation\nSkip `memcpy` in `rlp::encode_list` and `rlp::encode_string` if `s.empty()`.\n\n## Category Labs\nWe are tracking it in this monad issue #1644.\n\n## Spearbit\nAcknowledged.",
+    "summary": "",
+    "report_date": "2025-09-19T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Monad-Spearbit-Security-Review-September-2025.pdf",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Monad-Spearbit-Security-Review-September-2025.pdf",
+    "github_link": "",
+    "pdf_link": "https://solodit-bucket.s3.amazonaws.com/storage/reports/spearbit/Monad-Spearbit-Security-Review-September-2025.pdf",
+    "pdf_page_from": 43,
+    "contest_id": "",
+    "slug": "undefined-behavior-in-rlp-encoding-functions-with-empty-inputs-spearbit-none-monad-pdf",
+    "firm_name": "Spearbit",
+    "firm_logo_square": "spearbit_square.png",
+    "protocol_name": "Monad",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Haxatron"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Dtheo"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Guido Vranken"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Rikard Hjort"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Spearbit",
+        "logo_square": "spearbit_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Monad",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

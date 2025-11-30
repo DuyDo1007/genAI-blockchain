@@ -1,0 +1,60 @@
+{
+    "id": 62132,
+    "kind": "PDF",
+    "auditfirm_id": 6,
+    "impact": "MEDIUM",
+    "finders_count": 4,
+    "protocol_id": 3380,
+    "title": "Signature from one address can be recycled to maliciously reach threshold",
+    "content": "## Security Report\n\n## Severity: \n**Medium Risk**\n\n## Context: \n`UserOpMultiSigVerifier.sol#L51-L52`\n\n## Description: \nThe `UserOpMultiSigVerifier` contract allows signature recycling when the owners array contains duplicate addresses. This is due to the fact that the contract uses a seen array to track which indices have been used, but does not prevent the same signer address from being referenced multiple times if it appears at different positions in the owners array. Note that the contract prevents reusing the same index but not the same signer address.\n\nAs a consequence, a rogue signer can satisfy the multisig threshold using fewer unique signatures than intended. This vulnerability undermines the security guarantees of the multisig verifier, where a single compromised key could control the entire multisig if the associated account appears multiple times in the owners array. This would allow actions to be executed without the expected multi-party authorization.\n\n## Proof of Concept:\n```solidity\nevent Signers(Signer[]);\n\nfunction _createSignersRepeatedSigner(uint8 size) internal returns (Signer[] memory) {\n    Signer[] memory signers = new Signer[](size);\n    (address addr, uint256 pk) = makeAddrAndKey(\"Alice\");\n    for (uint8 i = 0; i < size; i++) {\n        signers[i] = Signer({addr: addr, pk: pk});\n    }\n    emit Signers(signers);\n    return signers;\n}\n\nfunction testFuzz_validateDataRepeatedSigner(bool withUserOp,uint8 threshold, uint8 offset, uint8 size)\npublic {\n    _assume(threshold, offset, size);\n    Signer[] memory signers = _createSignersRepeated(size);\n    bytes32 message = keccak256(\"Signed by signer\");\n    bytes memory data = _createData(message, threshold, offset, signers);\n    \n    if (withUserOp) {\n        PackedUserOperation memory userOp;\n        userOp.signature = data;\n        data = abi.encode(userOp);\n    } else {\n        data = abi.encodePacked(verifier.SIGNATURES_ONLY_TAG(), data);\n    }\n\n    bytes memory config = _createConfig(threshold, signers);\n    uint256 validationData = verifier.validateData(message, data, config);\n    assertEq(validationData, SIG_VALIDATION_SUCCESS);\n}\n```\n\n## Recommendation: \nModify the validation logic to ensure owner addresses are unique. One possible option would involve tracking used signer addresses instead of just indices. Alternatively, signer's uniqueness could be verified by requiring the signatures to be provided in ascending or descending order, allowing for the verification of duplicates, for example:\n\n```solidity\naddress lastSigner;\nfor (uint256 i = 0; i < signatures.length; i++) {\n    SignerData memory sd = signatures[i];\n    require(owners[sd.index] > lastSigner, \"Signatures must be sorted\");\n    \n    // Note: we need to ensure gas usage is consistent during simulation with dummy signers.\n    owners[sd.index] == ECDSA.recover(message, sd.signature) ? valid++ : invalid++;\n    lastSigner = owners[sd.index];\n}\n```\n\n## Stackup: \nFixed in PR 47.\n\n## Spearbit: \nFix verified.",
+    "summary": "\nThis bug report discusses a vulnerability in the `UserOpMultiSigVerifier` contract that allows signature recycling when the owners array contains duplicate addresses. This means that a rogue signer can bypass the multisig threshold and control the contract with fewer unique signatures than intended. The report recommends modifying the validation logic to ensure owner addresses are unique. The bug has been fixed in PR 47.",
+    "report_date": "2025-08-18T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Stackup-Spearbit-Security-Review-July-2025.pdf",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Stackup-Spearbit-Security-Review-July-2025.pdf",
+    "github_link": "",
+    "pdf_link": "https://solodit-bucket.s3.amazonaws.com/storage/reports/spearbit/Stackup-Spearbit-Security-Review-July-2025.pdf",
+    "pdf_page_from": 6,
+    "contest_id": "",
+    "slug": "signature-from-one-address-can-be-recycled-to-maliciously-reach-threshold-spearbit-none-stackup-keystore-pdf",
+    "firm_name": "Spearbit",
+    "firm_logo_square": "spearbit_square.png",
+    "protocol_name": "Stackup Keystore",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Tnch"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Kaden"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Hake"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Gerard Persoon"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Spearbit",
+        "logo_square": "spearbit_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Stackup Keystore",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

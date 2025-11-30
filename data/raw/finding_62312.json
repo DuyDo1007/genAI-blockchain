@@ -1,0 +1,55 @@
+{
+    "id": 62312,
+    "kind": "PDF",
+    "auditfirm_id": 6,
+    "impact": "LOW",
+    "finders_count": 3,
+    "protocol_id": 3396,
+    "title": "Analysis of balanceDecreaseAllowed when there is at least one reserve borrowed but the",
+    "content": "vars.totalDebtInETH is 0  \n**Severity:** Low Risk  \n**Context:** MiniPoolGenericLogic.sol#L79-L84, GenericLogic.sol#L97-L99  \n\n**Description:**\n\n1. **Mini Pool:**  \n   In the usual flows the return statement in this context cannot be reached, since we have already checked `userConfig.isBorrowingAny()`, and so if we get to this if block we know that `userConfig` is borrowing at least one reserve.  \n   ```solidity\n   if (!userConfig.isBorrowingAny() || !userConfig.isUsingAsCollateral(reserves[asset].id)) {  \n       return true;  \n   }\n   ```  \n   // ...  \n   ```solidity\n   (vars.totalCollateralInETH, vars.totalDebtInETH,, vars.avgLiquidationThreshold,) =  \n   calculateUserAccountData(user, reserves, userConfig, reservesList, reservesCount, oracle);  \n   if (vars.totalDebtInETH == 0) {  \n       return true; // <--- the `return` statement in the question  \n   }\n   ```  \n   The question arises as to when this can happen, i.e., for a user who has at least one borrowing reserve but with `vars.totalDebtInETH` equal to 0.  \n   1. `vars.totalDebtInETH` could be 0 since in its calculation we underestimate/round down and thus it is possible to reach this return statement due to this rounding direction error.  \n   2. The mini pool is borrowing some reserves (userConfig corresponds to the minipool in the internalWithdraw flow but `user=msg.sender` is not borrowing any of those).  \n   3. When one calls `calculateUserAccountData(user, ..., userConfig, ...)` in the mini pool deposit (or in general F) flow, the user would be `msg.sender` but `userConfig` would be `usersConfig[address(this)]`, which is the user config for the mini pool, where F can be deposit, repay, or liquidationCall.  \n   \n   The cases 2 and 3 currently could not happen since there are no reserves marked as borrowed for the mini pool in the mini pool itself, and thus the call to `balanceDecreaseAllowed(...)` returns early in these two cases.\n\n2. **Lending Pool:**  \n   This is the same as the mini pool case regarding the first case where:  \n   1. `vars.totalDebtInETH` could be 0 since in its calculation we underestimate/round down and thus it is possible to reach this return statement due to this rounding direction error.  \n\n**Recommendation:**  \nIn general, one should have the following invariant: when `userConfig.isBorrowingAny()` is true, `vars.totalDebtInETH` should be non-zero. This can be guaranteed if in all calculations to derive `vars.totalDebtInETH`, one chooses a rounding direction that would favor over-estimating `vars.totalDebtInETH`.  \n\n**Astera:** Fixed in commit 1ee6d04b.  \n**Spearbit:** Fix verified.",
+    "summary": "",
+    "report_date": "2025-08-29T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Astera-Spearbit-Security-Review-December-2024.pdf",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Astera-Spearbit-Security-Review-December-2024.pdf",
+    "github_link": "",
+    "pdf_link": "https://solodit-bucket.s3.amazonaws.com/storage/reports/spearbit/Astera-Spearbit-Security-Review-December-2024.pdf",
+    "pdf_page_from": 38,
+    "contest_id": "",
+    "slug": "analysis-of-balancedecreaseallowed-when-there-is-at-least-one-reserve-borrowed-but-the-spearbit-none-astera-pdf",
+    "firm_name": "Spearbit",
+    "firm_logo_square": "spearbit_square.png",
+    "protocol_name": "Astera",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Saw-mon and Natalie"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Cergyk"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Jonatas Martins"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Spearbit",
+        "logo_square": "spearbit_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Astera",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

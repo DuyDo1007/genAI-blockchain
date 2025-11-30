@@ -1,0 +1,55 @@
+{
+    "id": 62022,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 37,
+    "impact": "LOW",
+    "finders_count": 3,
+    "protocol_id": 3366,
+    "title": "Unsorted Steps in SteppedRate Can Lead to Incorrect Fee Calculation",
+    "content": "**Update**\nMarked as \"Fixed\" by the client. Addressed in: `139ee12335f61851d7cbf540a4b56c80622c911f`.\n\n**File(s) affected:**`daml/splice-amulet/daml/Splice/Fees.daml`\n\n**Description:** The `SteppedRate` struct and its associated `chargeSteppedRate` function is intended to calculate fees based on a tiered, piecewise linear model. This fee is charged on all peer-to-peer transfers. `chargeSteppedRate` implicitly assumes that the breakpoints in the input steps list are sorted in ascending order. However, the `validSteppedRate` function, which validates `SteppedRate` instances, only checks the validity of individual steps (`breakpoint > 0`, rate is within `[0,1]`) and does not enforce this sorted order.\n\nIf an unsorted steps list is provided to `chargeSteppedRate`:\n\n1.   The `step - total` calculation within the `foldl` for `stepDifferences` can result in a negative interval width. \n2.   When `goChargeSteppedRate` processes these negative widths, the fee calculation `rate' = min remainder step * currentRate + rate` can subtract from the accumulated fee because step is negative. \n3.   The remainder update `remainder' = remainder - step` will incorrectly increase the remainder (as it subtracts a negative number). \n4.   This can lead to severe miscalculations, particularly in `preprocessOutputs`: `amount = amount - receiverOutputFee` would result in the negative fee increasing the transfer amount, resulting in token inflation for many transfers.\n\nGiven that the `SteppedRate` is configured by the SVs hosting the DSO party, the likelihood of an attack is unlikely, but a misconfiguration is possible, especially as **the `validSteppedRate` function is not currently called.**\n\n**Recommendation:**\n\n1.   Modify `validSteppedRate` to ensure steps are sorted by breakpoint in ascending order. \n2.   Consider having `chargeSteppedRate` or `goChargeSteppedRate` assert that calculated interval widths are non-negative before use. \n3.   Update `validAmuletConfig` to call `validSteppedRate`.",
+    "summary": "",
+    "report_date": "2025-08-14T13:19:40.214Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://certificate.quantstamp.com/full/canton-coin-an-implementation-of-splice-amulet/d95ae8a5-34b5-4245-8afc-bfd5435e4632/index.html",
+    "sponsor_name": "",
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://certificate.quantstamp.com/full/canton-coin-an-implementation-of-splice-amulet/d95ae8a5-34b5-4245-8afc-bfd5435e4632/index.html",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "unsorted-steps-in-steppedrate-can-lead-to-incorrect-fee-calculation-quantstamp-canton-coin-an-implementation-of-splice-amulet-markdown",
+    "firm_name": "Quantstamp",
+    "firm_logo_square": "quantstamp_square.png",
+    "protocol_name": "Canton Coin, an implementation of Splice Amulet",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Gereon Mendler"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Ibrahim Abouzied"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Jonathan Mevs"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Quantstamp",
+        "logo_square": "quantstamp_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Canton Coin, an implementation of Splice Amulet",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

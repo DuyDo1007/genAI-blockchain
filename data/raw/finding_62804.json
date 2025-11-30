@@ -1,0 +1,55 @@
+{
+    "id": 62804,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 37,
+    "impact": "LOW",
+    "finders_count": 3,
+    "protocol_id": 3446,
+    "title": "Parent Tagging Is Slower than Minting",
+    "content": "**Update**\nMarked as \"Fixed\" by the client. Addressed in: `39e50173fe01e3eda5b85718c6dab62d3620d634`.\n\n**File(s) affected:**`DisputeModule.sol`\n\n**Description:** The dispute module allows users to accuse token owners of intellectual property infringement, and get the token blocked after judgement by the contract owner. Judgement can be cast after some cooldown period has elapsed, which allows the token owner to assert counterevidence. Disputes should then propagate to derived tokens, this is initiated by users notifying the contract using the `tagChildIp()` function. In its current form, this raises a new dispute for the child token. However, a new derivative tokens could be minted before the cooldown period of this dispute has elapsed, leading to a potential scenario where the dispute module cannot catch up with minting.\n\n**Recommendation:** Consider immediately resolving disputes regarding child tokens, if that aligns with business logic. Otherwise, consider removing the cooldown period for disputes that arise from child tagging.",
+    "summary": "",
+    "report_date": "2025-09-15T14:18:47.035Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://certificate.quantstamp.com/full/camp-nft/94cdb738-1a01-4f6c-8632-3bdec427161e/index.html",
+    "sponsor_name": "",
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://certificate.quantstamp.com/full/camp-nft/94cdb738-1a01-4f6c-8632-3bdec427161e/index.html",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "parent-tagging-is-slower-than-minting-quantstamp-camp-nft-markdown",
+    "firm_name": "Quantstamp",
+    "firm_logo_square": "quantstamp_square.png",
+    "protocol_name": "Camp - NFT",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Paul Clemson"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Gereon Mendler"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Tim Sigl"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Quantstamp",
+        "logo_square": "quantstamp_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Camp - NFT",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

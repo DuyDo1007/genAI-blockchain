@@ -1,0 +1,45 @@
+{
+    "id": 62409,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 34,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3405,
+    "title": "[LOGLAB-1] Missing disableinitializers() to prevent uninitialized contracts",
+    "content": "**Severity:** Low\n\n**Description:** All contracts in the project that use OpenZeppelin’s `Initializable` don't call `_disableInitializers` in the constructor per the OpenZeppelin documentation:\n\n[Writing Upgradeable Contracts - OpenZeppelin Docs](https://docs.openzeppelin.com/upgrades-plugins/1.x/writing-upgradeable#initializing_the_implementation_contract) \n\n[Proxies - OpenZeppelin Docs](https://docs.openzeppelin.com/contracts/4.x/api/proxy#Initializable-_disableInitializers--)\n\nContract implementations could be initialized when this should not be possible.\n\nFor example: `src/strategy/BasisStrategy.sol`\n```\n    function initialize(\n        address _config,\n        address _product,\n        address _vault,\n        address _oracle,\n        address _operator,\n        uint256 _targetLeverage,\n        uint256 _minLeverage,\n        uint256 _maxLeverage,\n        uint256 _safeMarginLeverage\n@>  ) external initializer {\n        __Ownable_init(_msgSender());\n        \n  [.....]\n```\n\n**Remediation:**  We recommend using the constructor, which calls the `_disableInitializers()` function to block initialize calls in the implementation:\n```\nconstructor() {\n\t_disableInitializers();\n}\n```\n\n**Status:** Fixed\n\n- - -",
+    "summary": "",
+    "report_date": "2024-11-25T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/solodit/solodit_content/blob/main/reports/Hexens/2024-11-25-BasisOS.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "loglab-1-missing-disableinitializers-to-prevent-uninitialized-contracts-hexens-none-basisos-markdown",
+    "firm_name": "Hexens",
+    "firm_logo_square": "Hexens_square.png",
+    "protocol_name": "Basisos",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Hexens"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Hexens",
+        "logo_square": "Hexens_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Basisos",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

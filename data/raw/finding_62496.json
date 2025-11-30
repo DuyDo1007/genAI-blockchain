@@ -1,0 +1,55 @@
+{
+    "id": 62496,
+    "kind": "GIT",
+    "auditfirm_id": 3,
+    "impact": "MEDIUM",
+    "finders_count": 3,
+    "protocol_id": 3104,
+    "title": "M-4: Liquidations can be frontrunned to avoid by paying as little as 1 share.",
+    "content": "\nSource: https://github.com/sherlock-audit/2025-06-notional-exponent-judging/issues/300 \n\n## Found by \nLhoussainePh, pseudoArtist, xiaoming90\n\n### Summary\n\nThe protocol integrates with Morpho which internally handeles the debt repayment in a way that when Liquidtions will be frontrunned via repayment with just 1 share it can easily be avoided.\nhttps://github.com/morpho-org/morpho-blue/blob/731e3f7ed97cf15f8fe00b86e4be5365eb3802ac/src/interfaces/IMorpho.sol#L247\n\n### Root Cause\n\nThe internal accounting method of Morpho leads to this bug.\n\n### Internal Pre-conditions\n\nNone\n\n### External Pre-conditions\n\nNone\n\n### Attack Path\n\nDuring full liquidation the liquidator calls `liquidate()` which further calls `_liquidate` on MorphoLendingRouter:\n```jsx\n    function _liquidate(\n        address liquidator,\n        address vault,\n        address liquidateAccount,\n        uint256 sharesToLiquidate,\n        uint256 debtToRepay\n    ) internal override returns (uint256 sharesToLiquidator) {\n        MarketParams memory m = marketParams(vault);\n        (sharesToLiquidator, /* */) = MORPHO.liquidate(\n            m, liquidateAccount, sharesToLiquidate, debtToRepay, abi.encode(m.loanToken, liquidator)\n        );\n    }\n```\n\nThe above function simply calls the `MORPHO.liquidate()` with full `sharesToLiquidate` and `debtToRepay`, Now if we see the implementation of \n[Morpho.sol](https://github.com/morpho-org/morpho-blue/blob/731e3f7ed97cf15f8fe00b86e4be5365eb3802ac/src/Morpho.sol#L384-L385):\n\n```jsx\n        position[id][borrower].borrowShares -= repaidShares.toUint128();\n        market[id].totalBorrowShares -= repaidShares.toUint128();\n```\n\n\nThe `debtToRepay` is `repaidShares` and when the liquidator tries to repay the full debt all of borrowedShares are reduced by `repaidShares` and the user is fully liquidated, however a user can simply call `exitPosition` to repay as little as 1 share to avoid liquidation , since when a user frontruns the liquidation call with 1 share to repay the debt , the `Morpho.Liquidate` call will panic revert with overflow when subtracting the `repaidShares` from the `borrowShares` and the liquidation will revert.\n\nThere is a warning on [Morpho Interface](https://github.com/morpho-org/morpho-blue/blob/731e3f7ed97cf15f8fe00b86e4be5365eb3802ac/src/interfaces/IMorpho.sol#L247) as well for this bug and this can easily be avoided.\n\n\n\n### Impact\n\n Panic revert with overflow will cause liquidations to fail.\n\n### PoC\n\n_No response_\n\n### Mitigation\n\nWhen a user calls exitPosition() it has a check `_checkExit` which should be updated to consider a logic for not letting user frequently exit\nConsider making a variable `lastExitTime` and update it every time user exits just like it is done in `enterPosition`\n\n## Discussion\n\n**sherlock-admin2**\n\nThe protocol team fixed this issue in the following PRs/commits:\nhttps://github.com/notional-finance/notional-v4/pull/14/files\n\n\n\n\n",
+    "summary": "\nThis bug report discusses a potential issue with the protocol's integration with Morpho, a tool used for debt repayment. The bug could lead to liquidations being frontrun by repaying with just 1 share, causing the liquidation to fail due to an overflow error. The root cause of the bug is the internal accounting method used by Morpho. The bug can be avoided by updating the `_checkExit` function and considering a logic for not allowing frequent exits. The protocol team has fixed the issue in a recent pull request.",
+    "report_date": "2025-07-18T15:00:00.000Z",
+    "contest_prize_txt": "75500 USDC",
+    "contest_link": "https://app.sherlock.xyz/audits/contests/1001",
+    "sponsor_name": "",
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "",
+    "github_link": "https://github.com/sherlock-audit/2025-06-notional-exponent-judging/issues/300",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "1001",
+    "slug": "m-4-liquidations-can-be-frontrunned-to-avoid-by-paying-as-little-as-1-share-sherlock-notional-exponent-git",
+    "firm_name": "Sherlock",
+    "firm_logo_square": "sherlock_square.png",
+    "protocol_name": "Notional Exponent",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "LhoussainePh"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "pseudoArtist"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "xiaoming90"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Sherlock",
+        "logo_square": "sherlock_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Notional Exponent",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

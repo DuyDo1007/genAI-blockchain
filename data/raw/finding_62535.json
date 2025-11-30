@@ -1,0 +1,38 @@
+{
+    "id": 62535,
+    "kind": "GIT",
+    "auditfirm_id": 2,
+    "impact": "LOW",
+    "finders_count": 0,
+    "protocol_id": 3373,
+    "title": "[03] Any minimum reward distribution period for stETH pools that is less than or equal to 24 hrs can be forced to be non-distributed by an attacker",
+    "content": "\nIn the current deployments of the v6 contracts (Distribution) onchain, the minimum stake amount is 0.01 stETH. Combined with the daily timeframe Lido reports and distribute’s rewards, an attacker could force the Distributor to not mint MOR token rewards for users from timestamp x to timestamp z.\n```\n\n function distributeRewards(uint256 rewardPoolIndex_) public {\n        ...\n        //// Calculate the reward amount\n@>        uint256 rewards_ = IRewardPool(rewardPool).getPeriodRewards(\n            rewardPoolIndex_,\n            lastCalculatedTimestamp_,\n            uint128(block.timestamp)\n        );\n\n        if (rewards_ == 0) return;\n        //// End\n\n       ...\n\n        // Validate that public reward pools await `minRewardsDistributePeriod`\n@>        if (block.timestamp <= lastCalculatedTimestamp_ + minRewardsDistributePeriod) return;\n        rewardPoolLastCalculatedTimestamp[rewardPoolIndex_] = uint128(block.timestamp);\n\n        //// Update prices\n        updateDepositTokensPrices(rewardPoolIndex_);\n        //// End\n\n        //// Calculate `yield` from all deposit pools\n        uint256 length_ = depositPoolAddresses[rewardPoolIndex_].length;\n        uint256 totalYield_ = 0;\n        uint256[] memory yields_ = new uint256[](length_);\n\n        for (uint256 i = 0; i < length_; i++) {\n            DepositPool storage depositPool = depositPools[rewardPoolIndex_][depositPoolAddresses[rewardPoolIndex_][i]];\n\n            address yieldToken_;\n            if (depositPool.strategy == Strategy.AAVE) {\n                yieldToken_ = depositPool.aToken;\n            } else if (depositPool.strategy == Strategy.NONE) {\n                // The current condition coverage cannot be achieved in the current version.\n                // Added to avoid errors in the future.\n                yieldToken_ = depositPool.token;\n            }\n\n            uint256 balance_ = IERC20(yieldToken_).balanceOf(address(this));\n            uint256 decimals_ = IERC20Metadata(yieldToken_).decimals();\n            uint256 underlyingYield_ = (balance_ - depositPool.lastUnderlyingBalance).to18(decimals_);\n            uint256 yield_ = underlyingYield_ * depositPool.tokenPrice;\n\n            depositPool.lastUnderlyingBalance = balance_;\n\n            yields_[i] = yield_;\n            totalYield_ += yield_;\n        }\n\n        if (totalYield_ == 0) {\n @>           undistributedRewards += rewards_;\n            return;\n        }\n\n       ...\n    }\n```\n\n1. Lido distributes rewards each day at 00:00 UTC (aka every 24 hours)\n2. DepositPool A has 10k stETH staked by users\n3. The `minRewardsDistributePeriod` is set to 1 hour for example\n4. What an attacker can do is to stake just a little over the minimum stake (0.0105) since minimum is 0.01 stETH\n5. Say 1 hours has elapsed, call the `distributeRewards()` directly or trigger a transaction such as `withdraw()` from the DepositPool to withdraw 1 wei stETH which will then trigger `distributeRewards()`\n6. What happens is that if the reward pool index e.g 0 mints 3500 MOR rewards per day, that means we do 3500 / 24. Thus, `uint256 rewards_ = IRewardPool(rewardPool).getPeriodRewards(rewardPoolIndex_, lastCalculatedTimestamp_, uint128(block.timestamp));` will return 145.83 MOR, but since it is not yet past 00:00 UTC and stETH shares / balances have not gone up, these 145.83 MOR will not be minted and instead go into `undistributedRewards`.\n\n",
+    "summary": "",
+    "report_date": "2025-09-11T00:00:00.000Z",
+    "contest_prize_txt": "20000",
+    "contest_link": "https://code4rena.com/reports/2025-08-morpheus",
+    "sponsor_name": "Morpheus",
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://code4rena.com/reports/2025-08-morpheus",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "520",
+    "slug": "03-any-minimum-reward-distribution-period-for-steth-pools-that-is-less-than-or-equal-to-24-hrs-can-be-forced-to-be-non-distributed-by-an-attacker-code4rena-morpheus-morpheus-git",
+    "firm_name": "Code4rena",
+    "firm_logo_square": "code4rena_square.png",
+    "protocol_name": "Morpheus",
+    "bookmarked": false,
+    "read": false,
+    "auditfirms_auditfirm": {
+        "name": "Code4rena",
+        "logo_square": "code4rena_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Morpheus",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

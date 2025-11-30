@@ -1,0 +1,45 @@
+{
+    "id": 62675,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 23,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3435,
+    "title": "Fee-On-Transfer Tokens Not Supported",
+    "content": "##### Description\nThis issue has been identified in the contract’s token-handling logic (for example, in the `mint`, `swap`, and `redeem` functions). The contract assumes standard ERC20 transfers without accounting for fee-on-transfer tokens (e.g., USDT and USDC, which currently have fees set at 0%). This can result in smaller received amounts than expected, causing unpredictable behavior or potential loss of funds.\n\nThe issue is classified as **low** severity because it only affects scenarios where a token has a fee-on-transfer mechanism.\n\n##### Recommendation\nWe recommend either disallowing fee-on-transfer tokens in the `swap` and `mint` functions by reverting when the received balance does not match the expected amount, or calculating the invariants after the transfer is performed, using the actual balance increase.\n",
+    "summary": "",
+    "report_date": "2025-09-19T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/mixbytes/audits_public/blob/master/NUTS%20Finance/Tapio/README.md#5-fee-on-transfer-tokens-not-supported",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "fee-on-transfer-tokens-not-supported-mixbytes-none-nuts-finance-markdown",
+    "firm_name": "MixBytes",
+    "firm_logo_square": "mixbytes_square.png",
+    "protocol_name": "NUTS Finance",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "MixBytes"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "MixBytes",
+        "logo_square": "mixbytes_square.png"
+    },
+    "protocols_protocol": {
+        "name": "NUTS Finance",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

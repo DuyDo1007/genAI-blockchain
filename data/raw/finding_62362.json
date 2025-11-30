@@ -1,0 +1,45 @@
+{
+    "id": 62362,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 34,
+    "impact": "HIGH",
+    "finders_count": 1,
+    "protocol_id": 3403,
+    "title": "[FTN-2] Validator can add more than one contract",
+    "content": "**Severity:** High\n\n**Path:** beacon-chain/core/altair/deposit.go/ProcessDeposit(), beacon-chain/core/helpers/contracts.go/appendValidatorContractsWithVal()\n\n**Description:** Function `ProcessDeposit()` is responsible for adding new validators and their contracts. This function calls function `appendValidatorContractsWithVal()` which adds a new contract to the given validator. But each validator can only have one contract tied to its address.\n```\nfunc ProcessDeposit(beaconState state.BeaconState, deposit *ethpb.Deposit, verifySignature bool) (state.BeaconState, bool, error) {\n    var newValidator bool\n    if err := verifyDeposit(beaconState, deposit); err != nil {\n        if deposit == nil || deposit.Data == nil {\n            return nil, newValidator, err\n        }\n        return nil, newValidator, errors.Wrapf(err, \"could not verify deposit from %#x\", bytesutil.Trunc(deposit.Data.PublicKey))\n    }\n    if err := beaconState.SetEth1DepositIndex(beaconState.Eth1DepositIndex() + 1); err != nil {\n        return nil, newValidator, err\n    }\n    pubKey := deposit.Data.PublicKey\n    amount := deposit.Data.Amount\n    contract := deposit.Data.DeployedContract\n    owner, contractExist := beaconState.ValidatorIndexByContractAddress(bytesutil.ToBytes20(contract))\n    if contractExist {\n        log.Debugf(\"Contract %x already regestered by validator %d. Register new validator with 0x0 contract address\", contract, owner)\n    }\n\n    index, ok := beaconState.ValidatorIndexByPubkey(bytesutil.ToBytes48(pubKey))\n    if !ok {\n        if verifySignature {\n            domain, err := signing.ComputeDomain(params.BeaconConfig().DomainDeposit, nil, nil)\n            if err != nil {\n                return nil, newValidator, err\n            }\n            if err := verifyDepositDataSigningRoot(deposit.Data, domain); err != nil {\n                // Ignore this error as in the spec pseudo code.\n                log.WithError(err).Debug(\"Skipping deposit: could not verify deposit data signature\")\n                return beaconState, newValidator, nil\n            }\n        }\n\n        effectiveBalance := amount - (amount % params.BeaconConfig().EffectiveBalanceIncrement)\n        if params.BeaconConfig().MaxEffectiveBalance < effectiveBalance {\n            effectiveBalance = params.BeaconConfig().MaxEffectiveBalance\n        }\n        if err := beaconState.AppendValidator(&ethpb.Validator{\n            PublicKey:                  pubKey,\n            WithdrawalCredentials:      deposit.Data.WithdrawalCredentials,\n            ActivationEligibilityEpoch: params.BeaconConfig().FarFutureEpoch,\n            ActivationEpoch:            params.BeaconConfig().FarFutureEpoch,\n            ExitEpoch:                  params.BeaconConfig().FarFutureEpoch,\n            WithdrawableEpoch:          params.BeaconConfig().FarFutureEpoch,\n            EffectiveBalance:           effectiveBalance,\n        }); err != nil {\n            return nil, newValidator, err\n        }\n        newValidator = true\n        if err := beaconState.AppendBalance(amount); err != nil {\n            return nil, newValidator, err\n        }\n        if err := beaconState.AppendActivity(0); err != nil {\n            return nil, newValidator, err\n        }\n        contracts := [][]byte{contract}\n        if contractExist {\n            contracts = [][]byte{make([]byte, 20)}\n        }\n        if err := beaconState.AppendContracts(&ethpb.ContractsContainer{\n            Contracts: contracts,\n        }); err != nil {\n            return nil, newValidator, err\n        }\n    } else {\n        if err := helpers.IncreaseBalance(beaconState, index, amount); err != nil {\n            return nil, newValidator, err\n        }\n        if !contractExist && !isZeroContract(contract) {\n            if err := helpers.AppendValidatorContracts(beaconState, index, contract); err != nil {\n                return nil, newValidator, err\n            }\n        }\n    }\n\n    return beaconState, newValidator, nil\n}\n```\n```\nfunc appendValidatorContractsWithVal(cc *ethpb.ContractsContainer, contract []byte) *ethpb.ContractsContainer {\n    contracts := cc.Contracts\n    contracts = append(contracts, contract)\n    cc.Contracts = contracts\n    return cc\n}\n```\n\n**Remediation:**  Delete the old contract before adding a new one.\n\n**Status:**  Fixed\n\n\n- - -",
+    "summary": "\nThis bug report describes a problem with two functions called `ProcessDeposit()` and `appendValidatorContractsWithVal()`. The first function is responsible for adding new validators and their contracts, and it calls the second function to add a new contract to a validator. However, there is a problem where each validator can only have one contract tied to its address, and the second function does not check for this. This can cause issues when trying to add a new contract to a validator that already has one. The solution is to delete the old contract before adding a new one. This bug has been fixed.",
+    "report_date": "2023-04-06T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/solodit/solodit_content/blob/main/reports/Hexens/2023-04-06-Bahamut.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "ftn-2-validator-can-add-more-than-one-contract-hexens-none-bahamut-markdown",
+    "firm_name": "Hexens",
+    "firm_logo_square": "Hexens_square.png",
+    "protocol_name": "Bahamut",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Hexens"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Hexens",
+        "logo_square": "Hexens_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Bahamut",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

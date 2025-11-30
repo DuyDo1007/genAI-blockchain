@@ -1,0 +1,50 @@
+{
+    "id": 62224,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 11,
+    "impact": "LOW",
+    "finders_count": 2,
+    "protocol_id": 3392,
+    "title": "`StakingVault::distributeYield` should revert when there are no vault shares",
+    "content": "**Description:** `StakingVault::distributeYield` should revert when there are no vault shares, and in the updated code when the vault shares are only `DEAD_SHARES`. This could be elegantly implemented as:\n```diff\n    function distributeYield(\n        uint256 yieldAmount,\n        uint256 timestamp\n    ) external onlyOwner {\n+       require(totalSupply() > DEAD_SHARES, NoStakers());\n```\n\n**Syntetika:**\nFixed in commit [1b9d7f8](https://github.com/SyntetikaLabs/monorepo/commit/1b9d7f8968be39a815ced0d1545d9aec54530413).\n\n**Cyfrin:** Verified.",
+    "summary": "",
+    "report_date": "2025-08-01T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/solodit/solodit_content/blob/main/reports/Cyfrin/2025-08-01-cyfrin-syntetika-v2.0.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "stakingvaultdistributeyield-should-revert-when-there-are-no-vault-shares-cyfrin-none-syntetika-markdown",
+    "firm_name": "Cyfrin",
+    "firm_logo_square": "Cyfrin_square.jpg",
+    "protocol_name": "Syntetika",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Dacian"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Jorge"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Cyfrin",
+        "logo_square": "Cyfrin_square.jpg"
+    },
+    "protocols_protocol": {
+        "name": "Syntetika",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

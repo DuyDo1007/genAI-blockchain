@@ -1,0 +1,50 @@
+{
+    "id": 62232,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 11,
+    "impact": "LOW",
+    "finders_count": 2,
+    "protocol_id": 3393,
+    "title": "`PriceStorage::setPrice` maximum lower and upper bounds can be easily bypassed by repeatedly calling the function in the same block",
+    "content": "**Description:** `PriceStorage::setPrice` limits the price movement to a maximum lower/upper range delta based on the current price, to prevent sudden extreme changes in price:\n```solidity\nuint256 lastPriceValue = lastPrice.price;\nif (lastPriceValue != 0) {\n  uint256 upperBound = lastPriceValue + ((lastPriceValue * upperBoundPercentage) / BOUND_PERCENTAGE_DENOMINATOR);\n  uint256 lowerBound = lastPriceValue - ((lastPriceValue * lowerBoundPercentage) / BOUND_PERCENTAGE_DENOMINATOR);\n  if (_price > upperBound || _price < lowerBound) {\n    revert InvalidPriceRange(_price, lowerBound, upperBound);\n  }\n}\n```\n\nBut this can be easily bypassed by repeatedly calling the `setPrice` function multiple times in the same block, each time decreasing or increasing the `lastPrice` by the current maximum allowed lower/upper bound.\n\n**Impact:** The limitation of wild price fluctuations can be trivially bypassed so is ineffective, though only by entities having `SERVICE_ROLE`.\n\n**Recommended Mitigation:** Add a configurable parameter `minPriceUpdateDelay` to the`PriceStorage` contract which only `DEFAULT_ADMIN_ROLE` can change. Then in `setPrice`:\n```solidity\nerror PriceUpdateTooSoon(uint256 lastUpdate, uint256 minWaitTime);\n\n// In setPrice:\nif(lastPrice.timestamp != 0) {\n    if(block.timestamp < lastPrice.timestamp + minPriceUpdateDelay) {\n        revert PriceUpdateTooSoon(lastPrice.timestamp, minPriceUpdateDelay);\n    }\n}\n```\n\n**Avant:**\nAcknowledged: the suggestion is valid, and we might consider the change in the future if we automate price setting. Currently, the price is calculated manually after a careful NAV process conducted weekly and will most likely be outsourced to an independent party for increased transparency. Once calculated, the price update transaction is also posted manually and requires a quorum of approvals before being submitted on-chain. This setup ensures that no repeated calls or incorrect parameters are ever attempted, and for now, the current code constraints suit our requirements.",
+    "summary": "",
+    "report_date": "2025-08-28T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/solodit/solodit_content/blob/main/reports/Cyfrin/2025-08-28-cyfrin-avant-max-v2.0.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "pricestoragesetprice-maximum-lower-and-upper-bounds-can-be-easily-bypassed-by-repeatedly-calling-the-function-in-the-same-block-cyfrin-none-avant-max-markdown",
+    "firm_name": "Cyfrin",
+    "firm_logo_square": "Cyfrin_square.jpg",
+    "protocol_name": "Avant Max",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Dacian"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Jorge"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Cyfrin",
+        "logo_square": "Cyfrin_square.jpg"
+    },
+    "protocols_protocol": {
+        "name": "Avant Max",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

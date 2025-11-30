@@ -1,0 +1,50 @@
+{
+    "id": 62222,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 11,
+    "impact": "LOW",
+    "finders_count": 2,
+    "protocol_id": 3392,
+    "title": "Consider using a staking rewards distributor to efficiently space out staking rewards, further deterring just-in-time attacks",
+    "content": "**Description:** Consider using a [staking rewards distributor](https://github.com/ethena-labs/bbp-public-assets/blob/main/contracts/contracts/StakingRewardsDistributor.sol) to efficiently space out staking rewards instead of depositing a large amount in one transaction.\n\nThe current code uses a post-withdraw cooldown to deter \"just in time\" yield attacks where a user front-runs a call to `StakingVault::distributeYield` by depositing a large amount then staking it to get a large amount of the yield.\n\nHowever this attack can still be executed just that the user must then wait for the cooldown to withdraw which can be as long as 90 days. The cooldown can be set by the admin as low as zero though which would enable \"just in time\" attacks.\n\nAnother option is to perform calls to `StakingVault::distributeYield` via [services](https://docs.flashbots.net/flashbots-protect/overview) designed to prevent front-running.\n\n**Syntetika:**\nAcknowledged.",
+    "summary": "",
+    "report_date": "2025-08-01T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/solodit/solodit_content/blob/main/reports/Cyfrin/2025-08-01-cyfrin-syntetika-v2.0.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "consider-using-a-staking-rewards-distributor-to-efficiently-space-out-staking-rewards-further-deterring-just-in-time-attacks-cyfrin-none-syntetika-markdown",
+    "firm_name": "Cyfrin",
+    "firm_logo_square": "Cyfrin_square.jpg",
+    "protocol_name": "Syntetika",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Dacian"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Jorge"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Cyfrin",
+        "logo_square": "Cyfrin_square.jpg"
+    },
+    "protocols_protocol": {
+        "name": "Syntetika",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

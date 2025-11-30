@@ -1,0 +1,45 @@
+{
+    "id": 62425,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 34,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3406,
+    "title": "[MNBD1-14] 10 KAS Permanently Locked in MoonBound Contract",
+    "content": "**Severity:** Low\n\n**Path:** contracts/MoonBound.sol#L186-L189 \n\n**Description:** The `distributeRevenue()` function handles the distribution of revenue from MoonBound tokens to relevant parties (e.g., projects, stakers, etc.). It distributes an amount of KAS `kasToDistribute` equal to the contract's total KAS balance minus 10 KAS. As a result, 10 KAS will always remain in the contract, with no available function to claim or withdraw it.\n```\nuint256 totalKasBalance = address(this).balance;\nrequire(totalKasBalance > 10e18, 'Insufficient balance for distribution');\n\nuint256 kasToDistribute = totalKasBalance - 10e18;\n```\n\n**Remediation:**  Consider adding a function that allows the owner to claim the remaining 10 KAS, or alternatively, modify the `distributeRevenue()` function to distribute the entire KAS balance held by the contract.\n\n**Status:** Fixed\n\n\n- - -",
+    "summary": "",
+    "report_date": "2025-05-26T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/solodit/solodit_content/blob/main/reports/Hexens/2025-05-26-Moonbound.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "mnbd1-14-10-kas-permanently-locked-in-moonbound-contract-hexens-none-moonbound-markdown",
+    "firm_name": "Hexens",
+    "firm_logo_square": "Hexens_square.png",
+    "protocol_name": "Moonbound",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Hexens"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Hexens",
+        "logo_square": "Hexens_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Moonbound",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

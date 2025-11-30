@@ -1,0 +1,45 @@
+{
+    "id": 62360,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 34,
+    "impact": "HIGH",
+    "finders_count": 1,
+    "protocol_id": 3403,
+    "title": "[FTN-4] Activity scores abuse",
+    "content": "**Severity:** Critical\n\n**Path:** core/vm/evm.go/memoryGas()\n\n**Description:** `calldata` is counted in two different ways: when sending a transaction from an EOA to a contract, and when sending a transaction from a contract to a contract. Function `memoryGas() `does not take this fact into account. When sending a transaction from contract-to-contract, gas is calculated as follows - for zero bytes, the price for gas is 4, for non-zero bytes, the price for gas is 16.\nWhen sending a transaction from a contract-to-contract, function `memoryGas()` will calculate the gas according to the standard formula, while the user will receive more activity points than he spent gas.\nFor example, by sending such a transaction, and filling the block with 30 million gas, we will receive 100 million gas.\n```\nfunc (evm *EVM) memoryGas(data []byte) (uint64, error) {\n    var gas uint64\n    rules := evm.ChainConfig().Rules(evm.Context.BlockNumber, evm.Context.Random != nil)\n    if len(data) > 0 {\n        // Zero and non-zero bytes are priced differently\n        var nz uint64\n        for _, byt := range data {\n            if byt != 0 {\n                nz++\n            }\n        }\n        // Make sure we don't exceed uint64 for all data combinations\n        nonZeroGas := params.TxDataNonZeroGasFrontier\n        if rules.IsIstanbul {\n            nonZeroGas = params.TxDataNonZeroGasEIP2028\n        }\n        if (math.MaxUint64-gas)/nonZeroGas < nz {\n            return 0, ErrGasUintOverflow\n        }\n        gas += nz * nonZeroGas\n\n        z := uint64(len(data)) - nz\n        if (math.MaxUint64-gas)/params.TxDataZeroGas < z {\n            return 0, ErrGasUintOverflow\n        }\n        gas += z * params.TxDataZeroGas\n    }\n\n    return gas, nil\n}\n```\n\n**Remediation:**  We suggest not counting gas either when creating an EOA-to-contract transaction or when creating a contract-to-contract transaction.\n\n**Status:**  Fixed\n\n\n- - -",
+    "summary": "\n\nThis bug report highlights an issue with the way gas is calculated in the Ethereum Virtual Machine (EVM). Gas is a unit of measurement used to determine the cost of executing transactions on the Ethereum network. The bug occurs when sending a transaction from one contract to another, resulting in an incorrect calculation of gas. This can lead to users receiving more activity points than they spent gas, causing discrepancies in the network. The suggested solution is to not count gas when creating transactions between contracts. This issue has been fixed.",
+    "report_date": "2023-04-06T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/solodit/solodit_content/blob/main/reports/Hexens/2023-04-06-Bahamut.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "ftn-4-activity-scores-abuse-hexens-none-bahamut-markdown",
+    "firm_name": "Hexens",
+    "firm_logo_square": "Hexens_square.png",
+    "protocol_name": "Bahamut",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Hexens"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Hexens",
+        "logo_square": "Hexens_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Bahamut",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

@@ -1,0 +1,45 @@
+{
+    "id": 62641,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 30,
+    "impact": "MEDIUM",
+    "finders_count": 1,
+    "protocol_id": 3429,
+    "title": "[M-02] Missing Self-Flag in `delegatedStakeUsers` Causes Duplicate Entries and Withdrawal Failures",
+    "content": "\n## Severity\n\nMedium Risk\n\n## Description\n\nWhen adding `msg.sender` to `delegatedStakeUsers[msg.sender]` on first deposit, the code doesn't set `isUserInDelegatedStakeList[msg.sender][msg.sender] = true`. If the same address appears again through other paths (as `recipientComission`, `fiveLevelRecipientComission`, or `parent`), it gets added as a duplicate entry, causing withdrawal calculations to process the same user multiple times and, almost certainly, revert due to underflow.\n\n## Location of Affected Code\n\nFile: [src/BvtRewardVault.sol#L96](https://github.com/batoshidao/berabtc-vault-token/blob/c68f412b3c7dfd99d3f6302a42bdf772ededb2a3/src/BvtRewardVault.sol#L96)\n\n```solidity\nfunction deposit(uint256 amount) external nonReentrant {\n  // code\n  if (delegatedStakeUsers[msg.sender].length == 0) {\n      delegatedStakeUsers[msg.sender].push(msg.sender);\n  }\n  // code\n}\n```\n\n## Impact\n\n- Duplicate entries in `delegatedStakeUsers` array cause withdrawal calculations to process the same user multiple times.\n- Can cause `remainingAmount = amount - totalDelegatedAmount` to underflow and revert, locking user funds.\n- Affects users where commission recipients are also parents or in self-parenting scenarios.\n\n## Recommendation\n\nSet the membership flag when adding self in `isUserInDelegatedStakeList[msg.sender]` to true.\n\n## Team Response\n\nFixed.\n\n",
+    "summary": "\nThe bug report describes a problem in a code that is used to deposit money. When the code adds a specific address to a list, it does not set a flag to indicate that the address is already in the list. This can cause the code to process the same user multiple times and may result in an error that locks the user's funds. The bug has been fixed by setting the flag to true when adding the address to the list.",
+    "report_date": "2025-09-17T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/shieldify-security/audits-portfolio-md/blob/main/Terplayer-BVT-Staking&Distribution-Security-Review.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "m-02-missing-self-flag-in-delegatedstakeusers-causes-duplicate-entries-and-withdrawal-failures-shieldify-none-terplayer-bvt-stakingdistribution-markdown",
+    "firm_name": "Shieldify",
+    "firm_logo_square": "Shieldify_square.png",
+    "protocol_name": "Terplayer Bvt Staking&Distribution",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Shieldify Security"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Shieldify",
+        "logo_square": "Shieldify_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Terplayer Bvt Staking&Distribution",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

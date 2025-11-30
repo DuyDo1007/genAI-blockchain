@@ -1,0 +1,45 @@
+{
+    "id": 62609,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 16,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3421,
+    "title": "[L-12] Risk of packet loss in `authorizedOpenPacket()` with empty cards",
+    "content": "\n_Resolved_\n\nThere is a critical vulnerability in the interaction between `CardAllocationPool.sol` and `Packet.sol` when handling **OPEN_PACKET** burn type. When a user initiates a burn with **OPEN_PACKET** type, a manager can call `authorizedOpenPacket()` in `CardAllocationPool.sol` to open packets with specific cards.\nThe issue is that the `uthorizedOpenPacket()` function does not verify that the cards array contains at least one card. \nIf a manager calls this function with an empty cards array, either maliciously or by mistake, it will still proceed to call `finalizeOpen()` in `Packet.sol`:\n```solidity\nif (burnType == BurnType.INSTANT_OPEN_PACKET) {\n    // ... INSTANT_OPEN_PACKET handling ...\n} else {\n    _burn(packetId);\n}\n```\nThis results in the packet being permanently burned without the user receiving any card in return, as the cards array was empty. This is a significant loss for the user who initiated the burn process.\n\nTo resolve this, modify the `authorizedOpenPacket()` function in `CardAllocationPool.sol` to require a non-empty cards array.\n\n\n\n",
+    "summary": "",
+    "report_date": "2025-09-11T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/pashov/audits/blob/master/team/md/RipIt-security-review_2025-05-10.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "l-12-risk-of-packet-loss-in-authorizedopenpacket-with-empty-cards-pashov-audit-group-none-ripit_2025-05-10-markdown",
+    "firm_name": "Pashov Audit Group",
+    "firm_logo_square": "Pashov_square.png",
+    "protocol_name": "RipIt_2025-05-10",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Pashov Audit Group"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Pashov Audit Group",
+        "logo_square": "Pashov_square.png"
+    },
+    "protocols_protocol": {
+        "name": "RipIt_2025-05-10",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

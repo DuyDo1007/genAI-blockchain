@@ -1,0 +1,55 @@
+{
+    "id": 62246,
+    "kind": "PDF",
+    "auditfirm_id": 9,
+    "impact": "MEDIUM",
+    "finders_count": 3,
+    "protocol_id": 3394,
+    "title": "The pause mechanism does not check for correct opcodes",
+    "content": "## Difficulty: High\n\n## Type: Data Validation\n\n### Description\nThe protocol’s pause mechanism relies on the `if_active_process` function to block user-initiated operations when the system is paused. The function checks if the operation code handles TON or Jettons, and returns the correct asset to the user in the case where the system is paused.\n\nHowever, the current implementation of the opcode check looks for the deprecated `op::withdraw_master` opcode and does not check for the new `op::supply_withdraw_master` opcode. This can result in users performing supply-withdraw operations when the system is inactive or paused.\n\n```cpp\nif ((op == op::supply_master)\n    | (op == op::withdraw_master)\n    | (op == op::liquidate_master)\n    | (op == op::idle_master)) {\n    // Stop processing and return TONs back to owner\n    send_message(\n        sender_address,\n        0,\n        begin_cell().store_op_code(error::disabled).store_query_id(query_id).store_ref(begin_cell().store_slice(in_msg_body).end_cell()).end_cell(),\n        sendmode::CARRY_ALL_REMAINING_MESSAGE_VALUE\n    );\n    return ret::stop_execution;\n} elseif (op == jetton_op::transfer_notification) {\n```\n\n**Figure 1.1:** The deprecated opcode check in `contracts_internal/contracts/logic/master-if-active-check.fc#L23`\n\n### Exploit Scenario\nDuring a critical security incident, Alice, the protocol administrator, finds a potential issue in the lending pool logic and immediately pauses the protocol to avoid further damage. However, Bob discovers that he can still interact with the protocol by using the `op::supply_withdraw_master` operation. Bob continues to exploit the lending pools while legitimate users believe that the protocol is safely paused, potentially allowing him to drain protocol reserves before the team can implement a proper fix.\n\n### Recommendations\n- **Short term:** Replace the `op::withdraw_master` check with an `op::supply_withdraw_master` check in the `if_active_process` function.\n- **Long term:** Ensure that the test suite has enough coverage for all possible operations in the contracts, with positive and negative test cases.",
+    "summary": "\nThis bug report discusses a problem with the pause mechanism in a protocol. The function responsible for blocking user-initiated operations when the system is paused is not properly checking for a new operation code, which could allow users to perform certain actions even when the system is inactive. This could potentially be exploited by malicious users, causing damage to the protocol. The report recommends a short-term solution of replacing the incorrect check with the correct one, and a long-term solution of ensuring thorough testing of all possible operations in the protocol.",
+    "report_date": "2025-08-22T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://github.com/trailofbits/publications/blob/master/reviews/2025-08-evaafinance-securityreview.pdf",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/trailofbits/publications/blob/master/reviews/2025-08-evaafinance-securityreview.pdf",
+    "github_link": "",
+    "pdf_link": "https://solodit-bucket.s3.amazonaws.com/storage/reports/trailofbits/2025-08-evaafinance-securityreview.pdf",
+    "pdf_page_from": 14,
+    "contest_id": "",
+    "slug": "the-pause-mechanism-does-not-check-for-correct-opcodes-trailofbits-none-evaa-finance-pdf",
+    "firm_name": "TrailOfBits",
+    "firm_logo_square": "trailofbits_square.png",
+    "protocol_name": "EVAA Finance",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Kevin Valerio Trail of Bits PUBLIC"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Guillermo Larregay"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Quan Nguyen"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "TrailOfBits",
+        "logo_square": "trailofbits_square.png"
+    },
+    "protocols_protocol": {
+        "name": "EVAA Finance",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

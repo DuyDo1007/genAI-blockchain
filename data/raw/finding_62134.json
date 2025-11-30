@@ -1,0 +1,60 @@
+{
+    "id": 62134,
+    "kind": "PDF",
+    "auditfirm_id": 6,
+    "impact": "LOW",
+    "finders_count": 4,
+    "protocol_id": 3380,
+    "title": "Function handleUpdates could be reentered",
+    "content": "## Severity: Low Risk\n\n## Context\n- Keystore.sol#L17-L40\n- Keystore.sol#L94-L96\n\n## Description\nA malicious verifier could reenter `handleUpdates()` while the nonce isn't incremented yet. This way, it could potentially allow processing the same action again and increase the nonce multiple times. Luckily, `validateData()` is a view function and thus updates (even when reentered) can't be made, which lowers the potential impact. \n\n> Note: A malicious verifier could also just allow every action, which would be worse.\n\n## Recommendation\nIf `validateData()` would ever be changed to allow updates or another external call is added that allows updates:\n- Consider adding a `nonReentrant` modifier.\n- Alternatively, consider checking in `_incrementNonce()` that the correct nonce value is still present.\n\n## Stackup\nFixed in PR 52.\n\n## Spearbit\nFix verified.",
+    "summary": "",
+    "report_date": "2025-08-18T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Stackup-Spearbit-Security-Review-July-2025.pdf",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Stackup-Spearbit-Security-Review-July-2025.pdf",
+    "github_link": "",
+    "pdf_link": "https://solodit-bucket.s3.amazonaws.com/storage/reports/spearbit/Stackup-Spearbit-Security-Review-July-2025.pdf",
+    "pdf_page_from": 8,
+    "contest_id": "",
+    "slug": "function-handleupdates-could-be-reentered-spearbit-none-stackup-keystore-pdf",
+    "firm_name": "Spearbit",
+    "firm_logo_square": "spearbit_square.png",
+    "protocol_name": "Stackup Keystore",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Tnch"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Kaden"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Hake"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Gerard Persoon"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Spearbit",
+        "logo_square": "spearbit_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Stackup Keystore",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

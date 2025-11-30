@@ -1,0 +1,45 @@
+{
+    "id": 62760,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 16,
+    "impact": "MEDIUM",
+    "finders_count": 1,
+    "protocol_id": 3443,
+    "title": "[M-02] Sandwiching yield distributions allows users to profit from redemption",
+    "content": "\n_Resolved_\n\n## Severity\n\n**Impact:** Medium\n\n**Likelihood:** Medium\n\n## Description\n\nThe `StakedYuzuUSD` allows users to deposit and initiate redeem requests immediately after the reward distribution. When rewards are distributed to the `StakedYuzuUSD` contract, the `totalAssets()` increases while `totalSupply()` remains constant, which improve the exchange rate for all shareholders. \n\nHowever, users can sandwich the reward distribution with the deposit and redeem requests to initiate redemption requests. They can then benefit from the yields that larger than the fee they pay, potentially resulting in a net positive outcome even after accounting for redemption fees.\n\n**Proof of Concept:**: [test_fuzz_audit_sandwichYieldDistribution](https://gist.github.com/merlinboii/b125979b081266de2491e883712713fc#file-stakedyuzuusd-t-sol-L54)\n\n## Recommendation\n\nImplement a cooldown period between when users deposit and when users can initiate redemption requests.\n\n\n\n",
+    "summary": "\nThe bug report discusses an issue with the `StakedYuzuUSD` contract that allows users to benefit from larger yields by sandwiching the reward distribution with deposit and redeem requests. This results in a net positive outcome for the users, even after accounting for redemption fees. The report recommends implementing a cooldown period between deposit and redemption requests to prevent this exploit.",
+    "report_date": "2025-09-28T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/pashov/audits/blob/master/team/md/YuzuUSD-security-review_2025-08-28.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "m-02-sandwiching-yield-distributions-allows-users-to-profit-from-redemption-pashov-audit-group-none-yuzuusd_2025-08-28-markdown",
+    "firm_name": "Pashov Audit Group",
+    "firm_logo_square": "Pashov_square.png",
+    "protocol_name": "YuzuUSD_2025-08-28",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Pashov Audit Group"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Pashov Audit Group",
+        "logo_square": "Pashov_square.png"
+    },
+    "protocols_protocol": {
+        "name": "YuzuUSD_2025-08-28",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

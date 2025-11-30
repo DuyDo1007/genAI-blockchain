@@ -1,0 +1,45 @@
+{
+    "id": 62575,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 16,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3420,
+    "title": "[L-17] Unconventional role transfer timing in `RoleBasedAccessControl`",
+    "content": "\n_Acknowledged_\n\nThe `RoleBasedAccessControl` contract employs a mechanism similar to the `Ownable2Step` pattern for role transfers, utilizing a `roleTransferExpiry` timestamp to enforce a time constraint on the transfer process. \n\n```solidity\n        if (block.timestamp > roleTransferExpiry) {\n            revert RoleTransferExpired();\n        }\n```\n\nHowever, this approach is unconventional, as it requires the transfer to be completed within a specific time window rather than **allowing for a timelock period.**\n\nTypically, a `timelock` buffer is implemented to provide a buffer for community review and to enhance decentralization, allowing stakeholders to react to potential changes. The current implementation may inadvertently limit the ability of the community to assess and respond to role transfers, which could undermine the intended governance model.\n\nTo align with best practices for decentralized governance, **consider implementing a `timelock` mechanism that allows for a delay before the role transfer becomes effective.**\n\n\n\n",
+    "summary": "",
+    "report_date": "2025-09-11T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/pashov/audits/blob/master/team/md/RipIt-security-review_2025-04-25.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "l-17-unconventional-role-transfer-timing-in-rolebasedaccesscontrol-pashov-audit-group-none-ripit_2025-04-25-markdown",
+    "firm_name": "Pashov Audit Group",
+    "firm_logo_square": "Pashov_square.png",
+    "protocol_name": "RipIt_2025-04-25",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Pashov Audit Group"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Pashov Audit Group",
+        "logo_square": "Pashov_square.png"
+    },
+    "protocols_protocol": {
+        "name": "RipIt_2025-04-25",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

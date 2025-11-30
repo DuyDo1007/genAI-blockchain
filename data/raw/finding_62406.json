@@ -1,0 +1,45 @@
+{
+    "id": 62406,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 34,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3405,
+    "title": "[LOGLAB-11] `LogarithmVault.sol::maxMint` is returning `super.maxDeposit` instead of `super.maxMint`",
+    "content": "**Severity:** low\n\n**Path:** src/vault/LogarithmVault.sol#L652 \n\n**Description:** The `LogarithmVault::maxMint` function at line 652 incorrectly calls `super.maxDeposit()`. Instead, it should convert the user's maximum deposit into shares by calling `super.maxMint()` as intended.\n```\nfunction maxMint(address receiver) public view virtual override returns (uint256) {\n    if (paused() || isShutdown()) {\n        return 0;\n    } else {\n        return super.maxDeposit(receiver);\n    }\n}\n```\n\n\n**Remediation:**  Consider returning `super.maxMint(receiver)` in the `maxMint` function.\n\n**Status:** Fixed\n\n- - -",
+    "summary": "",
+    "report_date": "2024-11-25T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/solodit/solodit_content/blob/main/reports/Hexens/2024-11-25-BasisOS.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "loglab-11-logarithmvaultsolmaxmint-is-returning-supermaxdeposit-instead-of-supermaxmint-hexens-none-basisos-markdown",
+    "firm_name": "Hexens",
+    "firm_logo_square": "Hexens_square.png",
+    "protocol_name": "Basisos",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Hexens"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Hexens",
+        "logo_square": "Hexens_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Basisos",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

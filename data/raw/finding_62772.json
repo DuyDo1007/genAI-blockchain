@@ -1,0 +1,45 @@
+{
+    "id": 62772,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 16,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3443,
+    "title": "[L-12] Lack of inflation attack mitigation in `StakedYuzuUSD`",
+    "content": "\n_Acknowledged_\n\nThe `StakedYuzuUSD` contract is vulnerable to an inflation attack where an attacker can manipulate the share price by directly donating `yzUSD` to the contract. \n\nSince the `_assetDecimalOffset` will be `0` and the asset's balance of `StakedYuzuUSD` is used to calculate the number of shares, it would be possible to inflate the share price by donating the amount of `yzUSD` (obtain from depositing to `YuzuUSD`) directly to the `StakedYuzuUSD` contract. \n\nThis donation increases the `totalAssets()` in the vault without minting any new shares, dramatically inflating the price per share.\n\n**Proof of concept**: [test_audit_inflationAttack](https://gist.github.com/merlinboii/b125979b081266de2491e883712713fc#file-stakedyuzuusd-t-sol-L28)\n\n**Recommendation**\n\nThere are several ways to mitigate this issue:\n- Set the value of `_decimalsOffset` to a non-zero value (e.g., 6).\n- or consider mitigating this with an initial deposit of a small amount (dead shares).\n- Implementing internal accounting for deposited assets, so the donation does not affect the share price.\n\n\n\n",
+    "summary": "",
+    "report_date": "2025-09-28T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/pashov/audits/blob/master/team/md/YuzuUSD-security-review_2025-08-28.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "l-12-lack-of-inflation-attack-mitigation-in-stakedyuzuusd-pashov-audit-group-none-yuzuusd_2025-08-28-markdown",
+    "firm_name": "Pashov Audit Group",
+    "firm_logo_square": "Pashov_square.png",
+    "protocol_name": "YuzuUSD_2025-08-28",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Pashov Audit Group"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Pashov Audit Group",
+        "logo_square": "Pashov_square.png"
+    },
+    "protocols_protocol": {
+        "name": "YuzuUSD_2025-08-28",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

@@ -1,0 +1,45 @@
+{
+    "id": 62669,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 23,
+    "impact": "MEDIUM",
+    "finders_count": 1,
+    "protocol_id": 3435,
+    "title": "Potential DOS via External Token Transfer Affecting `assert` Checks",
+    "content": "##### Description\nThis issue has been identified in multiple locations (`zapIn`, `zapOut`, and `zapOutSingle`) within the `Zap` contract. \nSpecifically, an `assert` statement checks that the contract holds zero tokens after an operation. If an attacker (or any user) transfers even a minimal amount (e.g., 1 wei) of the same token directly to the contract, the `assert` can fail and revert the transaction, causing a potential Denial of Service (DOS).\n\nAdditionally, while appropriate for internal invariants, `assert` should generally not be used for flow control. `assert` reverts consume all remaining gas and convey less explicit error messaging compared to `require`.\n\nThe issue is classified as **medium** severity because it can disrupt normal contract usage by reverting user operations if the contract’s token balance unexpectedly becomes non-zero.\n##### Recommendation\nWe recommend removing these `assert` statements.\n",
+    "summary": "\nThe `Zap` contract has a bug in multiple locations, specifically in the `zapIn`, `zapOut`, and `zapOutSingle` functions. The bug is caused by an `assert` statement that checks for zero tokens after an operation. If a small amount of tokens (even just 1 wei) is transferred directly to the contract, the `assert` can fail and cause a potential Denial of Service (DOS) attack. It is recommended to remove these `assert` statements to prevent disruption of normal contract usage and to use `require` instead for better error messaging. This bug is considered to be of medium severity.",
+    "report_date": "2025-09-19T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/mixbytes/audits_public/blob/master/NUTS%20Finance/Tapio/README.md#6-potential-dos-via-external-token-transfer-affecting-assert-checks",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "potential-dos-via-external-token-transfer-affecting-assert-checks-mixbytes-none-nuts-finance-markdown",
+    "firm_name": "MixBytes",
+    "firm_logo_square": "mixbytes_square.png",
+    "protocol_name": "NUTS Finance",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "MixBytes"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "MixBytes",
+        "logo_square": "mixbytes_square.png"
+    },
+    "protocols_protocol": {
+        "name": "NUTS Finance",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

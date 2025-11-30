@@ -1,0 +1,50 @@
+{
+    "id": 62130,
+    "kind": "PDF",
+    "auditfirm_id": 9,
+    "impact": "LOW",
+    "finders_count": 2,
+    "protocol_id": 3383,
+    "title": "Lack of redundant third-party services",
+    "content": "## packages/gemini-wallet-sdk/src/smartAccount/utils/signers/webAuthnSigner.ts\n\n## Description\nThe system is not configured to have redundant third-party services to use in case a service such as Alchemy or Pimlico is compromised or has downtime. The Gemini Wallet uses Alchemy to read on-chain data and uses Pimlico to submit user operations. If an attacker exploits the vulnerability highlighted in TOB-GSW-4, the wallet may be unable to service user requests.\n\nIn this scenario, or in the scenario where Alchemy or Pimlico are compromised, it is beneficial to have backup or redundant services for reading or writing to the chain. More generally, it is beneficial to use multiple data sources to reduce the dependency on a single service and to verify the returned values. For example, the system could query both Alchemy and Infura and cross-reference the responses.\n\n## Exploit Scenario 1\nA malicious attacker captures the production-level API key for Pimlico (see TOB-GSW-4). They use this key to hit the rate-limit of the service. Alice, a user, is unable to submit her transaction since Pimlico is throttling incoming requests.\n\n## Exploit Scenario 2\nA malicious attacker compromises Pimlico. Gemini is notified of this compromise and must shut down service of the wallet since there is no backup bundler service configured.\n\n## Recommendations\nLong term, integrate redundant services for reading and writing to the chain. Additionally, it may be beneficial to deploy and maintain blockchain nodes to reduce the reliance on third-party services such as Alchemy or Infura.",
+    "summary": "",
+    "report_date": "2025-08-15T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://github.com/trailofbits/publications/blob/master/reviews/2025-08-gemini-smartwallet-securityreview.pdf",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 5,
+    "general_score": 4,
+    "source_link": "https://github.com/trailofbits/publications/blob/master/reviews/2025-08-gemini-smartwallet-securityreview.pdf",
+    "github_link": "",
+    "pdf_link": "https://solodit-bucket.s3.amazonaws.com/storage/reports/trailofbits/2025-08-gemini-smartwallet-securityreview.pdf",
+    "pdf_page_from": 28,
+    "contest_id": "",
+    "slug": "lack-of-redundant-third-party-services-trailofbits-none-gemini-smart-wallet-pdf",
+    "firm_name": "TrailOfBits",
+    "firm_logo_square": "trailofbits_square.png",
+    "protocol_name": "Gemini Smart Wallet",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Coriolan Pinhas Trail of Bits PUBLIC"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Anish Naik"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "TrailOfBits",
+        "logo_square": "trailofbits_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Gemini Smart Wallet",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

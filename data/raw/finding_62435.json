@@ -1,0 +1,45 @@
+{
+    "id": 62435,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 34,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3407,
+    "title": "[ZLS1-8] Redundant Boundary Checks in ZealousSwapFactory.setFeesForAllPairs()",
+    "content": "**Severity:** Informational\n\n**Path:** contracts/ZealousSwapFactory.sol#L49-L53\ncontracts/ZealousSwapFactory.sol#L66-L70  \ncontracts/ZealousSwapPair.sol#L46-L50 \n\n**Description:** Lines 49–53 of the `setFeesForAllPairs()` function in the `ZealousSwapFactory` contract perform boundary validation on `_regularFee` and `_discountFee` before calling `IZealousSwapPair(allPairs[i]).setFees(_regularFee, _discountFee)` at line 56. However, the `setFees()` function in the `ZealousSwapPair` contract already enforces the same boundary checks (lines 46–50). As a result, these validations are executed twice, leading to unnecessary gas consumption.\n\nA similar redundancy exists in the `ZealousSwapFactory.setFeesForSpecificPairs() `function as well.\n```\nrequire(_regularFee <= 100, \"ZealousSwap: FEE_TOO_HIGH\");\nrequire(\n    _discountFee <= _regularFee,\n    \"ZealousSwap: DISCOUNT_HIGHER_THAN_REGULAR\"\n);\n```\n\n**Remediation:**  Consider removing the fee boundary check within the function `setFeesForAllPairs() `and `setFeesForSpecificPairs()`.\n```\n    function setFeesForAllPairs(uint _regularFee, uint _discountFee) external {\n        require(msg.sender == feeToSetter, \"ZealousSwap: FORBIDDEN\");\n--      require(_regularFee <= 100, \"ZealousSwap: FEE_TOO_HIGH\");\n--      require(\n--          _discountFee <= _regularFee,\n--          \"ZealousSwap: DISCOUNT_HIGHER_THAN_REGULAR\"\n--      );\n\n        for (uint i = 0; i < allPairs.length; i++) {\n            IZealousSwapPair(allPairs[i]).setFees(_regularFee, _discountFee);\n        }\n    }\n\n    function setFeesForSpecificPairs(\n        uint _regularFee,\n        uint _discountFee,\n        address[] calldata _pairsToUpdate\n    ) external {\n        require(msg.sender == feeToSetter, \"ZealousSwap: FORBIDDEN\");\n--      require(_regularFee <= 100, \"ZealousSwap: FEE_TOO_HIGH\");\n--      require(\n--          _discountFee <= _regularFee,\n--          \"ZealousSwap: DISCOUNT_HIGHER_THAN_REGULAR\"\n--      );\n\n\n        for (uint i = 0; i < _pairsToUpdate.length; i++) {\n            IZealousSwapPair(_pairsToUpdate[i]).setFees(\n                _regularFee,\n                _discountFee\n            );\n        }\n    }\n```\n\n**Status:** Fixed\n\n- - -",
+    "summary": "",
+    "report_date": "2025-05-26T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/solodit/solodit_content/blob/main/reports/Hexens/2025-05-26-Zealous.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "zls1-8-redundant-boundary-checks-in-zealousswapfactorysetfeesforallpairs-hexens-none-zealous-markdown",
+    "firm_name": "Hexens",
+    "firm_logo_square": "Hexens_square.png",
+    "protocol_name": "Zealous",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Hexens"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Hexens",
+        "logo_square": "Hexens_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Zealous",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

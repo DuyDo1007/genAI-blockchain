@@ -1,0 +1,75 @@
+{
+    "id": 62165,
+    "kind": "GIT",
+    "auditfirm_id": 3,
+    "impact": "MEDIUM",
+    "finders_count": 7,
+    "protocol_id": 3130,
+    "title": "M-3: Lender DoS if all asset is borrowed or realized",
+    "content": "\nSource: https://github.com/sherlock-audit/2025-07-cap-judging/issues/150 \n\n## Found by \nBigsam, Drynooo, farismaulana, frndz0ne, lanrebayode77, magiccentaur, montecristo\n\n### Summary\n\nIf all asset is borrowed (or already realized to restaker interests), `realizedInterest` is 0. Thus, there is no rewards to distribute to restakers. However, `BorrowLogic` is missing zero check, thus it will try to distribute rewards anway, which will revert due to `InsufficientReward` error from Symbiotic `DefaultStakerRewards` contract.\n\n### Root Cause\n\nWhen debt is repaid, restakers' interests will be realized.\n\n[File: cap-contracts/contracts/lendingPool/libraries/BorrowLogic.sol](https://github.com/sherlock-audit/2025-07-cap/blob/2bd34fa369d36af8ecc377090d3292ea74ccc669/cap-contracts/contracts/lendingPool/libraries/BorrowLogic.sol#L201-L219)\n```solidity\n201: function realizeRestakerInterest(ILender.LenderStorage storage $, address _agent, address _asset)\n202:         public\n203:         returns (uint256 realizedInterest)\n204:     {\n205:         ILender.ReserveData storage reserve = $.reservesData[_asset];\n206:         uint256 unrealizedInterest;\n207:         (realizedInterest, unrealizedInterest) = maxRestakerRealization($, _agent, _asset);\n208:         reserve.lastRealizationTime[_agent] = block.timestamp;\n209: \n210:         if (realizedInterest == 0 && unrealizedInterest == 0) return 0;\n211: \n212:         reserve.debt += realizedInterest;\n213:         reserve.unrealizedInterest[_agent] += unrealizedInterest;\n214:         reserve.totalUnrealizedInterest += unrealizedInterest;\n215: \n216:         IDebtToken(reserve.debtToken).mint(_agent, realizedInterest + unrealizedInterest);\n217:         IVault(reserve.vault).borrow(_asset, realizedInterest, $.delegation);\n218:@>       IDelegation($.delegation).distributeRewards(_agent, _asset);\n219:         emit RealizeInterest(_asset, realizedInterest, $.delegation);\n```\n\nIn L207, `realizedInterest` equals to 0 if all asset is borrowed.\n\nSo in L217, lender contract will borrow 0 asset from cUSD contract.\n\nIn 218, delegation distributes rewards but it doesn't hold any reward. Thus, transaction will revert with `InsufficientReward` error due to [this check](https://github.com/symbioticfi/rewards/blob/main/src/contracts/defaultStakerRewards/DefaultStakerRewards.sol#L215).\n\n\n\n### Internal Pre-conditions\n\n1. All asset is borrowed\n\n### External Pre-conditions\n\nn/a\n\n### Attack Path\n\nn/a\n\n### Impact\n\nLender contract will suffer from DoS, as restaker rewards are realized prior to all major features (borrow, repay, liquidation etc).\n\nAlthough DoS can be easily mitigated by minting 1 wei of cUSD (thus, depositing affected asset), this vulnerability can be exploited to brick certain time-sensitive operations.\n\nFor example:\n\n- One agent can brick other agent from repaying, or brick liquidations (which is very time-sensitive).\n- If vault does not have enough balance to cover the current restaker reward, an attacker can frontrun incoming operations (borrow, repay, liquidation) by `Lender::realizeRestakerInterest` to drain vault balance and brick the operation.\n\n**Additional Note**\n\nThis bug also affects repayment on paused asset. As `realizedInterest` is set to 0 for paused asset:\n\nFile: cap-contracts/contracts/lendingPool/libraries/BorrowLogic.sol\n\n```solidity\n262: if (reserve.paused) {\n263:             unrealizedInterest = realization;\n264:@>             realization = 0;\n```\n\nBut paused asset repayment is blocked by another bug which I'll describe in another report.\n\n### PoC\n\n```solidity\npragma solidity ^0.8.28;\n\nimport { IOracle } from \"../contracts/interfaces/IOracle.sol\";\nimport { IVaultAdapter } from \"../contracts/interfaces/IVaultAdapter.sol\";\nimport { VaultAdapter } from \"../contracts/oracle/libraries/VaultAdapter.sol\";\nimport { TestDeployer } from \"./deploy/TestDeployer.sol\";\nimport { console } from \"forge-std/console.sol\";\n\ncontract POC is TestDeployer {\n    VaultAdapter adapter;\n    address user_agent;\n\n    function setUp() public {\n        _deployCapTestEnvironment();\n\n        _initTestVaultLiquidity(usdVault);\n        _initSymbioticVaultsLiquidity(env);\n\n        user_agent = _getRandomAgent();\n\n        vm.startPrank(env.symbiotic.users.vault_admin);\n        _symbioticVaultDelegateToAgent(symbioticWethVault, env.symbiotic.networkAdapter, user_agent, 100e18);\n        vm.stopPrank();\n    }\n\n    function test_submissionValidity() public {\n        _setAssetOraclePrice(address(weth), 2000e8);\n        vm.startPrank(user_agent);\n        // borrows all USDC\n        lender.borrow(address(usdc), 12000e6, user_agent);\n\n        _timeTravel(90 days);\n        usdc.approve(address(lender), 5000e6);\n        // repay is DoSed\n        vm.expectRevert(abi.encodeWithSignature(\"InsufficientReward()\"));\n        lender.repay(address(usdc), 5000e6, user_agent);\n        vm.stopPrank();\n    }\n}\n\n```\n\n### Mitigation\n\n```diff\ndiff --git a/cap-contracts/contracts/lendingPool/libraries/BorrowLogic.sol b/cap-contracts/contracts/lendingPool/libraries/BorrowLogic.sol\nindex 3c2b60a..e36f043 100644\n--- a/cap-contracts/contracts/lendingPool/libraries/BorrowLogic.sol\n+++ b/cap-contracts/contracts/lendingPool/libraries/BorrowLogic.sol\n@@ -214,8 +214,10 @@ library BorrowLogic {\n         reserve.totalUnrealizedInterest += unrealizedInterest;\n \n         IDebtToken(reserve.debtToken).mint(_agent, realizedInterest + unrealizedInterest);\n-        IVault(reserve.vault).borrow(_asset, realizedInterest, $.delegation);\n-        IDelegation($.delegation).distributeRewards(_agent, _asset);\n+        if (realizedInterest > 0) {\n+            IVault(reserve.vault).borrow(_asset, realizedInterest, $.delegation);\n+            IDelegation($.delegation).distributeRewards(_agent, _asset);\n+        }\n         emit RealizeInterest(_asset, realizedInterest, $.delegation);\n     }\n \n\n```\n\n## Discussion\n\n**sherlock-admin2**\n\nThe protocol team fixed this issue in the following PRs/commits:\nhttps://github.com/cap-labs-dev/cap-contracts/pull/189\n\n\n\n\n",
+    "summary": "\nThe bug report is about a vulnerability found in a lending platform called Cap. The bug was discovered by multiple users and affects the distribution of rewards to restakers. The root cause of the bug is a missing zero check in the BorrowLogic contract, which causes the system to try to distribute rewards even when there are none available. This results in a DoS (Denial of Service) attack, as the system is unable to complete certain time-sensitive operations. The bug can be exploited by a malicious user to block other users from repaying their loans or initiating liquidations. The team has identified a solution to mitigate this bug and has implemented it in their code. ",
+    "report_date": "2025-07-24T15:00:00.000Z",
+    "contest_prize_txt": "126000 USDC",
+    "contest_link": "https://app.sherlock.xyz/audits/contests/990",
+    "sponsor_name": "",
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "",
+    "github_link": "https://github.com/sherlock-audit/2025-07-cap-judging/issues/150",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "990",
+    "slug": "m-3-lender-dos-if-all-asset-is-borrowed-or-realized-sherlock-cap-git",
+    "firm_name": "Sherlock",
+    "firm_logo_square": "sherlock_square.png",
+    "protocol_name": "Cap",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "montecristo"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "farismaulana"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "frndz0ne"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Drynooo"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "magiccentaur"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "lanrebayode77"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Bigsam"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Sherlock",
+        "logo_square": "sherlock_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Cap",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

@@ -1,0 +1,190 @@
+{
+    "id": 62102,
+    "kind": "GIT",
+    "auditfirm_id": 3,
+    "impact": "MEDIUM",
+    "finders_count": 30,
+    "protocol_id": 3050,
+    "title": "M-4: Most KeyRegistry, VotingPowerProvider functions can be DoSed",
+    "content": "\nSource: https://github.com/sherlock-audit/2025-06-symbiotic-relay-judging/issues/403 \n\nThis issue has been acknowledged by the team but won't be fixed at this time.\n\n## Found by \n00xJi, 0x73696d616f, 0xShoonya, 0xpetern, Cybrid, Drynooo, MaCree, Mimis, Mishkat6451, Raihan, X0sauce, Ziusz, albahaca0000, befree3x, coin2own, francoHacker, harry, hunt1, j3x, kangaroo, klaus, maigadoh, maxim371, montecristo, pashap9990, redbeans, roadToWatsonN101, snowflake30518, themartto, zark\n\n### Summary\n\n`VotingPowerProvider::registerOperator()` is [permissionless](https://github.com/sherlock-audit/2025-06-symbiotic-relay/blob/main/middleware-sdk/src/contracts/modules/voting-power/VotingPowerProvider.sol#L340-L342), so anybody can call it with any number of accounts to DoS all functions that gather operator information, such as `getOperatorsAt()`, `getOperators()`. Same for the vaults of the operators `getOperatorVaults()`, which can be registered via `_registerOperatorVault()` (part of the `OperatorVaults` extension or the auto deployment `OpNetVaultAutoDeploy` extension).\n\nThe `KeyRegistry` also has this issue, as [`setKey()`](https://github.com/sherlock-audit/2025-06-symbiotic-relay/blob/main/middleware-sdk/src/contracts/modules/key-registry/KeyRegistry.sol#L202) is permissionless, and [`getKeys()`](https://github.com/sherlock-audit/2025-06-symbiotic-relay/blob/main/middleware-sdk/src/contracts/modules/key-registry/KeyRegistry.sol#L152) will be DoSed as anybody can create any number of ethereum addresses as operators and keys to DoS the function.\n\nAs part of the SDK, these functions are key and should be paginated. They will be DoSed on chain due to the gas limit and off chain due to rpc timeout limits.\n\n### Root Cause\n\nIn `KeyRegistry`, `VotingPowerProvider`, there is no limit on some array elements nor pagination.\n\n### Internal Pre-conditions\n\nNone.\n\n### External Pre-conditions\n\nNone.\n\n### Attack Path\n\n1. Attacker creates multiple wallets to DoS the function calls.\n\n### Impact\n\nKey view functions for key, operators are DoSed.\n\n### PoC\n\n_No response_\n\n### Mitigation\n\nAdd pagination.\n\n",
+    "summary": "\nThis bug report discusses an issue with the `VotingPowerProvider::registerOperator()` function in the `middleware-sdk` module. This function is currently permissionless, meaning anyone can call it with any number of accounts, causing a Denial of Service (DoS) attack on other functions that gather operator information. The same issue exists with the `KeyRegistry` module, where the `setKey()` function is also permissionless, allowing for DoS attacks on the `getKeys()` function. These functions are important and should be paginated to prevent DoS attacks. The root cause of the issue is the lack of limits on array elements and pagination. There are no internal or external pre-conditions for this issue and the attack path involves creating multiple wallets to perform the DoS attack. The impact of this bug is that key view functions for key and operators will be DoSed. A proof of concept was attempted but received no response. To mitigate this issue, pagination should be added to these functions.",
+    "report_date": "2025-07-10T15:00:00.000Z",
+    "contest_prize_txt": "100000 USDC",
+    "contest_link": "https://app.sherlock.xyz/audits/contests/967",
+    "sponsor_name": "",
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "",
+    "github_link": "https://github.com/sherlock-audit/2025-06-symbiotic-relay-judging/issues/403",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "967",
+    "slug": "m-4-most-keyregistry-votingpowerprovider-functions-can-be-dosed-sherlock-symbiotic-relay-git",
+    "firm_name": "Sherlock",
+    "firm_logo_square": "sherlock_square.png",
+    "protocol_name": "Symbiotic Relay",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "0xpetern"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Raihan"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "X0sauce"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "klaus"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "redbeans"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "francoHacker"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "befree3x"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "0xShoonya"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "roadToWatsonN101"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Mimis"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "montecristo"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "00xJi"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "hunt1"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "pashap9990"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Drynooo"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "albahaca0000"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "snowflake30518"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Mishkat6451"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "j3x"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "maigadoh"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "kangaroo"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "themartto"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "0x73696d616f"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "MaCree"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "harry"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "zark"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Cybrid"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "coin2own"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Ziusz"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "maxim371"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Sherlock",
+        "logo_square": "sherlock_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Symbiotic Relay",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

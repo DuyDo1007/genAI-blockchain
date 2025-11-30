@@ -1,0 +1,45 @@
+{
+    "id": 62463,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 16,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3411,
+    "title": "[L-07] Disabled tokens still stakable via pools",
+    "content": "\n_Acknowledged_\n\nDisabled tokens can still be staked through existing delegation pools despite being disabled for reward distribution. This creates a scenario where users unknowingly stake tokens that will never earn rewards, effectively losing the opportunity cost of their capital while their funds become non-productive.\n\n**The Core Issue:**\n\n**Pool staking bypasses token status checks**: When users stake via pools, the `add_stake_from_pool()` function doesn't verify if the token is currently active:\n\n```cairo\nfn add_stake_from_pool(\n    ref self: ContractState, staker_address: ContractAddress, amount: Amount,\n) {\n    // ... prerequisite checks ...\n    let token_address = self\n        .staker_pool_info\n        .entry(staker_address)\n        .get_pool_token(:pool_contract)\n        .expect_with_err(Error::CALLER_IS_NOT_POOL_CONTRACT);\n    \n    // ← NO CHECK: assert!(self.is_active_token(:token_address, curr_epoch))\n    \n    // Staking proceeds regardless of token status\n    self.insert_staker_delegated_balance(:staker_address, :pool_contract, delegated_balance: new_delegated_stake);\n    self.add_to_total_stake(:token_address, amount: normalized_amount);\n}\n```\n\n**Disabled tokens receive zero rewards**: During reward calculation, disabled tokens are completely excluded:\n\n```cairo\nfn calculate_staker_pools_rewards(/* ... */) -> (Amount, Amount, Array<(ContractAddress, NormalizedAmount, Amount)>) {\n    for (pool_contract, token_address) in staker_pool_info.pools {\n        if !self.is_active_token(:token_address, :curr_epoch) {\n            continue; // ← Disabled tokens get ZERO rewards\n        }\n        // Only active tokens participate in reward calculation\n    }\n}\n```\n\n**Users receive no indication of token status**: Pool interfaces don't prevent staking or warn users about disabled tokens.\n\n**Recommendations**\n\n**Add active token checks to pool staking**:\n\n```cairo\nfn add_stake_from_pool(\n    ref self: ContractState, staker_address: ContractAddress, amount: Amount,\n) {\n    // ... existing checks ...\n    let token_address = self\n        .staker_pool_info\n        .entry(staker_address)\n        .get_pool_token(:pool_contract)\n        .expect_with_err(Error::CALLER_IS_NOT_POOL_CONTRACT);\n    \n    // ← ADD: Prevent staking disabled tokens\n    let curr_epoch = self.get_current_epoch();\n    assert!(\n        self.is_active_token(:token_address, :curr_epoch), \n        \"{}\", \n        Error::TOKEN_NOT_ACTIVE\n    );\n    \n    // Continue with staking...\n}\n```\n\n**Emit warnings when tokens are disabled**:\n\n```cairo\n#[derive(Drop, starknet::Event)]\nstruct TokenDisabledWarning {\n    token_address: ContractAddress,\n    affected_pools: Span<ContractAddress>,\n    users_should_unstake: bool,\n}\n\nfn disable_token(ref self: ContractState, token_address: ContractAddress) {\n    // ... existing disable logic ...\n    \n    let affected_pools = self.get_pools_for_token(:token_address);\n    self.emit(TokenDisabledWarning { \n        token_address, \n        affected_pools, \n        users_should_unstake: true\n    });\n}\n```\n\n\n\n",
+    "summary": "",
+    "report_date": "2025-09-03T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/pashov/audits/blob/master/team/md/Starknet-security-review_2025-07-31.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "l-07-disabled-tokens-still-stakable-via-pools-pashov-audit-group-none-starknet_2025-07-31-markdown",
+    "firm_name": "Pashov Audit Group",
+    "firm_logo_square": "Pashov_square.png",
+    "protocol_name": "Starknet_2025-07-31",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Pashov Audit Group"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Pashov Audit Group",
+        "logo_square": "Pashov_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Starknet_2025-07-31",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

@@ -1,0 +1,45 @@
+{
+    "id": 62540,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 16,
+    "impact": "HIGH",
+    "finders_count": 1,
+    "protocol_id": 3420,
+    "title": "[H-03] Prize locking mechanism inconsistency with weight proportions",
+    "content": "\n_Resolved_\n\n## Severity\n\n**Impact:** High\n\n**Likelihood:** Medium\n\n## Description\n\nIn the SpinLottery contract, users pay for `spin`s based on the weight distribution of the rarities, which determines the cost of participation. \n\n```solidity\n    function calculateSpinCost(uint256 _totalSlots, uint256 _prizeCount) public view returns (uint256) {\n        if (_totalSlots == 0 || _prizeCount == 0 || _prizeCount > _totalSlots) {\n            revert InvalidSlotConfiguration();\n        }\n\n        uint256 totalWeightedPrice = 0;\n        \n        // Calculate weighted average price across all active rarities\n        for (uint8 i = 1; i <= maxRarityId; i++) {\n            RarityConfig memory config = rarityConfigs[i];\n            if (config.active) {\n                totalWeightedPrice += uint256(config.basePrice) * config.weight;\n            }\n        }\n        \n        if (totalRarityWeight == 0) revert InvalidWeightConfiguration();\n        uint256 avgBasePrice = totalWeightedPrice / totalRarityWeight;\n        \n        return (avgBasePrice * _prizeCount * 1000) / (_totalSlots * 1000);\n    }\n```\n\nHowever, the actual locking of prizes does not adhere to this weight distribution.\n**For example, in a scenario where the weights are distributed as `80%`, `10%`, and `10%`, if `prizeCount` is set to 2, the prizes may be locked in a `1:1:1` ratio instead of reflecting the intended weight distribution. Conversely, if `prizeCount` is set to `1`, it may result in a locking of `1:0:0`, disregarding the weights entirely.** \n\nEspecially, when `1:0:0` is locked, the prize could still fall into the `higher rarity`: without protection of `lock mechanism`, the `fulfillRandomness` could fail unexpectedly.\n\n```solidity\n    function determineRarity(uint256 randomValue) public view returns (uint8) {\n        uint256 value = randomValue % totalRarityWeight;\n        uint256 cumulativeWeight = 0;\n        \n        // Iterate through rarities to find where the random value lands\n        for (uint8 i = 1; i <= maxRarityId; i++) {\n            RarityConfig memory config = rarityConfigs[i];\n            if (config.active) {\n                cumulativeWeight += config.weight; // <= could still fall into higher rarity\n                if (value < cumulativeWeight) { \n                    return i;\n                }\n            }\n        }\n        \n        // Fallback to highest rarity (should not happen unless weights are misconfigured)\n        return maxRarityId;\n    }\n```\n\nThis inconsistency can lead to unfair outcomes, as the allocation of prizes does not align with their contributions.\n\n## Recommendations\n\nRevise the logic of lock mechanism.\n\n\n\n",
+    "summary": "\nThis bug report is about a problem in the SpinLottery contract, where the locking of prizes does not follow the intended weight distribution. This can result in unfair outcomes and may also cause unexpected failures. The report recommends revising the lock mechanism to fix this issue.",
+    "report_date": "2025-09-11T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/pashov/audits/blob/master/team/md/RipIt-security-review_2025-04-25.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "h-03-prize-locking-mechanism-inconsistency-with-weight-proportions-pashov-audit-group-none-ripit_2025-04-25-markdown",
+    "firm_name": "Pashov Audit Group",
+    "firm_logo_square": "Pashov_square.png",
+    "protocol_name": "RipIt_2025-04-25",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Pashov Audit Group"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Pashov Audit Group",
+        "logo_square": "Pashov_square.png"
+    },
+    "protocols_protocol": {
+        "name": "RipIt_2025-04-25",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

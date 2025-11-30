@@ -1,0 +1,60 @@
+{
+    "id": 62141,
+    "kind": "PDF",
+    "auditfirm_id": 6,
+    "impact": "MEDIUM",
+    "finders_count": 4,
+    "protocol_id": 3384,
+    "title": "Treasury withdrawals will revert for non-18 token decimals",
+    "content": "## Severity: Medium Risk\n\n## Context\n**File:** Storage.sol  \n**Lines:** 147-151\n\n## Description\nThe `treasuryCash` is in scaled amounts, but it isn't unscaled to the raw amounts for withdrawals. As a result, it will revert for tokens with `scalingFactor > 1`, such as tokens that have less than 18 decimals (e.g., USDC).\n\n## Proof of Concept\nApply the following patch:\n\n```diff\ndiff --git a/test/core/markethub/fees.t.sol b/test/core/markethub/fees.t.sol\nindex 5d17ccb..b2c285f 100644\n--- a/test/core/markethub/fees.t.sol\n+++ b/test/core/markethub/fees.t.sol\n@@ -4,14 +4,18 @@ pragma solidity ^0.8.28;\n import {IRouter} from \"boros/interfaces/IRouter.sol\";\n import {PMath} from \"boros/lib/math/PMath.sol\";\n import {LONG, SHORT} from \"boros/types/Order.sol\";\n- import {TokenId} from \"boros/types/MarketTypes.sol\";\n+ import {TokenId, MarketId} from \"boros/types/MarketTypes.sol\";\n import {TradeLib} from \"boros/types/Trade.sol\";\n-\n+ import {CustomDecimalsToken} from \"src/test-helpers/MockToken.sol\";\n+ import {IMarketOff} from \"boros/interfaces/IMarket.sol\";\n import {BorosTestBase} from \"test/BorosTestBase.sol\";\n import {RouterWrapper} from \"src/test-helpers/RouterWrapper.sol\";\n+ import {MarketSettingWrapper} from \"src/test-helpers/MarketSettingWrapper.sol\";\n+ import {IERC20Errors} from \"@openzeppelin/contracts/interfaces/draft-IERC6093.sol\";\n\n contract MarketHubTest_Fees is BorosTestBase {\n using RouterWrapper for IRouter;\n+ using MarketSettingWrapper for IMarketOff;\n using PMath for uint256;\n using PMath for int256;\n\n@@ -115,4 +119,58 @@ contract MarketHubTest_Fees is BorosTestBase {\n assertEq(marketHub.treasuryCash(tokenId), 0);\n assertEq(collateralAsset.balanceOf(treasury), treasuryCash);\n }\n\n+ function test_exoticTokenWithdrawTreasury() public {\n+ CustomDecimalsToken mockUsdc = new CustomDecimalsToken(\"USDC\", \"USDC\", 6);\n+ vm.startPrank(admin);\n+ marketHub.registerToken(address(mockUsdc));\n+ TokenId mockUsdcId = marketHub.tokenToId(address(mockUsdc));\n+ indexOracle = deployFIndexOracle(maturity, getNextMarketAddress(), period,\n+ maxFIndexUpdateDelay);\n+ address market1Address = marketFactory.create(\n+ \"PendleBoros Market 1\",\n+ \"BOROS-1\",\n+ false,\n+ maturity,\n+ mockUsdcId,\n+ tickStep,\n+ genMarketConfig(address(indexOracle), address(rateOracle)),\n+ defaultMarketImpliedRateInit()\n+ );\n+ registerMarket(market1Address);\n+ IMarketOff market1 = IMarketOff(market1Address);\n+ (, , MarketId market1Id, , ) = market1.descriptor();\n+ market1.setMarginConfig(IMFactor, MMFactor);\n+ market1.setFeeRates(takerFeeRate, otcFeeRate);\n+ market1.setLiquidationIncentive(liquidationIncentiveFactor, 0);\n+ vm.stopPrank();\n+ changeFIndexOracleSettleFee(indexOracle, settleFeeRate);\n+\n+ uint256 rawAmount = 10_000e6;\n+\n+ vm.startPrank(alice);\n+ router.enterMarket(true, market1Id);\n+ mockUsdc.allocateTo(alice, rawAmount);\n+ mockUsdc.approve(address(router), rawAmount);\n+ router.vaultTransfer(mockUsdcId, rawAmount, true);\n+\n+ router.placeOrderALO(true, market1Id, LONG, 1 ether, 0);\n+\n+ vm.startPrank(bob);\n+ router.enterMarket(true, market1Id);\n+ mockUsdc.allocateTo(bob, rawAmount);\n+ mockUsdc.approve(address(router), rawAmount);\n+ router.vaultTransfer(mockUsdcId, rawAmount, true);\n+\n+ router.placeOrderFOK(true, market1Id, SHORT, 1 ether, type(int16).min);\n+\n+ uint256 treasuryCash = marketHub.treasuryCash(mockUsdcId);\n+ assertGt(treasuryCash, 0);\n+\n+ TokenId[] memory tokenIds = new TokenId[](1);\n+ tokenIds[0] = mockUsdcId;\n+\n+ vm.startPrank(admin);\n+ vm.expectPartialRevert(IERC20Errors.ERC20InsufficientBalance.selector);\n+ marketHub.withdrawTreasury(tokenIds);\n+ }\n }\n```\n\n## Recommendation\nUnscale the amount to the raw amount:\n```solidity\n- IERC20(data.token).safeTransfer(TREASURY, amount);\n+ IERC20(data.token).safeTransfer(TREASURY, amount / data.scalingFactor);\n```\n\n**Pendle Finance:** Fixed in commit 711a6d1b.  \n**Spearbit:** Fix verified.",
+    "summary": "\nThe bug report describes an issue with the `treasuryCash` variable in the `Storage.sol` file. This variable is not being properly unscaled for withdrawals, causing it to revert for tokens with a `scalingFactor` greater than 1. This can affect tokens with less than 18 decimals, such as USDC. The report includes a proof of concept and a recommendation to unscale the amount to the raw amount. The bug has been fixed in a recent commit by Pendle Finance and verified by Spearbit.",
+    "report_date": "2025-08-22T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Pendle-Spearbit-Security-Review-August-2025.pdf",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Pendle-Spearbit-Security-Review-August-2025.pdf",
+    "github_link": "",
+    "pdf_link": "https://solodit-bucket.s3.amazonaws.com/storage/reports/spearbit/Pendle-Spearbit-Security-Review-August-2025.pdf",
+    "pdf_page_from": 6,
+    "contest_id": "",
+    "slug": "treasury-withdrawals-will-revert-for-non-18-token-decimals-spearbit-none-pendle-core-v3-pdf",
+    "firm_name": "Spearbit",
+    "firm_logo_square": "spearbit_square.png",
+    "protocol_name": "Pendle Core v3",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Saw-mon and Natalie"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Ethan"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Desmond Ho"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "RustyRabbit"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Spearbit",
+        "logo_square": "spearbit_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Pendle Core v3",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

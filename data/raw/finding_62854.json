@@ -1,0 +1,45 @@
+{
+    "id": 62854,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 30,
+    "impact": "MEDIUM",
+    "finders_count": 1,
+    "protocol_id": 3449,
+    "title": "[M-04] The `_postOp()` Function in `GasTank` Is Not Handling Gas Penalty in Calculations",
+    "content": "\n## Severity\n\nMedium Risk\n\n## Description\n\nAfter executing the user Operation, call `_postExecution()` on the `EntryPoint`. the EntryPoint calls `Paymaster::postOp()` for handling gas paying.\n\n`EntryPoint::_postExecution()` is fired with `actualGas` parameter, which is the amount of gas used in all pref operations, as well as the gas used for making the user tx call.\n\nFile: [EntryPoint.sol#L356-L359](https://github.com/eth-infinitism/account-abstraction/blob/7af70c8993a6f42973f520ae0752386a5032abe7/contracts/core/EntryPoint.sol#L314-L359)\n\n```solidity\nfunction innerHandleOp( bytes memory callData, UserOpInfo memory opInfo, bytes calldata context ) external returns (uint256 actualGasCost) {\n    uint256 preGas = gasleft();\n    // code\n\n    IPaymaster.PostOpMode mode = IPaymaster.PostOpMode.opSucceeded;\n    if (callData.length > 0) {\n        bool success = Exec.call(mUserOp.sender, 0, callData, callGasLimit);\n        if (!success) {\n            // code\n            mode = IPaymaster.PostOpMode.opReverted;\n        }\n    }\n\n    unchecked {\n        uint256 actualGas = preGas - gasleft() + opInfo.preOpGas;\n>>      return _postExecution(mode, opInfo, context, actualGas);\n    }\n}\n```\n\nIn `_postExecution()`, we call the `Paymaster::postOp()` and calculate the exact amount of gas used in executing this function. And in case the amount of gas consumed for `postOp` or the `call` made for the User Operation was greater than the limit, the difference is refunded to the user, the remaining is refunded back to the user, but with a penalty of `10%`.\n\nFile: [EntryPoint.sol#L726](https://github.com/eth-infinitism/account-abstraction/blob/7af70c8993a6f42973f520ae0752386a5032abe7/contracts/core/EntryPoint.sol#L726)\n\n```solidity\nfunction _postExecution(IPaymaster.PostOpMode mode, UserOpInfo memory opInfo, bytes memory context, uint256 actualGas) private returns (uint256 actualGasCost) {\n    uint256 preGas = gasleft();\n    unchecked {\n        // code\n>>      actualGas += preGas - gasleft();\n\n        // Calculating a penalty for unused execution gas\n        {\n            uint256 executionGasLimit = mUserOp.callGasLimit + mUserOp.paymasterPostOpGasLimit;\n            uint256 executionGasUsed = actualGas - opInfo.preOpGas;\n            // this check is required for the gas used within EntryPoint and not covered by explicit gas limits\n            if (executionGasLimit > executionGasUsed) {\n                uint256 unusedGas = executionGasLimit - executionGasUsed;\n>>              uint256 unusedGasPenalty = (unusedGas * PENALTY_PERCENT) / 100;\n                actualGas += unusedGasPenalty;\n            }\n        }\n\n        actualGasCost = actualGas * gasPrice;\n        uint256 prefund = opInfo.prefund;\n        if (prefund < actualGasCost) {\n          // code\n        } else {\n>>          uint256 refund = prefund - actualGasCost;\n>>          _incrementDeposit(refundAddress, refund);\n            bool success = mode == IPaymaster.PostOpMode.opSucceeded;\n            emitUserOperationEvent(opInfo, success, actualGasCost, actualGas);\n        }\n    } // unchecked\n}\n```\n\n- `executionGasLimit` is taken by calldata gasLimit (user Operation) and postOp for paymaster\n- `executionGasUsed` is the actual gas subtracting `preOpGas`, so it will include the `UserOp` gas as well as postOp gas, including some other steps in EntryPoint\n\nAs we can see, there is a penalty applied by `10%` where we increase the amount of gas used with that penalty, which increases as the limit goes above the actual amount used. The refund process is done after that.\n\nThe problem comes in our `GasTankPaymaster` where the `actualGas` cost is calculated based on the `actualGas` value parameter, which is passed to it, without taking into consideration that the penalty can occur. So the amount taken from the user will be less than the amount actually taken from the paymaster in case the Call limit was much larger than the actual used, and the taken postOp was near the actual used.\n\n## Location of Affected Code\n\nFile: [GasTankPaymaster.sol#L472](https://github.com/etherspot/etherspot-modular-accounts/blob/9019f2a78c36e74bdb1df4029672998cb4631162/src/paymaster/GasTankPaymaster.sol#L472)\n\n```solidity\nfunction _postOp(PostOpMode mode, bytes calldata context, uint256 actualGasCost, uint256 actualUserOpFeePerGas) internal override {\n    (address userOpSender, uint256 preChargeNative) = abi.decode(context, (address, uint256));\n    uint256 priceForTopUp;\n    // code\n    // Calculate total gas cost in native currency (wei)\n>>  uint256 totalGasCostWei = actualGasCost + (paymasterConfig.postOpCost * actualUserOpFeePerGas);\n    emit GasTankPaymaster_UserOperationSponsored( ... );\n}\n```\n\n## Impact\n\n- Paymaster will pay more than it receives from the user\n- This can be used in a malicious way where users submit a large gas limit, where the transaction will take a small gas, leading to an increase in loss for the Paymaster, and the user will only pay the `actualGas` used for their call\n\n## Proof of Concept\n\n- UserA submitted a transaction where he made callGasLimit 1,000,000 and `postOp()` gasLimit is 100,000\n- actualGas used for his tx was `100,000`\n- EntryPoint when calling `postOp()` passed the actual gas, which is `100,000`\n- When calculating `totalGasCostWei`, we used the actual gas and added the preconfigured postOp cost\n- postOp gasCost was as the gasLimit (100,000), so no significant penalty will occur\n- In the EntryPoint, the actualGas will be increased by `10%` for the not used gas for the call, which is `1,000,000 - 100,000 = 900,000`, so it will be `90,000` gas increased, which will be multiplied by the gasCost.\n- The Paymaster will end paying this amount without taking it from the user\n\n## Recommendation\n\nWe should subtract the amount of total `preFunding` we made from the `totalGasUsed`, and then apply the penalty increase. But this can only occur if we have the actual prefunding we did. In the context, we pass `preChargeNative`, but it is not the same as the actual `preFund`, we should either make another variable for prefunding, or make preChargeNative the same as prefunding\n\n## Team Response\n\nFixed.\n\n",
+    "summary": "\nThis report discusses a bug in the code of a program. The severity of the bug is classified as medium risk, meaning that it could potentially cause some problems but is not considered a high priority. The bug occurs when executing a user operation, where the program calls a function called `_postExecution()` on the `EntryPoint`. This function then calls another function called `Paymaster::postOp()` to handle paying for gas. The `actualGas` parameter is used to determine the amount of gas used for the user operation and the gas used for making the user transaction call. However, there is a problem in the code where a penalty of 10% is applied to the amount of gas used, which can result in the Paymaster paying more than it receives from the user. This can be exploited by malicious users who submit a large gas limit but only use a small amount of gas, causing the Paymaster to lose money. The report suggests that the code should be fixed by subtracting the amount of pre-funding from the total gas used before applying the penalty. The team responsible for the code has responded that they have fixed the bug.",
+    "report_date": "2025-10-03T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/shieldify-security/audits-portfolio-md/blob/main/Etherspot-GasTankPaymasterModule-Extended-Security-Review.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "m-04-the-_postop-function-in-gastank-is-not-handling-gas-penalty-in-calculations-shieldify-none-etherspot-gastankpaymastermodule-extended-markdown",
+    "firm_name": "Shieldify",
+    "firm_logo_square": "Shieldify_square.png",
+    "protocol_name": "Etherspot Gastankpaymastermodule Extended",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Shieldify Security"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Shieldify",
+        "logo_square": "Shieldify_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Etherspot Gastankpaymastermodule Extended",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

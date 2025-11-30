@@ -1,0 +1,45 @@
+{
+    "id": 62865,
+    "kind": "PDF",
+    "auditfirm_id": 9,
+    "impact": "HIGH",
+    "finders_count": 1,
+    "protocol_id": 3450,
+    "title": "Incorrect account assignment in token burning logic",
+    "content": "## Diﬃculty: Low\n\n## Type: Data Validation\n\n### Description\nThe token burning logic incorrectly assigns the wrong account address when burning tokens. When tokens are being burned, the code incorrectly assigns `address _account = to` instead of using the `from` address, causing the contract to attempt burning tokens from the zero address.\n\nThe `_update` function is responsible for handling token minting, burning, and transferring operations. When burning tokens, the logic should burn tokens from the `from` address (the token holder), but the current implementation incorrectly sets `_account = to`, which is `address(0)` (the zero address). This means that the contract attempts to burn tokens from the zero address instead of the actual token holder, which will fail since the zero address has no tokens to burn.\n\n```solidity\n// Burning\nelse if (to == address(0)) {\n    address _account = to;\n    _burnGroupBalances(_account, _id, _amount);\n    _pruneGroups(_account, _id);\n}\n```\n\n**Figure 1.1:** Incorrect account assignment in burning logic in `_update` function\n\n### Exploit Scenario\nAlice has authentication tokens that grant access to a premium service. The service relies on an admin to manually burn tokens when Alice ends her subscription. When the admin attempts to burn Alice’s authentication tokens to revoke access, the burn transaction keeps reverting. This means Alice’s authentication tokens remain in their account even after the admin’s burn operation, allowing her to continue accessing premium services she should no longer have access to.\n\n### Recommendations\n- **Short term:** Correct the account assignment in the burning logic in the `_update` function.\n- **Long term:** Implement comprehensive unit tests that cover all token operations (mint, burn, transfer) with various edge cases, including burning tokens from different accounts and with different token IDs.",
+    "summary": "\nThe bug report describes a problem with a token burning function in a smart contract. The function is supposed to burn tokens from a specific account, but it is incorrectly assigning the wrong account address, causing the contract to attempt burning tokens from the zero address. This means that when someone tries to burn tokens, the transaction fails and the tokens remain in the account, allowing the user to continue accessing premium services. The report recommends fixing the account assignment in the short term and implementing comprehensive tests in the long term to prevent similar issues in the future.",
+    "report_date": "2025-10-03T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://github.com/trailofbits/publications/blob/master/reviews/2025-10-radiustechnology-evmauth-securityreview.pdf",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/trailofbits/publications/blob/master/reviews/2025-10-radiustechnology-evmauth-securityreview.pdf",
+    "github_link": "",
+    "pdf_link": "https://solodit-bucket.s3.amazonaws.com/storage/reports/trailofbits/2025-10-radiustechnology-evmauth-securityreview.pdf",
+    "pdf_page_from": 13,
+    "contest_id": "",
+    "slug": "incorrect-account-assignment-in-token-burning-logic-trailofbits-none-radius-technology-evmauth-pdf",
+    "firm_name": "TrailOfBits",
+    "firm_logo_square": "trailofbits_square.png",
+    "protocol_name": "Radius Technology EVMAuth",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Quan Nguyen Trail of Bits PUBLIC"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "TrailOfBits",
+        "logo_square": "trailofbits_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Radius Technology EVMAuth",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

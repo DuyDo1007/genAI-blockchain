@@ -1,0 +1,45 @@
+{
+    "id": 62434,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 34,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3407,
+    "title": "[ZLS1-6] Missing validation of lastRewardBlock when adding a new pool in ZealousSwapFarms",
+    "content": "**Severity:** Low\n\n**Path:** contracts/ZealousSwapFarms.sol#L143-L148\n\n**Description:** In the `ZealousSwapFarms::add()` function, if it reactivates an old pool, the `lastRewardBlock` of that pool is set to the maximum of `block.number` and the global `startBlock`. However, if it adds a new pool, the `lastRewardBlock` is specified via input, and there is no validation to ensure that it is greater than `block.number` or `startBlock`.\n```\nfunction add(\n    uint256 _allocPoint,\n    IERC20 _lpToken,\n    bool _withUpdate,\n    uint256 _lastRewardBlock\n) public onlyOwner {\n  ...\n  \n  uint256 lastRewardBlock = _lastRewardBlock;\n  if (_lastRewardBlock == 0) {\n    lastRewardBlock = block.number > startBlock\n        ? block.number\n        : startBlock;\n  }\n  \n  ...\n```\nTherefore, a small `lastRewardBlock` might be set for a new pool, causing rewards to be distributed unfairly, as early liquidity providers would receive most of the rewards. This happens because a large time lapse is counted the first time `updatePool` is triggered with this small `lastRewardBlock` value.\n\n**Remediation:**  The `lastRewardBlock` of a new pool should be checked after it is set. For example:\n```\n  uint256 lastRewardBlock = _lastRewardBlock;\n  if (_lastRewardBlock == 0) {\n      lastRewardBlock = block.number > startBlock\n          ? block.number\n          : startBlock;\n  }\n+ require(\n+     lastRewardBlock >= block.number && \n+     lastRewardBlock >= startBlock, \n+     \"ZealousSwapFarms: Too small lastRewardBlock\"\n+ );\n```\n\n**Status:** Fixed\n\n- - -",
+    "summary": "",
+    "report_date": "2025-05-26T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/solodit/solodit_content/blob/main/reports/Hexens/2025-05-26-Zealous.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "zls1-6-missing-validation-of-lastrewardblock-when-adding-a-new-pool-in-zealousswapfarms-hexens-none-zealous-markdown",
+    "firm_name": "Hexens",
+    "firm_logo_square": "Hexens_square.png",
+    "protocol_name": "Zealous",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Hexens"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Hexens",
+        "logo_square": "Hexens_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Zealous",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

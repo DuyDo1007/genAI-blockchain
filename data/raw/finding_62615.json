@@ -1,0 +1,45 @@
+{
+    "id": 62615,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 16,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3421,
+    "title": "[L-18] Rarity configuration in SpinLottery leads to `pendingCount` errors",
+    "content": "\n_Resolved_\n\nIn the `SpinLottery.sol` contract, The issue occurs in the `fulfillRandomness()` function where the function relies on the current state of `rarityConfigs[i].active` to determine which rarities should have their pending counts decreased.\n\nHowever, there's a critical flaw: the `rarityConfigs[i].active` state during randomness fulfillment may not match the state when the `spin()` function was originally called.\n\nHere's the problematic scenario:\n- User calls spin(), increasing `prizePools[rarity1].pendingCount` for an active rarity (rarity1).\n- Before Chainlink VRF responds with randomness, the lottery manager calls `configureRarity()` and  adds a new rarity (rarity2).\n- Another user calls `spin()`, which increases the pendingCount for the newly added rarity2.\n- When `fulfillRandomness()` is called for the first user's request, it checks `rarityConfigs[i].active` for all rarities.\n- It finds rarity2 is now active, so it decrease `pendingCount` for rarity2.\n\nThe function will incorrectly decrease `pendingCount` for rarity2, even though this pending count corresponds to the second user's spin request, not the first user's request that's currently being processed.\nThis creates a mismatch between actual pending requests and the tracked `pendingCount`, which could lead to prizes being incorrectly distributed or requests being incorrectly accounted for.\n\nRecommendations:\nStore the active rarities at the time of the spin request alongside the `SpinRequest` struct:\n```solidity\nstruct SpinRequest {\n    address player;\n    uint256 totalSlots;\n    uint256 prizeCount;\n    uint256[] activeRarities; // Store array of active rarity IDs when spin was initiated\n}\n```\n\n\n\n",
+    "summary": "",
+    "report_date": "2025-09-11T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/pashov/audits/blob/master/team/md/RipIt-security-review_2025-05-10.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "l-18-rarity-configuration-in-spinlottery-leads-to-pendingcount-errors-pashov-audit-group-none-ripit_2025-05-10-markdown",
+    "firm_name": "Pashov Audit Group",
+    "firm_logo_square": "Pashov_square.png",
+    "protocol_name": "RipIt_2025-05-10",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Pashov Audit Group"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Pashov Audit Group",
+        "logo_square": "Pashov_square.png"
+    },
+    "protocols_protocol": {
+        "name": "RipIt_2025-05-10",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

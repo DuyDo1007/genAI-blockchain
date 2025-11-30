@@ -1,0 +1,45 @@
+{
+    "id": 62548,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 16,
+    "impact": "MEDIUM",
+    "finders_count": 1,
+    "protocol_id": 3420,
+    "title": "[M-04] EIP-712 compliance Issue in `Marketplace`",
+    "content": "\n_Resolved_\n\n## Severity\n\n**Impact:** Medium\n\n**Likelihood:** Medium\n\n## Description\n\nThe `TRADE_TYPEHASH` in the Marketplace contract is computed using a struct that references `TradeGive` and `TradeTake`. However, the current implementation does not include the definitions or type hashes for these referenced structs.\n\n```solidity\n    /**\n     * @notice The EIP-712 type hash for trade requests.\n     */\n    bytes32 public constant TRADE_TYPEHASH = keccak256(\n        \"TradeRequest(TradeGive[] give,TradeTake[] take,uint256 deadline,address requester,uint256 chainId)\"\n    );\n```\n\nAccording to [EIP-712](https://eips.ethereum.org/EIPS/eip-712#definition-of-encodetype):\n> If the struct type references other struct types (and these in turn reference even more struct types), then the set of referenced struct types is collected, sorted by name and appended to the encoding. An example encoding is `Transaction(Person from,Person to,Asset tx)Asset(address token,uint256 amount)Person(address wallet,string name)`.\n\n\nAlso, when calculating `generateTradeSignatureHash`, the `trade.give` and `trade.take` should be `hashed` values since they are dynamic types.\n\n```solidity\n    function generateTradeSignatureHash(TradeRequest calldata trade) public view returns (bytes32) {\n        return _hashTypedDataV4(\n            keccak256(\n                abi.encode(\n                    TRADE_TYPEHASH,\n                    trade.give,\n                    trade.take,\n                    trade.deadline,\n                    trade.requester,\n                    trade.chainId\n                )\n            )\n        );\n    }\n```\n\nThis omission violates the `EIP-712` specification, which could lead to incorrect encoding of potential vulnerabilities in the signing and verification process of requests.\n\n## Recommendations\n\nIt is recommended to ensure compliance with the `EIP-712` standard.\n\n\n\n",
+    "summary": "\nThe bug report states that there is an issue with the `TRADE_TYPEHASH` in the Marketplace contract. The current implementation does not include the definitions or type hashes for the referenced structs, which is a violation of the EIP-712 specification. This could lead to incorrect encoding and potential vulnerabilities in the signing and verification process of requests. It is recommended to ensure compliance with the EIP-712 standard.",
+    "report_date": "2025-09-11T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/pashov/audits/blob/master/team/md/RipIt-security-review_2025-04-25.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "m-04-eip-712-compliance-issue-in-marketplace-pashov-audit-group-none-ripit_2025-04-25-markdown",
+    "firm_name": "Pashov Audit Group",
+    "firm_logo_square": "Pashov_square.png",
+    "protocol_name": "RipIt_2025-04-25",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Pashov Audit Group"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Pashov Audit Group",
+        "logo_square": "Pashov_square.png"
+    },
+    "protocols_protocol": {
+        "name": "RipIt_2025-04-25",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

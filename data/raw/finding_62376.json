@@ -1,0 +1,45 @@
+{
+    "id": 62376,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 34,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 1390,
+    "title": "[ASTRO-14] Missing event on decreasing liquidity",
+    "content": "**Severity:** Low\n\n**Path:** Crate.sol\n\n**Description:** The function decreaseLiquidity does not emit the event LiquidityChanged, in case there is such an event, in contrary to the function increaseLiquidity which does emit the event.\n```\n    function decreaseLiquidity(uint256 _liquidityRemoved) external onlyOwner {\n        // Rebalance first the pool to avoid any negative slippage\n        uint256 lpBal = liquidityPool.swap.getVirtualLpBalance();\n        uint256 assetBalBefore = asset.balanceOf(address(this));\n        uint256 liquidityBefore = liquidityPool.liquidity;\n\n        // we remove liquidity\n        liquidityPool.liquidity -= _liquidityRemoved;\n        // We specify the amount of LP that corresponds to the amount of liquidity removed\n        liquidityPool.swap.removeLiquidity(\n            (lpBal * _liquidityRemoved) / liquidityBefore,\n            block.timestamp\n        );\n        // We update the book\n        liquidityPool.debt -= (asset.balanceOf(address(this)) - assetBalBefore);\n    }\n```\n\n**Remediation:**  Add  LiquidityChanged event emission.\n\n**Status:** Fixed\n\n- - -",
+    "summary": "",
+    "report_date": "2023-04-17T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/solodit/solodit_content/blob/main/reports/Hexens/2023-04-17-Astrolab.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "astro-14-missing-event-on-decreasing-liquidity-hexens-none-astrolab-markdown",
+    "firm_name": "Hexens",
+    "firm_logo_square": "Hexens_square.png",
+    "protocol_name": "Astrolab",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Hexens"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Hexens",
+        "logo_square": "Hexens_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Astrolab",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

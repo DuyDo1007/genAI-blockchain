@@ -1,0 +1,50 @@
+{
+    "id": 62344,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 11,
+    "impact": "LOW",
+    "finders_count": 2,
+    "protocol_id": 3401,
+    "title": "Test enhancements",
+    "content": "**Description:** * `GMIntegrationTest_GM_ETH`: Both tests [`test_hitRateLimits_onUSDInGMFlow_Subscribe`](https://github.com/ondoprotocol/rwa-internal/blob/a74d03f4a71bd9cac09e8223377b47f7d64ca8d4/forge-tests/globalMarkets/GM_IntegrationTest.t.sol#L1209-L1210) and [`test_hitRateLimits_onUSDInGMFlow_Redeem`](https://github.com/ondoprotocol/rwa-internal/blob/a74d03f4a71bd9cac09e8223377b47f7d64ca8d4/forge-tests/globalMarkets/GM_IntegrationTest.t.sol#L1254-L1255) have empty `expectReverts`:\n   ```solidity\n   // Should fail due to onUSD rate limit\n   vm.expectRevert();\n   gmTokenManager.mintWithAttestation(\n     quote,\n     signature,\n     address(USDC),\n     usdcAmount\n   );\n   ```\n   Accepting any revert could hide unexpected errors allowing bugs to still pass the tests. Consider catching the expected revert:\n   ```diff\n       // Should fail due to onUSD rate limit\n   -   vm.expectRevert();\n   +   vm.expectRevert(OndoRateLimiter.RateLimitExceeded.selector);\n       gmTokenManager.mintWithAttestation(\n         quote,\n         signature,\n         address(USDC),\n         usdcAmount\n       );\n   ```\n\n* `GmTokenManagerSanityCheckOracleTest`: The test [`testPostPricesWithInvalidInput`](https://github.com/ondoprotocol/rwa-internal/blob/a74d03f4a71bd9cac09e8223377b47f7d64ca8d4/forge-tests/globalMarkets/tokenManager/GmTokenManagerSanityCheckOracleTest.t.sol#L563-L577) also has an empty `expectRevert()`. This test should ideally be split into two, `...WithInvalidToken`, `...WithInvalidPrice` and expect the correct errors: `InvalidAddress` and `PriceNotSet`.\n\n* `error TokenPauseManagerClientUpgradeable.TokenPauseManagerCantBeZero` lacks a test. Consider adding one for assigning an invalid `TokenPauseManager`.\n\n* `GMTokenManagerTest_ETH`: The test [`testMintFromNonKYCdSender`](https://github.com/ondoprotocol/rwa-internal/blob/a74d03f4a71bd9cac09e8223377b47f7d64ca8d4/forge-tests/globalMarkets/tokenManager/GmTokenManagerTest.t.sol#L587-L629) mentions a \"KYC role\" which doesn't exist. It also catches an empty revert on [L626](https://github.com/ondoprotocol/rwa-internal/blob/a74d03f4a71bd9cac09e8223377b47f7d64ca8d4/forge-tests/globalMarkets/tokenManager/GmTokenManagerTest.t.sol#L626). This catch does not catch the correct error, it catches a `OneRateLimiter.RateLimitExceeded` error since the user has no rate limit config. Since the user is added to the registry on [L601](https://github.com/ondoprotocol/rwa-internal/blob/a74d03f4a71bd9cac09e8223377b47f7d64ca8d4/forge-tests/globalMarkets/tokenManager/GmTokenManagerTest.t.sol#L601), effectively saying it's KYC'd. Thus it passes the KYC check. Consider removing mentions of a KYC role, catching the correct revert (`IGMTokenManagerErrors.UserNotRegistered`) and remove the addition of the user to the registry.\n\n**Cyfrin:** Fixed by Cyfrin in commit [`d3155d0`](https://github.com/ondoprotocol/rwa-internal/pull/469/commits/d3155d09d8bb0ed48b7975d758830fc60c36e525)",
+    "summary": "",
+    "report_date": "2025-07-14T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/solodit/solodit_content/blob/main/reports/Cyfrin/2025-07-14-cyfrin-ondo-global-markets-v2.0.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "test-enhancements-cyfrin-none-ondo-global-markets-markdown",
+    "firm_name": "Cyfrin",
+    "firm_logo_square": "Cyfrin_square.jpg",
+    "protocol_name": "Ondo Global Markets",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Immeas"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Al-Qa'qa'"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Cyfrin",
+        "logo_square": "Cyfrin_square.jpg"
+    },
+    "protocols_protocol": {
+        "name": "Ondo Global Markets",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

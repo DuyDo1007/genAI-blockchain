@@ -1,0 +1,60 @@
+{
+    "id": 62889,
+    "kind": "PDF",
+    "auditfirm_id": 6,
+    "impact": "HIGH",
+    "finders_count": 4,
+    "protocol_id": 3419,
+    "title": "RPC Assertions allow malicious clients to DoS RPC providers",
+    "content": "## Security Vulnerability Report\n\n## Severity\n**High Risk**\n\n## Context\n(No context files were provided by the reviewer)\n\n## Description\nAn RPC-based DoS vulnerability exists where malicious `eth_call` requests can trigger exception-based failures in balance overflow checks. The vulnerability occurs in `/monad/category/execution/ethereum/state3/state.hpp:365-369` where balance overflow protection uses assertions that can disrupt RPC service availability.\n\n### Affected Code\n```cpp\n// state.hpp:365-369 - Balance overflow check\nMONAD_ASSERT_THROW(\n    std::numeric_limits<uint256_t>::max() - delta >= account.value().balance,\n    \"balance overflow \");\n// THROWS EXCEPTION if: delta + account.balance > UINT256_MAX\naccount.value().balance += delta;\n\n// rpc/eth_call.cpp - RPC balance manipulation\nif (balance > intx::be::load<uint256_t>(state.get_balance(address))) {\n    state.add_to_balance(\n        address,\n        balance - intx::be::load<uint256_t>(state.get_balance(address)));\n}\n```\nThe assertion triggers when `delta + account.balance > UINT256_MAX` during RPC call simulation, causing `MonadException` to be thrown, potentially disrupting RPC service.\n\n## Proof of Concept\n### RPC DoS Attack Scenario\n```json\n// Malicious eth_call request with state override\neth_call({\n    \"to\": \"0x742D35CC6AF93F4D2E1EDC04e1C77FD2FDbc4C09\",\n    \"data\": \"0x...\", // Any contract call\n    \"stateOverrides\": {\n        \"0x742D35CC6AF93F4D2E1EDC04e1C77FD2FDbc4C09\": {\n            \"balance\": \"0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFE\" // Balance set to UINT256_MAX - 1\n        }\n    }\n})\n```\n\n### Attack Execution\n1. Attacker crafts `eth_call` with state override setting target account balance to near `UINT256_MAX`.\n2. RPC handler processes the call and applies balance changes via `add_to_balance()`.\n3. Any delta > 1 triggers the overflow condition: `delta + (UINT256_MAX-1) > UINT256_MAX`.\n4. `MONAD_ASSERT_THROW` fires, throwing `MonadException`.\n5. RPC call causes assertion to trigger and node crashes.\n\n## Impact\nRPC service disruption.\n\n## Recommendation\nImplement overflow validation in RPC state override processing to prevent exception-based DoS:\n\n```cpp\n// Safe balance override validation for RPC calls\nif (state_delta.balance.has_value()) {\n    auto const requested_balance = intx::be::unsafe::load<uint256_t>(\n        state_delta.balance.value().data());\n    // Validate balance is within reasonable limits for simulation\n    if (requested_balance > std::numeric_limits<uint256_t>::max() / 2) {\n        // Return error for unrealistic balance values instead of processing\n        return Error(\"Balance override value too large for simulation \");\n    }\n    auto const current_balance = intx::be::load<uint256_t>(state.get_balance(address));\n    if (requested_balance > current_balance) {\n        auto const delta = requested_balance - current_balance;\n        // Check if addition would overflow before calling add_to_balance\n        if (delta > std::numeric_limits<uint256_t>::max() - current_balance) {\n            return Error(\"Balance overflow in state override \");\n        }\n        state.add_to_balance(address, delta);\n    } else {\n        state.subtract_from_balance(address, current_balance - requested_balance);\n    }\n}\n```\n\n### Alternative\nAdd input validation to reject state overrides with unrealistic balance values before they reach the balance manipulation code.\n\n## Category Labs\nFixed in PR 1534.\n\n## Spearbit\nFix verified.",
+    "summary": "\nThe report describes a security vulnerability in a code that can be used to disrupt RPC service. The code has an assertion check that can be triggered by a specific request, causing an exception to be thrown and leading to RPC service disruption. A proof of concept is provided to demonstrate how the attack can be executed. The impact of the vulnerability is disruption of RPC service. The report recommends implementing overflow validation in the code to prevent this vulnerability. The issue has been fixed in a PR and verified by Spearbit.",
+    "report_date": "2025-09-19T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Monad-Spearbit-Security-Review-September-2025.pdf",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Monad-Spearbit-Security-Review-September-2025.pdf",
+    "github_link": "",
+    "pdf_link": "https://solodit-bucket.s3.amazonaws.com/storage/reports/spearbit/Monad-Spearbit-Security-Review-September-2025.pdf",
+    "pdf_page_from": 14,
+    "contest_id": "",
+    "slug": "rpc-assertions-allow-malicious-clients-to-dos-rpc-providers-spearbit-none-monad-pdf",
+    "firm_name": "Spearbit",
+    "firm_logo_square": "spearbit_square.png",
+    "protocol_name": "Monad",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Haxatron"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Dtheo"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Guido Vranken"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Rikard Hjort"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Spearbit",
+        "logo_square": "spearbit_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Monad",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

@@ -1,0 +1,75 @@
+{
+    "id": 62814,
+    "kind": "GIT",
+    "auditfirm_id": 3,
+    "impact": "HIGH",
+    "finders_count": 7,
+    "protocol_id": 3398,
+    "title": "H-7: In the `IncentiveGauge._upsertIncentive()` function, `_updatePoolByPid()` should be called outside the `if` statement",
+    "content": "\nSource: https://github.com/sherlock-audit/2025-09-bmx-deli-swap-judging/issues/240 \n\n## Found by \n0xpetern, ami, cpsec, jayjoshix, maigadoh, oct0pwn, x15\n\n### Summary\n\nIn the `IncentiveGauge._upsertIncentive()` function, if `rewardRate == 0`, then `_updatePoolByPid()` is not executed. This results in the `lastUpdated` timestamp of the pool remaining at its original, older timestamp. Meanwhile, the reward token being upserted begins its release from the current timestamp.\n\nConsequently, during the next update, the released reward amount for the token will be inaccurately calculated. The released amount is determined by the timestamp difference between the pool's `lastUpdated` and the moment of the update, incorrectly assuming that the reward started its release at the pool's `lastUpdated` timestamp.\n\n### Root Cause\n\nAs shown at line [486](https://github.com/sherlock-audit/2025-09-bmx-deli-swap/blob/main/deli-swap-contracts/src/IncentiveGauge.sol#L486), the function `IncentiveGauge._upsertIncentive()` calls `_updatePoolByPid()` only if `info.rewardRate > 0`.\n\n```solidity\n    function _upsertIncentive(PoolId pid, IERC20 token, uint256 amount) internal returns (uint128 rate) {\n        IncentiveInfo storage info = incentives[pid][token];\n\n        uint256 total = amount;\n        if (info.rewardRate > 0) {\n            // For active schedules, first update pool accounting, then add leftover budget\n486          _updatePoolByPid(pid);\n            if (block.timestamp < info.periodFinish) {\n                uint256 remainingTime = info.periodFinish - block.timestamp;\n                uint256 leftover = remainingTime * info.rewardRate;\n                if (amount <= leftover) revert DeliErrors.InsufficientIncentive();\n                total += leftover;\n            }\n        }\n\n        rate = SafeCast.toUint128(total / TimeLibrary.WEEK);\n        info.rewardRate = rate;\n497     info.periodFinish = uint64(block.timestamp + TimeLibrary.WEEK);\n        info.lastUpdate = uint64(block.timestamp);\n        info.remaining = SafeCast.toUint128(total);\n    }\n```\n\nConsider the case where `info.rewardRate == 0`:\n\n1. `_updatePoolByPid()` is not called. Since the pool is not updated, the pool's `lastUpdated` remains an older timestamp.\n2. As indicated at line 497, the release of the reward token begins from the current timestamp.\n3. During the next update:\n\n    The released reward amount is calculated using active seconds: `endTs - poolLast`, but this is incorrect because `poolLast` is an older timestamp that predates the reward token's release.\n    ```solidity\n        function _updatePool(PoolId pid, int24 currentTick) internal {\n            ...\n\n                if (info.rewardRate > 0) {\n                    uint256 endTs = nowTs < info.periodFinish ? nowTs : info.periodFinish;\n                    if (endTs > poolLast) {\n    @>                  uint256 activeSeconds = endTs - poolLast;\n                        amt = uint256(info.rewardRate) * activeSeconds;\n                    }\n                }\n\n                ...\n    ```\n\nAs a result, a larger amount is incorrectly captured as the released amount.\n\n### Internal pre-conditions\n\n### External pre-conditions\n\n### Attack Path\n\n### Impact\n\nThis issue leads to an excess reward amount being allocated to the pool, which can result in a lack of available rewards for claiming, hinder position burning, and make it impossible to remove liquidity.\n\n### PoC\n\n### Mitigation\n\n`_updatePoolByPid()`  should be called outside the `if` statement:\n\n```diff\n    function _upsertIncentive(PoolId pid, IERC20 token, uint256 amount) internal returns (uint128 rate) {\n        IncentiveInfo storage info = incentives[pid][token];\n\n+       _updatePoolByPid(pid);\n\n        uint256 total = amount;\n        if (info.rewardRate > 0) {\n            // For active schedules, first update pool accounting, then add leftover budget\n-            _updatePoolByPid(pid);\n            if (block.timestamp < info.periodFinish) {\n                uint256 remainingTime = info.periodFinish - block.timestamp;\n                uint256 leftover = remainingTime * info.rewardRate;\n                if (amount <= leftover) revert DeliErrors.InsufficientIncentive();\n                total += leftover;\n            }\n        }\n\n        ...\n    }\n```\n\n## Discussion\n\n**sherlock-admin2**\n\nThe protocol team fixed this issue in the following PRs/commits:\nhttps://github.com/morphex-labs/deli-swap-contracts/pull/21\n\n\n\n\n",
+    "summary": "\nSummary:\n\nA bug was found by several individuals in the `IncentiveGauge._upsertIncentive()` function of the Deli-Swap protocol. If the reward rate is set to 0, the `_updatePoolByPid()` function is not executed, resulting in the pool's `lastUpdated` timestamp remaining at an older time. This causes the released reward amount for a token to be inaccurately calculated during the next update. This can lead to a shortage of available rewards for claiming, difficulty in removing liquidity, and hinder position burning. The bug has been fixed by calling `_updatePoolByPid()` outside of the `if` statement in the code.",
+    "report_date": "2025-09-16T15:00:00.000Z",
+    "contest_prize_txt": "47000 USDC",
+    "contest_link": "https://app.sherlock.xyz/audits/contests/1154",
+    "sponsor_name": "",
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "",
+    "github_link": "https://github.com/sherlock-audit/2025-09-bmx-deli-swap-judging/issues/240",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "1154",
+    "slug": "h-7-in-the-incentivegauge_upsertincentive-function-_updatepoolbypid-should-be-called-outside-the-if-statement-sherlock-bmx-deli-swap-git",
+    "firm_name": "Sherlock",
+    "firm_logo_square": "sherlock_square.png",
+    "protocol_name": "BMX Deli Swap",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "x15"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "cpsec"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "0xpetern"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "jayjoshix"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "oct0pwn"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "maigadoh"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "ami"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Sherlock",
+        "logo_square": "sherlock_square.png"
+    },
+    "protocols_protocol": {
+        "name": "BMX Deli Swap",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

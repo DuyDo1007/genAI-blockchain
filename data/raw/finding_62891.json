@@ -1,0 +1,60 @@
+{
+    "id": 62891,
+    "kind": "PDF",
+    "auditfirm_id": 6,
+    "impact": "HIGH",
+    "finders_count": 4,
+    "protocol_id": 3419,
+    "title": "JSON-RPC Memory Ampliﬁcation Vulnerability",
+    "content": "## Severity: High Risk\n\n## Context\n(No context files were provided by the reviewer)\n\n## Description\nThe JSON-RPC server processes and parses JSON requests before applying rate limiting controls, creating potential for memory exhaustion attacks within configured payload limits. JSON payloads can be manipulated to be much larger in memory due to the underlying storage methods, allowing for 2MB JSON messages to consume 12-16MBs in memory. When batched, these messages can consume significant amounts of memory.\n\n### Memory Amplification Mechanism\n`serde_json::from_slice()` converts compact JSON into `serde_json::Value` enum structures:\n- **JSON strings** → heap-allocated String objects (capacity overhead).\n- **JSON arrays** → `Vec<Value>` with element boxing (24+ bytes per Value enum).\n- **JSON objects** → `HashMap<String, Value>` with hash table overhead.\n- **Numbers** → enum variants with discriminant tags.\n\n**Example**: `\"key\":[1,2,3]` (12 bytes) → String(4) + Vec header + 3 Value enums 80+ bytes (6-8x amplification of message size into memory storage size).\n\n## Attack Impact\n- **Single request**: 2MB JSON → 12-16MB memory.\n- **Double parsing penalty** (lines 18 + 81).\n- **Batch**: 5,000 → 16MB = 80GB potential per IP.\n\n### Primary Vulnerability\n#### Parsing Before Rate Limiting\n- **Location**: `monad-bft/monad-rpc/src/handlers/mod.rs:65-89`:\n```rust\npub async fn rpc_handler(body: bytes::Bytes, app_state: web::Data<MonadRpcResources>) -> HttpResponse {\n    // VULNERABLE: JSON parsing occurs BEFORE any rate limiting\n    let request: RequestWrapper<Value> = match serde_json::from_slice(&body) {\n        Ok(req) => req,\n        Err(e) => return HttpResponse::Ok().json(Response::from_error(JsonRpcError::parse_error())),\n    };\n    // VULNERABLE: Second JSON parsing - still before rate limiting\n    let Ok(request) = serde_json::from_value::<Request>(json_request.clone()) else {\n        return HttpResponse::Ok().json(Response::from_error(JsonRpcError::parse_error()));\n    };\n    // ... continues to method dispatch where rate limiting MAY be applied\n}\n```\n- **Rate Limiting Coverage Gap**: Rate limiting only exists in 2 methods (`eth_call`, `eth_estimateGas`) out of 25+ available methods:\n  - **Protected Methods**:\n    - `eth_call`\n    - `eth_estimateGas`\n  - **Unprotected Methods**:\n    - `debug_traceBlockByNumber`\n    - `debug_traceCall`\n    - `eth_sendRawTransaction`\n    - `eth_getLogs`\n    - `eth_getTransactionByHash`\n    - `eth_getBlockByHash`\n    - `eth_getBalance`\n    - `eth_getCode`\n    - `eth_getStorageAt`\n    - `eth_blockNumber`\n    - `eth_chainId`\n\n## Current Protections\n- **HTTP payload limit**: 2MB per request (configurable).\n- **Batch limit**: 5,000 requests per batch (configurable).\n- **Global semaphore**: 1,000 concurrent requests across ALL IPs.\n- **No per-IP rate limiting**.\n\n## Proof of Concept\n### Memory Amplification Attack\n```json\n{\n    \"jsonrpc\": \"2.0\",\n    \"method\": \"eth_getBalance\", // Unprotected method\n    \"params\": [\"0x1234567890123456789012345678901234567890\", \"latest\"],\n    \"id\": 1,\n    \"_attack_payload\": {\n        \"large_array\": [/* ~200k elements approaching 2MB limit */],\n        \"nested_objects\": {/* complex nested structure */}\n    }\n}\n```\n\n### Batch Amplification\n```json\n[\n    {\"jsonrpc\": \"2.0\", \"method\": \"eth_getBalance\", \"params\": [...], \"_payload\": {...}},\n    {\"jsonrpc\": \"2.0\", \"method\": \"eth_getCode\", \"params\": [...], \"_payload\": {...}},\n    // ... up to 5,000 requests per batch\n    // Total: 5,000 → memory amplification per 2MB HTTP request\n]\n```\n\n## Attack Flow\n1. HTTP layer accepts 2MB payload.\n2. `serde_json::from_slice()` - Full JSON parsing.\n3. `serde_json::from_value()` - Second parsing.\n\n## Recommendation\n1. **Pre-parsing IP rate limiting**: Check IP limits before JSON parsing.\n2. **Global parsing semaphore**: Limit concurrent JSON parsing operations.\n3. **Method coverage**: Extend rate limiting beyond just `eth_call`/`eth_estimateGas`.\n\n## Category\nLabs: Acknowledged. Filed monad issue 2331.\n\nSpearbit: Acknowledged.",
+    "summary": "\nThe bug report highlights a potential vulnerability in a JSON-RPC server that can lead to memory exhaustion attacks. This is due to the server processing and parsing JSON requests before applying rate limiting controls, which can result in large amounts of memory being consumed. The report also mentions a specific method (`serde_json::from_slice()`) that can amplify the size of JSON messages, further exacerbating the issue.\n\nThe impact of this vulnerability can be significant, with a single request potentially consuming 12-16MB of memory. Additionally, the lack of rate limiting for certain methods leaves the server vulnerable to attacks from multiple IP addresses, potentially leading to a total of 80GB of memory being consumed.\n\nThe report suggests implementing pre-parsing IP rate limiting, a global parsing semaphore, and extending rate limiting to other methods beyond just `eth_call` and `eth_estimateGas`. These recommendations aim to prevent memory exhaustion attacks and improve the overall security of the server.\n\nThe severity of this bug is classified as high risk, and the report has been acknowledged by both the Labs and Spearbit teams. ",
+    "report_date": "2025-09-19T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Monad-Spearbit-Security-Review-September-2025.pdf",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Monad-Spearbit-Security-Review-September-2025.pdf",
+    "github_link": "",
+    "pdf_link": "https://solodit-bucket.s3.amazonaws.com/storage/reports/spearbit/Monad-Spearbit-Security-Review-September-2025.pdf",
+    "pdf_page_from": 16,
+    "contest_id": "",
+    "slug": "json-rpc-memory-amplification-vulnerability-spearbit-none-monad-pdf",
+    "firm_name": "Spearbit",
+    "firm_logo_square": "spearbit_square.png",
+    "protocol_name": "Monad",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Haxatron"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Dtheo"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Guido Vranken"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Rikard Hjort"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Spearbit",
+        "logo_square": "spearbit_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Monad",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

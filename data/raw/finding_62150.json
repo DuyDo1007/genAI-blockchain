@@ -1,0 +1,60 @@
+{
+    "id": 62150,
+    "kind": "PDF",
+    "auditfirm_id": 6,
+    "impact": "LOW",
+    "finders_count": 4,
+    "protocol_id": 3384,
+    "title": "adjustedMinAbsRate might be greater than adjustedMaxAbsRate",
+    "content": "## Low Risk Vulnerability Report\n\n**Severity:** Low Risk  \n**Context:** PositiveAMMMath.sol#L166-L167  \n\n## Description\nIn `calcSwapSize`, one tweaks the rate ranges to:\n\n- \\( r'_{min} = r_{min} \\otimes (10^{18} + 10^8) \\)\n- \\( r'_{max} = r_{max} \\otimes (10^{18} - 10^8) \\)\n\nWhenever `rmin` and `rmax` are set either in the constructor or through `setAMMConfig`, the following checks are performed:\n\n- \\( 0 < r_{min} < r_{max} \\)\n\nAs a result, it is possible that for a pair of \\( (r_{min}, r_{max}) \\), we would have:\n\n- \\( r'_{min} > r'_{max} \\)\n\nIf this occurs in `calcSwapSize`, the `targetRate` \\( r_t \\) under these circumstances would always be \\( r'_{max} \\). In even more extreme cases, this value \\( r_t = r'_{max} \\) can be less than `rmin` (the original `state.minAbsRate` value):\n\n- \\( r_t = r'_{max} < r_{min} \\leq r'_{min} \\)\n\nThis could, for example, happen when \\( (r = r_{max} - r_{min}) \\):\n\n- \\( (10^{10} - 1) r < r_{min} \\)\n\nor \n\n- \\( 1 - 1 \\]\n\\( r_{max} < r_{min} < r_{max} \\)\n\n## Recommendation\nThe check in `_setAMMConfig` should be changed to:\n\n```solidity\nrequire(\n    0 < minAbsRate &&\n    minAbsRate.tweakUp(1e8) < maxAbsRate.tweakDown(1e8), // <--- changed to a stricter inequality\n    Err.AMMInvalidRateRange()\n);\n```\n\n**Pendle Finance:** Fixed in commit 8f9855c2.  \n**Spearbit:** Fix verified.",
+    "summary": "",
+    "report_date": "2025-08-22T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Pendle-Spearbit-Security-Review-August-2025.pdf",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Pendle-Spearbit-Security-Review-August-2025.pdf",
+    "github_link": "",
+    "pdf_link": "https://solodit-bucket.s3.amazonaws.com/storage/reports/spearbit/Pendle-Spearbit-Security-Review-August-2025.pdf",
+    "pdf_page_from": 15,
+    "contest_id": "",
+    "slug": "adjustedminabsrate-might-be-greater-than-adjustedmaxabsrate-spearbit-none-pendle-core-v3-pdf",
+    "firm_name": "Spearbit",
+    "firm_logo_square": "spearbit_square.png",
+    "protocol_name": "Pendle Core v3",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Saw-mon and Natalie"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Ethan"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Desmond Ho"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "RustyRabbit"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Spearbit",
+        "logo_square": "spearbit_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Pendle Core v3",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

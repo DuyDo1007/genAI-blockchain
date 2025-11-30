@@ -1,0 +1,45 @@
+{
+    "id": 62866,
+    "kind": "PDF",
+    "auditfirm_id": 9,
+    "impact": "HIGH",
+    "finders_count": 1,
+    "protocol_id": 3450,
+    "title": "Expired token groups not synchronized with ERC1155 balance tracking",
+    "content": "## Diﬃculty: Low\n\n## Type: Data Validation\n\n## Description\nThe *pruneGroups* function removes expired token groups from the custom group tracking system but fails to update the underlying ERC1155 balance tracking. This creates a data inconsistency where expired tokens can still be transferred despite being removed from the expiration tracking system. \n\nThe contract maintains two separate balance tracking systems: the standard ERC1155 *balances* mapping and a custom *group* array system for expiration management. When tokens expire, the *pruneGroups* function correctly removes expired groups from the *group* array and emits an `ExpiredTokensBurned` event, but it does not call the parent contract's burn function to update the ERC1155 balance tracking. This means that the underlying ERC1155 balance remains unchanged, allowing expired tokens to be transferred to other addresses.\n\n### Function\n```solidity\nfunction _pruneGroups(address account, uint256 id) internal {\n    Group[] storage groups = _group[account][id];\n    uint256 _now = block.timestamp;\n    // Shift valid groups to the front of the array\n    uint256 index = 0;\n    uint256 expiredAmount = 0;\n    for (uint256 i = 0; i < groups.length; i++) {\n        bool isValid = groups[i].balance > 0 && groups[i].expiresAt > _now;\n        if (isValid) {\n            if (i != index) {\n                groups[index] = groups[i];\n            }\n            index++;\n        } else {\n            expiredAmount += groups[i].balance;\n        }\n    }\n    // Remove invalid groups from the end of the array\n    while (groups.length > index) {\n        groups.pop();\n    }\n    // If any expired groups were removed, emit an event with the total amount of expired tokens\n    if (expiredAmount > 0) {\n        emit ExpiredTokensBurned(account, id, expiredAmount);\n    }\n}\n```\n*Figure 2.1: ERC1155 balance is not updated in _pruneGroups function*\n\n## Exploit Scenario\nAlice has 100 authentication tokens with a 60-second expiration time. After the tokens expire, the *pruneGroups* function correctly removes the expired token groups, but the underlying ERC1155 balance tracking still shows 100 tokens. Alice can then transfer 50 of these “expired” tokens to Bob. After the transfer, both Alice and Bob have 50 tokens in their ERC1155 balance, but the group tracking system shows 0 tokens for both accounts.\n\n## Recommendations\n- **Short term:** Modify the *pruneGroups* function to call the parent contract’s burn function when expired tokens are detected, ensuring that both balance tracking systems remain synchronized.\n- **Long term:** Implement comprehensive unit tests that cover all token operations with various expiration scenarios, including edge cases where tokens expire during transfers, and ensure that both balance tracking systems remain consistent throughout all operations.",
+    "summary": "\nThis bug report discusses a problem with the *pruneGroups* function in a custom group tracking system. When tokens expire, the function correctly removes them from the group tracking system but does not update the underlying ERC1155 balance tracking. This means that expired tokens can still be transferred, creating a data inconsistency. The report recommends modifying the function to call the parent contract's burn function and implementing comprehensive unit tests to prevent this issue in the future.",
+    "report_date": "2025-10-03T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://github.com/trailofbits/publications/blob/master/reviews/2025-10-radiustechnology-evmauth-securityreview.pdf",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/trailofbits/publications/blob/master/reviews/2025-10-radiustechnology-evmauth-securityreview.pdf",
+    "github_link": "",
+    "pdf_link": "https://solodit-bucket.s3.amazonaws.com/storage/reports/trailofbits/2025-10-radiustechnology-evmauth-securityreview.pdf",
+    "pdf_page_from": 15,
+    "contest_id": "",
+    "slug": "expired-token-groups-not-synchronized-with-erc1155-balance-tracking-trailofbits-none-radius-technology-evmauth-pdf",
+    "firm_name": "TrailOfBits",
+    "firm_logo_square": "trailofbits_square.png",
+    "protocol_name": "Radius Technology EVMAuth",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Quan Nguyen Trail of Bits PUBLIC"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "TrailOfBits",
+        "logo_square": "trailofbits_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Radius Technology EVMAuth",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

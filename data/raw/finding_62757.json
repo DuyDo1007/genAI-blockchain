@@ -1,0 +1,45 @@
+{
+    "id": 62757,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 16,
+    "impact": "HIGH",
+    "finders_count": 1,
+    "protocol_id": 3443,
+    "title": "[H-02] Non-atomic updatePool() enables sandwich attacks and extraction",
+    "content": "\n_Resolved_\n\n## Severity\n\n**Impact:** High\n\n**Likelihood:** Medium\n\n## Description\n\nThe `YuzuILP.updatePool()` lacks atomicity when updating the pool state, allowing manipulation of `poolSize` in a way that can be exploited through sandwich attacks.\n\nThe function directly sets `poolSize` from the externally provided input without validating against the current state or considering ongoing user operations.\n\n```solidity\nfunction updatePool(uint256 newPoolSize, uint256 newDailyLinearYieldRatePpm) external onlyRole(POOL_MANAGER_ROLE) {\n    if (newDailyLinearYieldRatePpm > 1e6) {\n        revert InvalidYield(newDailyLinearYieldRatePpm);\n    }\n\n    poolSize = newPoolSize;\n    dailyLinearYieldRatePpm = newDailyLinearYieldRatePpm;\n    lastPoolUpdateTimestamp = block.timestamp;\n\n    emit UpdatedPool(newPoolSize, newDailyLinearYieldRatePpm);\n}\n```\n\nConsider the following scenario:\n\n1. User1 and User2 both deposit `100e6` assets into the pool.\n2. The treasury funds the liquidity buffer with their deposits (`200e6` total).\n3. Pool Manager prepares to call `updatePool(200e6, 0.1e6)` to set a `10%` yield rate.\n4. User1 front-runs this transaction and redeems half their shares, reducing the actual `poolSize`.\n5. The `updatePool()` transaction executes, artificially restoring `poolSize` to `200e6`.\n6. User1 back-runs with another redemption for their remaining shares, now at an inflated value.\n7. User1 extracts more assets than their fair share, effectively stealing from User2.\n\n**Proof of Concept**: [test_audit_sandwichPoolUpdate](https://gist.github.com/merlinboii/b125979b081266de2491e883712713fc#file-yuzuilp-t-sol-L116)\n\n## Recommendation\n\nThe `updatePool()` should maintain atomicity because it updates state that is used to price and account across the entire pool. \n\nThe possible solutions are to make it callable only while the protocol is paused and/or add a short cooldown for user operations after any admin update. This gives the operator time to verify state consistency before deposits or redemptions resume.\n\n\n\n",
+    "summary": "\nThere is a bug in the YuzuILP.updatePool() function, which allows for manipulation of the pool size and can lead to a type of attack called a \"sandwich attack\". This happens because the function does not check the current state of the pool before updating it with external input. This can be exploited by users to steal assets from other users. The recommended solution is to make the function only callable when the protocol is paused, or to add a cooldown period after any updates to allow for verification of the state.",
+    "report_date": "2025-09-28T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/pashov/audits/blob/master/team/md/YuzuUSD-security-review_2025-08-28.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "h-02-non-atomic-updatepool-enables-sandwich-attacks-and-extraction-pashov-audit-group-none-yuzuusd_2025-08-28-markdown",
+    "firm_name": "Pashov Audit Group",
+    "firm_logo_square": "Pashov_square.png",
+    "protocol_name": "YuzuUSD_2025-08-28",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Pashov Audit Group"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Pashov Audit Group",
+        "logo_square": "Pashov_square.png"
+    },
+    "protocols_protocol": {
+        "name": "YuzuUSD_2025-08-28",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

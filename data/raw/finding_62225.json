@@ -1,0 +1,50 @@
+{
+    "id": 62225,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 11,
+    "impact": "LOW",
+    "finders_count": 2,
+    "protocol_id": 3392,
+    "title": "Roles not set in `deposit-registry` contract constructors",
+    "content": "**Description:** Roles in contracts that belong to the `issuance` contracts are being initialized in the constructors and contain proper functions to update the address for this roles (revoke and grant):\n\n```solidity\nconstructor(\n        string memory _name,\n        string memory _symbol,\n        address _initialAdmin,\n        address _minter\n    ) ERC20(_name, _symbol) Ownable(_initialAdmin) {\n        require(\n            _minter != address(0) && _initialAdmin != address(0),\n            AddressCantBeZero()\n        );\n        minter = _minter;\n        blacklister = _initialAdmin;\n        _grantRole(DEFAULT_ADMIN_ROLE, _initialAdmin);\n        _grantRole(MINTER_ROLE, _minter);\n    }\n\nfunction setMinter(\n        address newMinter\n    ) external onlyRole(DEFAULT_ADMIN_ROLE) {\n        require(newMinter != address(0), AddressCantBeZero());\n        revokeRole(MINTER_ROLE, minter);\n        minter = newMinter;\n        _grantRole(MINTER_ROLE, newMinter);\n    }\n```\n\nBut roles are not being initialized in the constructors of contracts in `deposit-registry`:\n```solidity\nbytes32 public constant COMPLIANCE_ADMIN_ROLE = keccak256(\"COMPLIANCE_ADMIN_ROLE\");\n\n    constructor(address defaultAdmin) {\n        // The defaultAdmin can grant other roles later\n        _grantRole(DEFAULT_ADMIN_ROLE, defaultAdmin);\n    }\n```\n\nConsider initializing `COMPLIANCE_ADMIN_ROLE` in the constructor of the `ComplianceChecker` contract.\nConsider initializing `CANCELER_ROLE` in the constructor of the `CompliantDepositRegistry` contract.\n\n**Syntetika:**\nFixed in commit [9fccd3b](https://github.com/SyntetikaLabs/monorepo/commit/9fccd3b18f1543b10352e8c26fe4c59877bcf11d).\n\n**Cyfrin:** Verified.\n\n\\clearpage",
+    "summary": "",
+    "report_date": "2025-08-01T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/solodit/solodit_content/blob/main/reports/Cyfrin/2025-08-01-cyfrin-syntetika-v2.0.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "roles-not-set-in-deposit-registry-contract-constructors-cyfrin-none-syntetika-markdown",
+    "firm_name": "Cyfrin",
+    "firm_logo_square": "Cyfrin_square.jpg",
+    "protocol_name": "Syntetika",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Dacian"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Jorge"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Cyfrin",
+        "logo_square": "Cyfrin_square.jpg"
+    },
+    "protocols_protocol": {
+        "name": "Syntetika",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

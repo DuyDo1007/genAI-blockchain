@@ -1,0 +1,38 @@
+{
+    "id": 62095,
+    "kind": "GIT",
+    "auditfirm_id": 2,
+    "impact": "LOW",
+    "finders_count": 0,
+    "protocol_id": 1174,
+    "title": "[02] Repetitive clear `queuedWithdrawal` in `executeDeposit`",
+    "content": "\nThe [`HypoVault::executeDeposit`](https://github.com/code-423n4/2025-06-panoptic/blob/72836c0d5fc8a46052a5dce27cd09c299b7f6edb/src/HypoVault.sol# L310) clears the `queuedDeposit` twice:\n```\n\n    function executeDeposit(address user, uint256 epoch) external {\n        if (epoch >= depositEpoch) revert EpochNotFulfilled();\n\n        uint256 queuedDepositAmount = queuedDeposit[user][epoch];\n        queuedDeposit[user][epoch] = 0;                                                     <<@\n\n        DepositEpochState memory _depositEpochState = depositEpochState[epoch];\n\n        uint256 userAssetsDeposited = Math.mulDiv(\n            queuedDepositAmount,\n            _depositEpochState.assetsFulfilled,\n            _depositEpochState.assetsDeposited\n        );\n\n        uint256 sharesReceived = Math.mulDiv(\n            userAssetsDeposited,\n            _depositEpochState.sharesReceived,\n            _depositEpochState.assetsFulfilled\n        );\n\n        // shares from pending deposits are already added to the supply at the start of every new epoch\n        _mintVirtual(user, sharesReceived);\n\n        userBasis[user] += userAssetsDeposited;\n\n        queuedDeposit[user][epoch] = 0;                                                     <<@\n\n        uint256 assetsRemaining = queuedDepositAmount - userAssetsDeposited;\n\n        // move remainder of deposit to next epoch -- unfulfilled assets in this epoch will be handled in the next epoch\n        if (assetsRemaining > 0) queuedDeposit[user][epoch + 1] += uint128(assetsRemaining);\n\n        emit DepositExecuted(user, userAssetsDeposited, sharesReceived, epoch);\n    }\n```\n\n### Recommended mitigation steps\n\nIt is recommended to clear the `queuedDeposit` only once.\n\n---\n\n",
+    "summary": "",
+    "report_date": "2025-08-13T00:00:00.000Z",
+    "contest_prize_txt": "18000",
+    "contest_link": "https://code4rena.com/reports/2025-06-panoptic-hypovault",
+    "sponsor_name": "Panoptic",
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://code4rena.com/reports/2025-06-panoptic-hypovault",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "510",
+    "slug": "02-repetitive-clear-queuedwithdrawal-in-executedeposit-code4rena-panoptic-panoptic-git",
+    "firm_name": "Code4rena",
+    "firm_logo_square": "code4rena_square.png",
+    "protocol_name": "Panoptic",
+    "bookmarked": false,
+    "read": false,
+    "auditfirms_auditfirm": {
+        "name": "Code4rena",
+        "logo_square": "code4rena_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Panoptic",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

@@ -1,0 +1,45 @@
+{
+    "id": 62178,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 16,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3389,
+    "title": "[L-05] Frontrunning in vault enabling process",
+    "content": "\n_Acknowledged_\n\nWhen a curator sets a new cap on a forcefully removed vault (funds not withdrawn), or adds a vault with pre-existing funds, the total assets of the system are increased directly through _setCap() without minting new shares. This can be exploited by a user depositing just before the vault is re-added to gain a larger share of assets and withdraw for immediate profit. Users can extract risk-free profit by front-running vault activation.\n\n```solidity\n// In _setCap function when enabling vault\nmarketConfig.balance = id.balanceOf(address(this)).toUint112();\n// Direct asset increase without share dilution\n_updateLastTotalAssets(lastTotalAssets + _expectedSupplyAssets(id));\n```\n\n### Euler comments\n\nWe acknowledge the finding, will keep as is. Behaviour is the same in the original codebase.\n\n\n\n",
+    "summary": "",
+    "report_date": "2025-08-27T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/pashov/audits/blob/master/team/md/EulerEarn-security-review_2025-07-25.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "l-05-frontrunning-in-vault-enabling-process-pashov-audit-group-none-eulerearn_2025-07-25-markdown",
+    "firm_name": "Pashov Audit Group",
+    "firm_logo_square": "Pashov_square.png",
+    "protocol_name": "EulerEarn_2025-07-25",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Pashov Audit Group"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Pashov Audit Group",
+        "logo_square": "Pashov_square.png"
+    },
+    "protocols_protocol": {
+        "name": "EulerEarn_2025-07-25",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

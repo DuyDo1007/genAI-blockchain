@@ -1,0 +1,45 @@
+{
+    "id": 62606,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 16,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3421,
+    "title": "[L-09] Missing `chargeDelegate` parameter in signed listing data",
+    "content": "\n_Resolved_\n\nIn the `Marketplace.sol` contract, the `buy()` function accepts a `chargeDelegate` parameter that determines who pays for the purchase (caller or receiver), but this parameter is not included in the signed `ListingRequest` data structure.\n```solidity\nfunction buy(ListingParams[] calldata listings, bool chargeDelegate) external nonReentrant {\n    // ...\n    address payee = chargeDelegate ? address(msg.sender) : listings[i].receiver;\n    // ...\n    IERC20(acceptedCurrency).safeTransferFrom(payee, listings[i].request.owner, sellerAmount);\n}\n```\n\nThis creates a security risk because receivers who have previously approved the marketplace to spend their USDC could unexpectedly pay for purchases when returning to the marketplace if a malicious caller sets `chargeDelegate` to `false`. Since this parameter isn't part of the signed data, the payment arrangement can be manipulated without invalidating the signature.\n\nTo resolve this, Include the `chargeDelegate` parameter in the `ListingRequest` struct.\n\n\n\n",
+    "summary": "",
+    "report_date": "2025-09-11T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/pashov/audits/blob/master/team/md/RipIt-security-review_2025-05-10.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "l-09-missing-chargedelegate-parameter-in-signed-listing-data-pashov-audit-group-none-ripit_2025-05-10-markdown",
+    "firm_name": "Pashov Audit Group",
+    "firm_logo_square": "Pashov_square.png",
+    "protocol_name": "RipIt_2025-05-10",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Pashov Audit Group"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Pashov Audit Group",
+        "logo_square": "Pashov_square.png"
+    },
+    "protocols_protocol": {
+        "name": "RipIt_2025-05-10",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

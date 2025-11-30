@@ -1,0 +1,45 @@
+{
+    "id": 62584,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 16,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3420,
+    "title": "[L-26] Inconsistent prize locking/unlocking from dynamic weight changes",
+    "content": "\n_Acknowledged_\n\nIn the `SpinLottery` contract, the process of locking and unlocking prizes relies on the `calculatePendingPrizesForRarity` function, which uses the weights defined in `rarityConfigs[rarity]` and the `totalRarityWeight`.\n\n```solidity\n        // Calculate based on weight distribution\n        uint256 weight = rarityConfigs[rarity].weight;\n        uint256 pendingCount = (_prizeCount * weight) / totalRarityWeight;\n```\n\n```solidity\n        for (uint8 i = 1; i <= maxRarityId; i++) {\n            if (rarityConfigs[i].active) {\n                pendingToDecrease[i] = calculatePendingPrizesForRarity(req.prizeCount, i);\n                \n                // Decrease pending count, ensure we don't underflow\n                if (prizePools[i].pendingCount >= pendingToDecrease[i]) {\n                    prizePools[i].pendingCount -= uint96(pendingToDecrease[i]);\n                } else {\n                    prizePools[i].pendingCount = 0;\n                }\n            }\n        }\n```\n\nHowever, these weights can be modified through the `configureRarity` function, **leading to potential inconsistencies between the number of prizes locked and the number of prizes unlocked.**\n\n```solidity\n        if (oldConfig.active) {\n            totalRarityWeight -= oldConfig.weight;\n        }\n        \n        // Only add new weight if rarity will be active\n        if (_active) {\n            totalRarityWeight += _weight;\n        }\n        \n        // Update configuration\n        rarityConfigs[_rarityId] = RarityConfig({\n            weight: _weight,\n            basePrice: _basePrice,\n            active: _active\n        });\n```\n\nIt could result in errors during the unlocking phase or cause the entire transaction to revert (especially when a new `rarity` is being added).\n\nRecommendations:\n\nIt is recommended to record the numbers being locked for each rarity, or not allow weight changes during when there is a spin going on.\n\n\n\n",
+    "summary": "",
+    "report_date": "2025-09-11T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/pashov/audits/blob/master/team/md/RipIt-security-review_2025-04-25.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "l-26-inconsistent-prize-lockingunlocking-from-dynamic-weight-changes-pashov-audit-group-none-ripit_2025-04-25-markdown",
+    "firm_name": "Pashov Audit Group",
+    "firm_logo_square": "Pashov_square.png",
+    "protocol_name": "RipIt_2025-04-25",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Pashov Audit Group"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Pashov Audit Group",
+        "logo_square": "Pashov_square.png"
+    },
+    "protocols_protocol": {
+        "name": "RipIt_2025-04-25",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

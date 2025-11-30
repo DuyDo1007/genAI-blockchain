@@ -1,0 +1,55 @@
+{
+    "id": 62032,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 37,
+    "impact": "LOW",
+    "finders_count": 3,
+    "protocol_id": 3367,
+    "title": "Authorized `emergencyWithdraw()` Function Is Vulnerable to Reentrancy Attack",
+    "content": "**Update**\nMarked as \"Fixed\" by the client. Addressed in: `7179ca51941cf5cbe03c1e3bab547db0ec347d73`.\n\n**File(s) affected:**`SapienVault.sol`\n\n**Description:** The `emergencyWithdraw()` function performs ether transfer via a `.call()` without reentrancy protection. While this function is access-controlled to admin only, reentrancy vulnerabilities in emergency functions can be particularly dangerous as they may be called during compromised states. An attacker who gains admin access could potentially exploit reentrancy to drain funds beyond intended amounts.\n\n**Recommendation:** Consider applying the `nonReentrant` modifier to the `emergencyWithdraw()` function to prevent potential reentrancy attacks.",
+    "summary": "",
+    "report_date": "2025-07-02T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://certificate.quantstamp.com/full/sapien-2/9f938662-5bf7-4dc3-8774-3e7a12204cc3/index.html",
+    "sponsor_name": "",
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://certificate.quantstamp.com/full/sapien-2/9f938662-5bf7-4dc3-8774-3e7a12204cc3/index.html",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "authorized-emergencywithdraw-function-is-vulnerable-to-reentrancy-attack-quantstamp-sapien-2-markdown",
+    "firm_name": "Quantstamp",
+    "firm_logo_square": "quantstamp_square.png",
+    "protocol_name": "Sapien - 2",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Paul Clemson"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Julio Aguilar"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Tim Sigl"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Quantstamp",
+        "logo_square": "quantstamp_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Sapien - 2",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

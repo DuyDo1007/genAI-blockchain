@@ -1,0 +1,45 @@
+{
+    "id": 62945,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 16,
+    "impact": "MEDIUM",
+    "finders_count": 1,
+    "protocol_id": 3464,
+    "title": "[M-02] Hardcoded address restricts multi-chain deployments",
+    "content": "\n_Resolved_\n\n## Severity\n\n**Impact:** Medium\n\n**Likelihood:** Medium\n\n## Description\n\nIn the `UniV3LimitedRangeAdapter` contract, the address of the **Uniswap V3 NonfungiblePositionManager** is hardcoded as:\n\n```solidity\nINonfungiblePositionManager public constant positionManager = \nINonfungiblePositionManager(0xC36442b4a4522E871399CD717aBDD847Ab11FE88);\n```\n\nWhile this address is correct for **Ethereum mainnet**, **Arbitrum**, and **Optimism**, it does **not match the deployed address on Base** and may differ on other Layer 2s (e.g., Base, Unichain, zkSync, Scroll).\n\nIf the contract is deployed on a network where the PositionManager address differs, all interactions with Uniswap V3 positions (minting, burning, querying) will **revert**, rendering the adapter and dependent vaults non-functional.\n\nGiven that the project explicitly plans to support **Base** and potentially other L2s, this hardcoding introduces a **high likelihood of deployment failure** and requires re-compilation or code edits for every chain.\n\nNote: The severity is rated as High due to its Deployment Critical Impact, even though it is not a direct security vulnerability.\n\n## Recommendations\n\n* **Parameterize the PositionManager address as an immutable constructor argument**:\n\n```solidity\n  INonfungiblePositionManager public immutable positionManager;\n\n  constructor(INonfungiblePositionManager _positionManager) {\n      require(address(_positionManager).code.length > 0, \"Invalid PositionManager address\");\n      positionManager = _positionManager;\n  }\n```\n\n\n\n",
+    "summary": "",
+    "report_date": "2025-10-13T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/pashov/audits/blob/master/team/md/Saffron-security-review_2025-07-31.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "m-02-hardcoded-address-restricts-multi-chain-deployments-pashov-audit-group-none-saffron_2025-07-31-markdown",
+    "firm_name": "Pashov Audit Group",
+    "firm_logo_square": "Pashov_square.png",
+    "protocol_name": "Saffron_2025-07-31",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Pashov Audit Group"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Pashov Audit Group",
+        "logo_square": "Pashov_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Saffron_2025-07-31",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

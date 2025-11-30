@@ -1,0 +1,45 @@
+{
+    "id": 62412,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 34,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3405,
+    "title": "[LOGLAB-3] Use Ownable2StepUpgradeable for all contracts",
+    "content": "**Severity:** Informational\n\n**Description:** In the project, only the `src/oracle/LogarithmOracle.sol` and `src/hedge/gmx/GmxGasStation.sol` contracts utilize the `Ownable2StepUpgradeable` contract, while the rest rely on OwnableUpgradeable.\n\nTo maintain consistency and adhere to best practices, it is recommended to implement the `Ownable2StepUpgradeable` pattern across all contracts. The two-step ownership transfer provides an added layer of security, reducing the risk of accidental or malicious ownership changes.\n\n**Remediation:**  Consider using the `Ownable2StepUpgradeable` across all the contracts to maintain the consistency. \n\n**Status:** Fixed\n\n- - -",
+    "summary": "",
+    "report_date": "2024-11-25T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/solodit/solodit_content/blob/main/reports/Hexens/2024-11-25-BasisOS.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "loglab-3-use-ownable2stepupgradeable-for-all-contracts-hexens-none-basisos-markdown",
+    "firm_name": "Hexens",
+    "firm_logo_square": "Hexens_square.png",
+    "protocol_name": "Basisos",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Hexens"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Hexens",
+        "logo_square": "Hexens_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Basisos",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

@@ -1,0 +1,55 @@
+{
+    "id": 62654,
+    "kind": "PDF",
+    "auditfirm_id": 6,
+    "impact": "LOW",
+    "finders_count": 3,
+    "protocol_id": 3430,
+    "title": "Potential denial of service during portfolio initialization in Warehouse13 contract",
+    "content": "## Severity: Low Risk\n\n## Context\nWarehouse13.sol#L199-L200\n\n## Description\nThe `initializeSVF` function of the Warehouse13 contract is intended to be called by the contract's owner to initialize the portfolio, checking that the current SVF balance matches 5% of the total supply.\n\n```solidity\nuint256 balance = ERC20(svfToken).balanceOf(address(this));\nif ((totalSupply * 5) / 100 != balance) revert InvalidSVFBalance();\n```\n\nThe strict balance check means that any donation of SVF tokens to the contract prior to the owner calling `initializeSVF` might cause a denial of service, because the balance won't match the expected amount. The likelihood of this occurring depends on the deployment and initialization process of the contract.\n\n## Recommendation\nConsider reviewing the balance check performed during the `initializeSVF` function. One potential solution would involve changing the strict check for a greater-than-or-equal one, which would render any donation attempting to DoS the function pointless.\n\n## Semantic Layer\nAcknowledged. We have two options:\n\n- `==`: This ensures that we have the exact quantity when initializing, preventing us from allocating the wrong number of SVF tokens. Moreover, even if a malicious user donation leads to a DoS, we can still redeploy the contract.\n- `>=`: This is to prevent DoS caused by donation attacks. But I believe attackers have no reason to profit, and no one knows when we will deploy the project.\n\nOverall, I think the possibility of an attack is extremely low. I recommend keeping it strictly equal to `==` to prevent us from allocating the wrong number of SVF tokens. If we use `>=`, then we will still pass if we accidentally allocate too many tokens.\n\n## Spearbit\nAcknowledged.",
+    "summary": "",
+    "report_date": "2025-07-27T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Semantic-Layer-Spearbit-Security-Review-May-2025.pdf",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Semantic-Layer-Spearbit-Security-Review-May-2025.pdf",
+    "github_link": "",
+    "pdf_link": "https://solodit-bucket.s3.amazonaws.com/storage/reports/spearbit/Semantic-Layer-Spearbit-Security-Review-May-2025.pdf",
+    "pdf_page_from": 16,
+    "contest_id": "",
+    "slug": "potential-denial-of-service-during-portfolio-initialization-in-warehouse13-contract-spearbit-none-semantic-layer-pdf",
+    "firm_name": "Spearbit",
+    "firm_logo_square": "spearbit_square.png",
+    "protocol_name": "Semantic Layer",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Tnch"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Mario Poneder"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Noah Marconi"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Spearbit",
+        "logo_square": "spearbit_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Semantic Layer",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

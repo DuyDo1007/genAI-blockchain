@@ -1,0 +1,45 @@
+{
+    "id": 62571,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 16,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3420,
+    "title": "[L-13] Inconsistent role ID in `cardAllocationPool` initialization",
+    "content": "\n_Acknowledged_\n\nIn the `CardAllocationPool` contract, the assignment of the `redeemManagerRoleId` is done during the initialization phase, requiring the role ID to be specified explicitly.\n\n```solidity\n       packetNFTAddress = packetAddress;\n        cardNFTAddress = cardAddress;\n        redeemManagerRoleId = _redeemManagerRoleId;\n        __RoleBasedAccessControlConsumer_init(_rbac);\n        __UUPSUpgradeable_init();\n```\n\nThis approach differs from other contracts, such as the `Card` contract, where role IDs like `REDEEM_MANAGER_ROLE` are directly defined as constants.\n\n```solidity\n    /// @notice Role identifier for accounts that can manage card redemptions\n    /// @dev Used in access control checks for redemption operations\n    uint256 public constant REDEEM_MANAGER_ROLE = 4;\n```\n\nThis inconsistency introduces redundancy and increases the risk of errors. If the `redeemManagerRoleId` overlaps with other role IDs, such as `PRICE_MANAGER_ROLE`, it could inadvertently grant excessive privileges to unrelated roles.\n\nNote: the same applies for `marketplaceManagerRoleId` used in `Marketplace` and `lotteryManagerRoleId` used in `SpinLottery`.\n\nTo enhance consistency and reduce the risk of errors, consider defining all role IDs as constants within the contract.\n\n\n\n",
+    "summary": "",
+    "report_date": "2025-09-11T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/pashov/audits/blob/master/team/md/RipIt-security-review_2025-04-25.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "l-13-inconsistent-role-id-in-cardallocationpool-initialization-pashov-audit-group-none-ripit_2025-04-25-markdown",
+    "firm_name": "Pashov Audit Group",
+    "firm_logo_square": "Pashov_square.png",
+    "protocol_name": "RipIt_2025-04-25",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Pashov Audit Group"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Pashov Audit Group",
+        "logo_square": "Pashov_square.png"
+    },
+    "protocols_protocol": {
+        "name": "RipIt_2025-04-25",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

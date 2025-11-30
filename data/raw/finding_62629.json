@@ -1,0 +1,45 @@
+{
+    "id": 62629,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 16,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3422,
+    "title": "[L-08] Missing setter for `protocolFeeClaimer`",
+    "content": "\n_Resolved_\n\nIn the funnel vault contract `protocolFeeClaimer` is set only in the initialize to admin and has no setter function. If the admin address changes (e.g., role revoked/granted to a new address) or the claimer key is lost/compromised, protocol fees added via addToClaimer become unclaimable forever, as only the old claimer can call claimFees.\n\nAdmin can emergency withdraw, but that abandons accounting (known issue), risking over-claims or state corruption.\n\nThis leads to permanent lockup of protocol fees if claimer changes, affecting protocol sustainability. \n\nThis is how it can arise\n\n- Init sets claimer=admin.\n- Revoke DEFAULT_ADMIN_ROLE from initial admin, grant to new.\n- Accrue protocol fees -> added to old claimer. New admin can't claim, fees locked.\n\nRecommendation is to add `setProtocolFeeClaimer(address newClaimer)` restricted to `DEFAULT_ADMIN_ROLE`, with `newClaimer != address(0)` check.\n\n\n\n",
+    "summary": "",
+    "report_date": "2025-09-12T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/pashov/audits/blob/master/team/md/Funnel-security-review_2025-08-27.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "l-08-missing-setter-for-protocolfeeclaimer-pashov-audit-group-none-funnel_2025-08-27-markdown",
+    "firm_name": "Pashov Audit Group",
+    "firm_logo_square": "Pashov_square.png",
+    "protocol_name": "Funnel_2025-08-27",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Pashov Audit Group"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Pashov Audit Group",
+        "logo_square": "Pashov_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Funnel_2025-08-27",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

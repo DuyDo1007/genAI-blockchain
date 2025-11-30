@@ -1,0 +1,45 @@
+{
+    "id": 62577,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 16,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3420,
+    "title": "[L-19] Unnecessary modifier for `getInventoryPackets`",
+    "content": "\n_Resolved_\n\n`getInventoryPackets` is a external view function, but it unnecessary restricted to only callable by `INVENTORY_MANAGER_ROLE`.\n\n```solidity\n    function getInventoryPackets(uint256 packetTypeId) external view onlyRole(INVENTORY_MANAGER_ROLE) \n        returns (uint256[] memory) {\n        // Validate packet type ID\n        if (!_validatePacketTypeId(packetTypeId)) {\n            revert InvalidPacketType(packetTypeId);\n        }\n        return _packetInventory[packetTypeId];\n    }\n```\n\nConsider removing the modifier.\n\n\n\n",
+    "summary": "",
+    "report_date": "2025-09-11T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/pashov/audits/blob/master/team/md/RipIt-security-review_2025-04-25.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "l-19-unnecessary-modifier-for-getinventorypackets-pashov-audit-group-none-ripit_2025-04-25-markdown",
+    "firm_name": "Pashov Audit Group",
+    "firm_logo_square": "Pashov_square.png",
+    "protocol_name": "RipIt_2025-04-25",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Pashov Audit Group"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Pashov Audit Group",
+        "logo_square": "Pashov_square.png"
+    },
+    "protocols_protocol": {
+        "name": "RipIt_2025-04-25",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

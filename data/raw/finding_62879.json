@@ -1,0 +1,45 @@
+{
+    "id": 62879,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 30,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3455,
+    "title": "[L-02] Missing ETH `receive()` Function Despite Withdraw Functionality",
+    "content": "\n## Severity\n\nLow Risk\n\n## Description\n\nThe `MonsterNFT` contract implements a `withdraw()` function that allows authorized users to withdraw ETH from the contract, indicating that the contract is designed to handle ETH. However, the contract lacks a `receive()`, `fallback()` or any other `payable` function, making it impossible for the contract to accept ETH through direct transfers.\n\nThis creates a functional gap where the contract has withdrawal functionality but no way to receive ETH.\n\n## Location of Affected Code\n\nFile: [src/MonsterNFT.sol](https://github.com/SlothFi/nft-contract/blob/94226da94ef06ceeec906844e5b261b7934ee34a/src/MonsterNFT.sol)\n\n```solidity\n// ============ WITHDRAW ============\n\n/**\n * @notice Withdraw ETH from contract\n * @param amount Amount to withdraw\n */\nfunction withdraw(uint256 amount) external onlyRole(MANAGER_ROLE) nonReentrant {\n    require(address(this).balance >= amount, \"Insufficient balance\");\n    (bool success, ) = payable(msg.sender).call{value: amount}(\"\");\n    require(success, \"Transfer failed\");\n}\n```\n\n## Impact\n\nAttempts to send ETH to the contract will fail.\n\n## Proof of Concept\n\nAdd the following test to `test/MonsterNFT.t.sol`:\n\n```solidity\nfunction test_cannot_receive_eth() public {\n    vm.deal(address(manager), 10 ether);\n    vm.prank(manager);\n    (bool success, ) = payable(address(nft)).call{value: 1 ether}(\"\");\n    assertTrue(success, \"Cannot receive ETH\");\n}\n```\n\nThe other tests present in the file missed this issue as they directly use the `vm.deal` cheat code to assign ETH to the contract and then withdraw it.\n\n## Recommendation\n\nAdd a `receive()` function to allow the contract to accept ETH:\n\n```solidity\n/// @notice Accept direct ETH transfers\nreceive() external payable {}\n```\n\nAlternatively, if ETH deposits are not intended, consider removing the `withdraw()` function or adding clear documentation explaining how ETH is expected to enter the contract.\n\n## Team Response\n\nFixed.\n\n",
+    "summary": "",
+    "report_date": "2025-10-09T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/shieldify-security/audits-portfolio-md/blob/main/Spellborne-Security-Review.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "l-02-missing-eth-receive-function-despite-withdraw-functionality-shieldify-none-spellborne-markdown",
+    "firm_name": "Shieldify",
+    "firm_logo_square": "Shieldify_square.png",
+    "protocol_name": "Spellborne",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Shieldify Security"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Shieldify",
+        "logo_square": "Shieldify_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Spellborne",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

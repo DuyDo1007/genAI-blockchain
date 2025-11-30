@@ -1,0 +1,55 @@
+{
+    "id": 62307,
+    "kind": "PDF",
+    "auditfirm_id": 6,
+    "impact": "LOW",
+    "finders_count": 3,
+    "protocol_id": 3396,
+    "title": "First added reserve asset cannot be added again with the other reserve type",
+    "content": "## Vulnerability Report\n\n## Severity\n**Low Risk**\n\n## Context\nLendingPool.sol#L777-L791\n\n## Description\nReserves list has been updated to contain an address and a reserve type (rehypothetication enabled/disabled). However, in the condition checking if a reserve has been added (in the first token special case), only the asset is checked. This would prevent adding the first asset again, but with the other reserve type.\n\n## Recommendation\n```solidity\nfunction _addReserveToList(address asset, bool reserveType) internal {\n    uint256 reservesCount = _reservesCount;\n    require(reservesCount < _maxNumberOfReserves, Errors.LP_NO_MORE_RESERVES_ALLOWED);\n    bool reserveAlreadyAdded =\n        - _reserves[asset][reserveType].id != 0 || _reservesList[0].asset == asset;\n        + _reserves[asset][reserveType].id != 0 ||\n        + (_reservesList[0].asset == asset && _reservesList[0].reserveType == reserveType);\n    if (!reserveAlreadyAdded) {\n        _reserves[asset][reserveType].id = uint8(reservesCount);\n        _reservesList[reservesCount] = DataTypes.ReserveReference(asset, reserveType);\n        reservesCount = reservesCount + 1;\n    }\n}\n```\n\n## Notes\n- **Astera:** Fixed in commit 1eb7b435.\n- **Spearbit:** Fix verified.",
+    "summary": "",
+    "report_date": "2025-08-29T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Astera-Spearbit-Security-Review-December-2024.pdf",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Astera-Spearbit-Security-Review-December-2024.pdf",
+    "github_link": "",
+    "pdf_link": "https://solodit-bucket.s3.amazonaws.com/storage/reports/spearbit/Astera-Spearbit-Security-Review-December-2024.pdf",
+    "pdf_page_from": 36,
+    "contest_id": "",
+    "slug": "first-added-reserve-asset-cannot-be-added-again-with-the-other-reserve-type-spearbit-none-astera-pdf",
+    "firm_name": "Spearbit",
+    "firm_logo_square": "spearbit_square.png",
+    "protocol_name": "Astera",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Saw-mon and Natalie"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Cergyk"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Jonatas Martins"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Spearbit",
+        "logo_square": "spearbit_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Astera",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

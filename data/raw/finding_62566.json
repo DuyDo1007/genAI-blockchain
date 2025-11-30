@@ -1,0 +1,45 @@
+{
+    "id": 62566,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 16,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3420,
+    "title": "[L-08] Compatibility issues with `transferFrom()` in ERC20",
+    "content": "\n_Resolved_\n\nThe `Marketplace` contract uses the `transferFrom` method to handle payments in the `acceptedCurrency`:\n\n```solidity\n            address payee = chargeDelegate ? address(msg.sender) : listings[i].receiver;\n\n            // External calls after state changes\n            IERC20(acceptedCurrency).transferFrom(payee, listings[i].request.owner, sellerAmount);\n            IERC20(acceptedCurrency).transferFrom(payee, address(this), feeAmount);\n```\n\nWhile the project currently states that only `USDC` is used, the implementation does not account for potential compatibility issues with other ERC20 tokens, such as `USDT`, which may have different transfer mechanisms.\n\nFurthermore, the function allows for the modification of `acceptedCurrency`, which could lead to unexpected behavior if a non-compliant token is set as the accepted currency in the future.\n\n```solidity\n    function setAcceptedCurrency(address newERC20TokenAddress) external {\n        require(msg.sender == marketplaceAdmin, \"Only marketplaceAdmin can call\");\n        if (newERC20TokenAddress == address(0)) revert InvalidCurrencyAddress();\n        acceptedCurrency = newERC20TokenAddress;\n    }\n```\n\n Instead of using `transferFrom`, use `safeTransferFrom` for better handling of the case.\n\n\n\n",
+    "summary": "",
+    "report_date": "2025-09-11T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/pashov/audits/blob/master/team/md/RipIt-security-review_2025-04-25.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "l-08-compatibility-issues-with-transferfrom-in-erc20-pashov-audit-group-none-ripit_2025-04-25-markdown",
+    "firm_name": "Pashov Audit Group",
+    "firm_logo_square": "Pashov_square.png",
+    "protocol_name": "RipIt_2025-04-25",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Pashov Audit Group"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Pashov Audit Group",
+        "logo_square": "Pashov_square.png"
+    },
+    "protocols_protocol": {
+        "name": "RipIt_2025-04-25",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

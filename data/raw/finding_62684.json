@@ -1,0 +1,45 @@
+{
+    "id": 62684,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 23,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3435,
+    "title": "Initialized `assetDecimals` May Become Stale",
+    "content": "##### Description\nThis issue has been identified within the constructor of the `ChainlinkCompositeOracleProvider` contract.\n\n`assetDecimals` is copied once from `feed.decimals()`. If the chainlink oracle's aggregator is upgraded or replaced, the stored value may become wrong, producing mis‑scaled prices.\n##### Recommendation\nWe recommend querying `feed.decimals()` on every call or adding an owner‑only function to update `assetDecimals` through a timelock. ",
+    "summary": "",
+    "report_date": "2025-09-19T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/mixbytes/audits_public/blob/master/NUTS%20Finance/Tapio/README.md#14-initialized-assetdecimals-may-become-stale",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "initialized-assetdecimals-may-become-stale-mixbytes-none-nuts-finance-markdown",
+    "firm_name": "MixBytes",
+    "firm_logo_square": "mixbytes_square.png",
+    "protocol_name": "NUTS Finance",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "MixBytes"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "MixBytes",
+        "logo_square": "mixbytes_square.png"
+    },
+    "protocols_protocol": {
+        "name": "NUTS Finance",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

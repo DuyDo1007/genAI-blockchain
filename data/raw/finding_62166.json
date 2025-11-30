@@ -1,0 +1,80 @@
+{
+    "id": 62166,
+    "kind": "GIT",
+    "auditfirm_id": 3,
+    "impact": "MEDIUM",
+    "finders_count": 8,
+    "protocol_id": 3130,
+    "title": "M-4: Cannot repay or liquidate on paused asset",
+    "content": "\nSource: https://github.com/sherlock-audit/2025-07-cap-judging/issues/180 \n\n## Found by \n0x73696d616f, Bigsam, Knight1, Tigerfrake, dobrevaleri, farismaulana, montecristo, pashap9990\n\n### Summary\n\nAlthough the protocol allows repayment on paused asset, it cannot be done because Lender contract tries an unnecessary (and prohibited due to pause) borrow from Vault contract.\n\n### Root Cause\n\nFirst, let's see why repayment on paused asset is an intended protocol design.\n\n- In Lender contract: Asset's paused state [is checked on borrow](https://github.com/sherlock-audit/2025-07-cap/blob/2bd34fa369d36af8ecc377090d3292ea74ccc669/cap-contracts/contracts/lendingPool/libraries/ValidationLogic.sol#L62), but __not__ checked [on liquidation](https://github.com/sherlock-audit/2025-07-cap/blob/2bd34fa369d36af8ecc377090d3292ea74ccc669/cap-contracts/contracts/lendingPool/libraries/ValidationLogic.sol#L87-L96)\n- In Vault contract: `whenNotPaused` modifier is applied to [`mint`](https://github.com/sherlock-audit/2025-07-cap/blob/2bd34fa369d36af8ecc377090d3292ea74ccc669/cap-contracts/contracts/vault/libraries/VaultLogic.sol#L118) and [`borrow`](https://github.com/sherlock-audit/2025-07-cap/blob/2bd34fa369d36af8ecc377090d3292ea74ccc669/cap-contracts/contracts/vault/libraries/VaultLogic.sol#L188) functions, but __not__ applied to [`burn`](https://github.com/sherlock-audit/2025-07-cap/blob/2bd34fa369d36af8ecc377090d3292ea74ccc669/cap-contracts/contracts/vault/libraries/VaultLogic.sol#L138-L140) and [`repay`](https://github.com/sherlock-audit/2025-07-cap/blob/2bd34fa369d36af8ecc377090d3292ea74ccc669/cap-contracts/contracts/vault/libraries/VaultLogic.sol#L202-L204) functions\n- In `BorrowLogic` library, realized interests are [specially](https://github.com/sherlock-audit/2025-07-cap/blob/2bd34fa369d36af8ecc377090d3292ea74ccc669/cap-contracts/contracts/lendingPool/libraries/BorrowLogic.sol#L243) [handled](https://github.com/sherlock-audit/2025-07-cap/blob/2bd34fa369d36af8ecc377090d3292ea74ccc669/cap-contracts/contracts/lendingPool/libraries/BorrowLogic.sol#L262-L264) if the asset is paused.\n\nSo for the paused assets, the protocol wants to:\n\n- Disallow minting or borrowing\n- Allow repaying or liquidating\n- Avoid/delay collecting interest\n\nHowever, repayment on paused assets (and consequently liquidations) will not be processed because Lender contract unncessarily tries to borrow from Vault contract:\n\n- Prior to repayment, lender contract [realizes restaker interest](https://github.com/sherlock-audit/2025-07-cap/blob/2bd34fa369d36af8ecc377090d3292ea74ccc669/cap-contracts/contracts/lendingPool/libraries/BorrowLogic.sol#L104)\n- Since the asset is paused, [`realizedInterest = 0`](https://github.com/sherlock-audit/2025-07-cap/blob/2bd34fa369d36af8ecc377090d3292ea74ccc669/cap-contracts/contracts/lendingPool/libraries/BorrowLogic.sol#L262-L264)\n- Since there is no realization, lender contract doesn't need to borrow from Vault contract to repay the interest. However, it tries to borrow 0 from Vault contract:\n- Because the asset is paused, Vault contract will [revert with `AssetPaused` error](https://github.com/sherlock-audit/2025-07-cap/blob/2bd34fa369d36af8ecc377090d3292ea74ccc669/cap-contracts/contracts/vault/libraries/VaultLogic.sol#L188)\n\n[File: cap-contracts/contracts/lendingPool/libraries/BorrowLogic.sol](https://github.com/sherlock-audit/2025-07-cap/blob/2bd34fa369d36af8ecc377090d3292ea74ccc669/cap-contracts/contracts/lendingPool/libraries/BorrowLogic.sol#L201-L220)\n```solidity\n201:    function realizeRestakerInterest(ILender.LenderStorage storage $, address _agent, address _asset)\n202:         public\n203:         returns (uint256 realizedInterest)\n204:     {\n205:         ILender.ReserveData storage reserve = $.reservesData[_asset];\n206:         uint256 unrealizedInterest;\n207:         (realizedInterest, unrealizedInterest) = maxRestakerRealization($, _agent, _asset);\n208:         reserve.lastRealizationTime[_agent] = block.timestamp;\n209: \n210:         if (realizedInterest == 0 && unrealizedInterest == 0) return 0;\n211: \n212:         reserve.debt += realizedInterest;\n213:         reserve.unrealizedInterest[_agent] += unrealizedInterest;\n214:         reserve.totalUnrealizedInterest += unrealizedInterest;\n215: \n216:         IDebtToken(reserve.debtToken).mint(_agent, realizedInterest + unrealizedInterest);\n217:@>       IVault(reserve.vault).borrow(_asset, realizedInterest, $.delegation);\n218:         IDelegation($.delegation).distributeRewards(_agent, _asset);\n219:         emit RealizeInterest(_asset, realizedInterest, $.delegation);\n220:     }\n```\n\n### Internal Pre-conditions\n\nAn asset is paused\n\n### External Pre-conditions\n\nn/a\n\n### Attack Path\n\nn/a\n\n### Impact\n\nThe protocol cannot get debt repaid from agents on paused assets.\n\n### PoC\n\n```solidity\npragma solidity ^0.8.28;\n\nimport { IOracle } from \"../contracts/interfaces/IOracle.sol\";\nimport { TestDeployer } from \"./deploy/TestDeployer.sol\";\nimport { console } from \"forge-std/console.sol\";\n\ncontract POC is TestDeployer {\n    address user_agent;\n\n    function setUp() public {\n        _deployCapTestEnvironment();\n\n        _initTestVaultLiquidity(usdVault);\n        _initSymbioticVaultsLiquidity(env);\n\n        user_agent = _getRandomAgent();\n\n        vm.startPrank(env.symbiotic.users.vault_admin);\n        _symbioticVaultDelegateToAgent(symbioticWethVault, env.symbiotic.networkAdapter, user_agent, 100e18);\n        vm.stopPrank();\n    }\n\n    function test_submissionValidity() public {\n        _setAssetOraclePrice(address(weth), 2000e8);\n        vm.startPrank(user_agent);\n        lender.borrow(address(usdc), 11000e6, user_agent);\n        vm.stopPrank();\n\n        vm.startPrank(env.users.access_control_admin);\n        accessControl.grantAccess(lender.pauseAsset.selector, address(lender), env.users.vault_config_admin);\n        vm.stopPrank();\n\n        vm.startPrank(env.users.vault_config_admin);\n        cUSD.pauseAsset(address(usdc));\n        lender.pauseAsset(address(usdc), true);\n        vm.stopPrank();\n\n        vm.startPrank(user_agent);\n        _timeTravel(90 days);\n        usdc.approve(address(lender), 5000e6);\n\n        vm.expectRevert(abi.encodeWithSignature(\"AssetPaused(address)\", address(usdc)));\n        lender.repay(address(usdc), 5000e6, user_agent);\n        vm.stopPrank();\n    }\n}\n\n```\n\n### Mitigation\n\n```diff\ndiff --git a/cap-contracts/contracts/lendingPool/libraries/BorrowLogic.sol b/cap-contracts/contracts/lendingPool/libraries/BorrowLogic.sol\nindex 3c2b60a..e36f043 100644\n--- a/cap-contracts/contracts/lendingPool/libraries/BorrowLogic.sol\n+++ b/cap-contracts/contracts/lendingPool/libraries/BorrowLogic.sol\n@@ -214,8 +214,10 @@ library BorrowLogic {\n         reserve.totalUnrealizedInterest += unrealizedInterest;\n \n         IDebtToken(reserve.debtToken).mint(_agent, realizedInterest + unrealizedInterest);\n-        IVault(reserve.vault).borrow(_asset, realizedInterest, $.delegation);\n-        IDelegation($.delegation).distributeRewards(_agent, _asset);\n+        if (realizedInterest > 0) {\n+            IVault(reserve.vault).borrow(_asset, realizedInterest, $.delegation);\n+            IDelegation($.delegation).distributeRewards(_agent, _asset);\n+        }\n         emit RealizeInterest(_asset, realizedInterest, $.delegation);\n     }\n \n\n```\n\nAfter applying the patch, run the POC again to see if repayment on paused asset is possible.\n\n",
+    "summary": "\nThis bug report discusses an issue with the protocol that allows for repayment on paused assets, but it is not actually possible to do so due to a coding error. The root cause of this issue is that the lender contract tries to borrow from the vault contract, which is not allowed while the asset is paused. This goes against the intended design of the protocol, which allows for repayment and liquidation on paused assets. This bug affects the protocol's ability to collect debt from agents on paused assets. To fix this issue, a patch has been suggested that would only allow for borrowing if there is actually interest to be repaid. A proof of concept has been provided to test the effectiveness of this patch.",
+    "report_date": "2025-07-24T15:00:00.000Z",
+    "contest_prize_txt": "126000 USDC",
+    "contest_link": "https://app.sherlock.xyz/audits/contests/990",
+    "sponsor_name": "",
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "",
+    "github_link": "https://github.com/sherlock-audit/2025-07-cap-judging/issues/180",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "990",
+    "slug": "m-4-cannot-repay-or-liquidate-on-paused-asset-sherlock-cap-git",
+    "firm_name": "Sherlock",
+    "firm_logo_square": "sherlock_square.png",
+    "protocol_name": "Cap",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "montecristo"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Knight1"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "farismaulana"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "pashap9990"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "0x73696d616f"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Bigsam"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Tigerfrake"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "dobrevaleri"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Sherlock",
+        "logo_square": "sherlock_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Cap",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

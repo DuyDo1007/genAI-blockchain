@@ -1,0 +1,45 @@
+{
+    "id": 62713,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 32,
+    "impact": "MEDIUM",
+    "finders_count": 1,
+    "protocol_id": 3437,
+    "title": "[M-01] Missing Validation of deposit to targetvault Return Value",
+    "content": "\n## Severity\n\nMedium\n\n## Description\n\nThe _deployFunds function forwards funds to targetVault by calling:\n\ntargetVault.deposit(deployAmount, address(this));\n\nThe _deployFunds function assumes targetVault.deposit(...) will always give the strategy a non-zero amount of vault shares. In normal, well-behaved vaults that’s true, but there are cases where this assumption can fail. For example, if a freshly launched/integrated vault has been pre-funded (someone transfers assets directly to the vault contract without calling transfer the vault’s share-calculation can be skewed and a subsequent deposit call can result in 0 shares minted for the depositor. Other edge cases could also lead to the same outcome, leaving the strategy’s assets effectively locked in the vault with no credited shares.\n\nRecommendation\nAlways validate that shares were actually received:\n\n```solidity\nuint256 sharesReceived = targetVault.deposit(deployAmount, address(this));\nrequire(sharesReceived > 0, \"Deposit did not mint shares\");\n```\n\n## Team Response\n\nFixed.\n\n\n",
+    "summary": "\nThis bug report is about the _deployFunds function in a smart contract. The function is supposed to forward funds to a specific targetVault, but there is a problem with the assumption that the targetVault will always give the strategy a non-zero amount of vault shares. This assumption can fail in certain cases, such as when a newly launched vault has been pre-funded or other edge cases. This can result in 0 shares being minted for the depositor, effectively locking the strategy's assets in the vault. The recommendation is to always validate that shares were actually received before proceeding. The team has responded that the issue has been fixed.",
+    "report_date": "2025-09-20T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/Kann-Audits/Kann-Audits/blob/main/reports/md-format/private-audits-reports/Gluon-security-review_2025-09-20.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "m-01-missing-validation-of-deposit-to-targetvault-return-value-kann-none-gluon-security-review_2025-09-20-markdown",
+    "firm_name": "Kann",
+    "firm_logo_square": "Kann_Audits_square.png",
+    "protocol_name": "Gluon-security-review_2025-09-20",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Kann"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Kann",
+        "logo_square": "Kann_Audits_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Gluon-security-review_2025-09-20",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

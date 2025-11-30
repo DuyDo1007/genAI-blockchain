@@ -1,0 +1,55 @@
+{
+    "id": 62634,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 37,
+    "impact": "LOW",
+    "finders_count": 3,
+    "protocol_id": 3424,
+    "title": "Mismatched Function Name",
+    "content": "**Update**\nMarked as \"Acknowledged\" by the client. The client provided the following explanation:\n\n> setCollateralFactor() does not have a name that explicitly reflects its ability to also set the liquidation threshold, but both are co-related, this behavior is documented in the comments, and this design choice was made to align with the Isolated Interface.\n\n**File(s) affected:**`SetterFacet.sol`\n\n**Description:** The functions `setCollateralFactor()` and `__setCollateralFactor()` are not only involved in setting a market's collateral factor, but also in setting its liquidation threshold. Hence, the function should be named differently, so as to avoid user confusion.\n\n**Recommendation:** Consider renaming the function something more accurate and consistent with the rest of the codebase, such as `setLTVFactors()`.",
+    "summary": "",
+    "report_date": "2025-09-14T02:54:03.031Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://certificate.quantstamp.com/full/e-mode-core-pool-venus/6e476cd9-4dd6-4df2-b2d1-b668e1b5c4ea/index.html",
+    "sponsor_name": "",
+    "sponsor_link": "",
+    "quality_score": 5,
+    "general_score": 5,
+    "source_link": "https://certificate.quantstamp.com/full/e-mode-core-pool-venus/6e476cd9-4dd6-4df2-b2d1-b668e1b5c4ea/index.html",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "mismatched-function-name-quantstamp-e-mode-core-pool-venus-markdown",
+    "firm_name": "Quantstamp",
+    "firm_logo_square": "quantstamp_square.png",
+    "protocol_name": "e-mode Core Pool (Venus)",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Andrei Stefan"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Mustafa Hasan"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Rabib Islam"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Quantstamp",
+        "logo_square": "quantstamp_square.png"
+    },
+    "protocols_protocol": {
+        "name": "e-mode Core Pool (Venus)",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

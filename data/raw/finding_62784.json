@@ -1,0 +1,55 @@
+{
+    "id": 62784,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 37,
+    "impact": "LOW",
+    "finders_count": 3,
+    "protocol_id": 3426,
+    "title": "Unchecked Uint256 to Uint128 Down-Cast May Truncate Very Large Deposits",
+    "content": "**Update**\nMarked as \"Fixed\" by the client. Addressed in: `a3b3121`.\n\n**File(s) affected:**`contracts/CampTimelockEscrowNativeOFT.sol`\n\n**Description:** The `bridgeOut()` function performs unchecked down-casting from `uint256` to `uint128` when storing deposit amounts in the `Deposit` struct. Both `_originalAmount` and `_minAmount` parameters are cast to `uint128` without validation that they fit within the target type's range.\n\n```\nfunction bridgeOut(address _to, uint128 _gaslimit, uint256 _originalAmount, uint256 _minAmount) external payable nonReentrant {\n    // ... code ...\n    else {\n        uint256 _totalDeposits = totalDeposits;\n\n        pending[_totalDeposits].to = _to;\n        pending[_totalDeposits].amount = uint128(_originalAmount);      // Unchecked downcast\n        pending[_totalDeposits].minAmount = uint128(_minAmount);        // Unchecked downcast\n\n        // ... rest of function\n    }\n}\n```\n\nIf either `_originalAmount` or `_minAmount` exceeds `type(uint128).max` (approximately 3.4 × 10^38), the values will silently wrap around to a much smaller number due to integer overflow. This could result in users unintentionally bridging significantly fewer tokens than intended, leading to a loss of funds without any explicit revert or warning.\n\n**Exploit Scenario:**\n\n1.   Alice intends to bridge a very large amount of native tokens (greater than 2^128-1 wei).\n2.   Alice calls `bridgeOut()` with `_originalAmount = 2^128 + 1000` wei.\n3.   The down-cast `uint128(_originalAmount)` silently truncates this to `1000` wei due to overflow.\n4.   Alice's deposit is recorded with `amount = 1000` wei instead of her intended large amount.\n5.   When `batchRelease()` processes Alice's deposit, only 1000 wei is bridged to the destination chain.\n6.   Alice loses the difference between her intended amount and the truncated amount.\n\n**Recommendation:** Add validation checks to ensure that both `_originalAmount` and `_minAmount` fit within the `uint128` range before performing the down-cast:\n\n```\nfunction bridgeOut(address _to, uint128 _gaslimit, uint256 _originalAmount, uint256 _minAmount) external payable nonReentrant {\n    require(_originalAmount <= type(uint128).max, \"CampTimelockEscrowNativeOFT: originalAmount too large\");\n    require(_minAmount <= type(uint128).max, \"CampTimelockEscrowNativeOFT: minAmount too large\");\n\n    // ... rest of function\n}\n```\n\nAlternatively, consider changing the `Deposit` struct to use `uint256` for both `amount` and `minAmount` fields to avoid the need for down-casting entirely.",
+    "summary": "",
+    "report_date": "2025-09-15T14:22:57.388Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://certificate.quantstamp.com/full/camp/ae830654-5f2b-4d21-aba2-1de572092da6/index.html",
+    "sponsor_name": "",
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://certificate.quantstamp.com/full/camp/ae830654-5f2b-4d21-aba2-1de572092da6/index.html",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "unchecked-uint256-to-uint128-down-cast-may-truncate-very-large-deposits-quantstamp-camp-markdown",
+    "firm_name": "Quantstamp",
+    "firm_logo_square": "quantstamp_square.png",
+    "protocol_name": "Camp",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Paul Clemson"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Gereon Mendler"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Andy Lin"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Quantstamp",
+        "logo_square": "quantstamp_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Camp",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

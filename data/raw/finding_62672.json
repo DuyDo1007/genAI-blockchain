@@ -1,0 +1,45 @@
+{
+    "id": 62672,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 23,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3435,
+    "title": "Name and Symbol Do Not Reference Underlying LP Token",
+    "content": "##### Description\nThis issue has been identified in the constructor of `WLPToken.sol`. The default `name` and `symbol` (`\"Wrapped LP Token\"`, `\"wlpToken\"`) do not reference the name or symbol of the underlying `lpToken`, which can confuse users about the relationship between the wrapped token and its underlying asset.\n\nThe issue is classified as **low** severity because it impacts clarity rather than functionality or security.\n\n##### Recommendation\nWe recommend setting the `name` and `symbol` of `WLPToken` to include the underlying LP token’s identity, improving clarity for users and integrators.\n",
+    "summary": "",
+    "report_date": "2025-09-19T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/mixbytes/audits_public/blob/master/NUTS%20Finance/Tapio/README.md#2-name-and-symbol-do-not-reference-underlying-lp-token",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "name-and-symbol-do-not-reference-underlying-lp-token-mixbytes-none-nuts-finance-markdown",
+    "firm_name": "MixBytes",
+    "firm_logo_square": "mixbytes_square.png",
+    "protocol_name": "NUTS Finance",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "MixBytes"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "MixBytes",
+        "logo_square": "mixbytes_square.png"
+    },
+    "protocols_protocol": {
+        "name": "NUTS Finance",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

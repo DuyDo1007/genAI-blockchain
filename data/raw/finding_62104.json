@@ -1,0 +1,55 @@
+{
+    "id": 62104,
+    "kind": "GIT",
+    "auditfirm_id": 3,
+    "impact": "MEDIUM",
+    "finders_count": 3,
+    "protocol_id": 3050,
+    "title": "M-6: BlsBn254 is not available in certain chains due to hardcoded gas limit",
+    "content": "\nSource: https://github.com/sherlock-audit/2025-06-symbiotic-relay-judging/issues/422 \n\n## Found by \n0x73696d616f, Drynooo, klaus\n\n### Summary\n\nEcParing precompile always fails on certain chains due to the hardcoded gas limit, so BlsBn254 is not available on certain chains.\n\n### Root Cause\n\n\n- [contracts/libraries/sigs/SigBlsBn254.sol#L39](https://github.com/sherlock-audit/2025-06-symbiotic-relay/blob/435a21fd81bcd588439feef3108580f535b9e5eb/middleware-sdk/src/contracts/libraries/sigs/SigBlsBn254.sol#L39)\n- [contracts/libraries/sigs/SigBlsBn254.sol#L65](https://github.com/sherlock-audit/2025-06-symbiotic-relay/blob/435a21fd81bcd588439feef3108580f535b9e5eb/middleware-sdk/src/contracts/libraries/sigs/SigBlsBn254.sol#L65)\n\n`SigBlsBn254.verify`  uses the hardcoded `PAIRING_CHECK_GAS_LIMIT(= 120_000)` when calling `BN254.safePairing`. This is the gas cost of EcParing based on `34000 * k + 45000` when k=2, as defined in [EIP-1108](https://eips.ethereum.org/EIPS/eip-1108).\n\n```solidity\n@>  uint256 internal constant PAIRING_CHECK_GAS_LIMIT = 120_000;\n\n    function verify(\n        bytes memory keyBytes,\n        bytes memory message,\n        bytes memory signature,\n        bytes memory extraData\n    ) internal view returns (bool) {\n        ...\n\n        (bool success, bool result) = BN254.safePairing(\n            signatureG1.plus(keyG1.scalar_mul(alpha)),\n            BN254.negGeneratorG2(),\n            messageG1.plus(BN254.generatorG1().scalar_mul(alpha)),\n            keyG2,\n@>          PAIRING_CHECK_GAS_LIMIT\n        );\n        return success && result;\n    }\n\n    ////////////////////////////\n    // BN254.safePairing\n    function safePairing(\n        G1Point memory a1,\n        G2Point memory a2,\n        G1Point memory b1,\n        G2Point memory b2,\n@>      uint256 pairingGas\n    ) internal view returns (bool, bool) {\n        ...\n\n        assembly {\n@>          success := staticcall(pairingGas, 8, input, mul(12, 0x20), out, 0x20)\n        }\n        ...\n    }\n```\n\n\nThe gas cost for precompile may change or vary by chain. For example, ZKSync (included in the chain to be deployed) updated the EcAdd, EcMul, and EcPairing precompiles and changed the gas cost in the [ZIP-11. V28 Precompile Upgrade](https://www.tally.xyz/gov/zksync/proposal/54063168049426383294336598998322383147338444177076559098597792110160570100155?govId=eip155:324:0x76705327e682F2d96943280D99464Ab61219e34f) upgrade in May 2025.\n\nThe above code cause problems in ZKSync. The following is the new EcPairing code updated at [ZKSync V28](https://github.com/matter-labs/era-contracts/blob/release-v28/system-contracts/contracts/precompiles/EcPairing.yul). The gas cost is calculated via `80000 * k`. When k=2, the required gas is 160_000, which is higher than the `PAIRING_CHECK_GAS_LIMIT`. EcParing always fails when gas is insufficient, so the BlsBn254 signature check in ZKSync will always fail.\n\n```yul\nfunction ECPAIRING_BASE_GAS_COST() -> ret {\n    ret := 0\n}\n\nfunction ECPAIRING_PAIR_GAS_COST() -> ret {\n@>  ret := 80000\n}\n\nfunction ecpairingGasCost(pairs) -> ret{\n@>  let gasPerPairs := mul(ECPAIRING_PAIR_GAS_COST(), pairs)\n    ret := add(ECPAIRING_BASE_GAS_COST(), gasPerPairs)\n}\n```\n\n\n### Internal Pre-conditions\n\n1. Use BlsBn254 for signing.\n\n### External Pre-conditions\n\n1. The EcPairing precompile gas cost at the deployed chain does not follow [EIP-1108](https://eips.ethereum.org/EIPS/eip-1108).\n\n\n### Attack Path\n\nThe issue is caused by a bug.\n\n### Impact\n\nBlsBn254 is not available on some chains.\n\n### PoC\n\n\nThe [ZIP-11. V28 Precompile Upgrade](https://www.tally.xyz/gov/zksync/proposal/54063168049426383294336598998322383147338444177076559098597792110160570100155?govId=eip155:324:0x76705327e682F2d96943280D99464Ab61219e34f) is only available on the ZKSync mainnet (I don't think it's applied to the testnet), and it is not reproducible with the foundry fork test, so you need to test it directly on the mainnet.\n\nDeploy the following code to the ZKSync Era mainnet and run it to see the gas cost. If you put the correct `input` in the `verify` function and experiment with incrementing `pairingGas` from 120_000, you will see that at around 161_000, the signature verification succeeds with `success` and `out[0]` set to 1. This is consistent with ZKSync's `80000 * k (k = 2)`.\n\n```solidity\n// SPDX-License-Identifier: MIT\npragma solidity ^0.8.20;\n\ncontract Test {\n\n    event Cost(uint256);\n    event Out(bool, uint256);\n\n    function test (uint256[12] memory input, uint256 pairingGas) public {\n        (uint256 gasBefore, uint256 gasAfter, bool success, uint256 out) = verify(input, pairingGas);\n        emit Cost(gasBefore - gasAfter);\n        emit Out(success, out);\n    }\n\n    function verify (uint256[12] memory input, uint256 pairingGas) public view returns (uint256, uint256, bool, uint256) {\n        uint256[1] memory out;\n        bool success;\n\n        uint256 gasBefore = gasleft();\n        // solium-disable-next-line security/no-inline-assembly\n        assembly {\n            success := staticcall(pairingGas, 8, input, mul(12, 0x20), out, 0x20)\n        }\n        uint256 gasAfter = gasleft();\n        return (gasBefore, gasAfter, success, out[0]);\n    }\n}\n```\n\nUse the following as the `input` parameter, created with the correct signature and key value. This is the value from the test code.\n\n```json\n[\n17542794946843030738197687269502130768488764040084025709702018229683082027107, 21243454333462907454433938848788936660904069824545612138480299027504168819393, 11559732032986387107991004021392285783925812861821192530917403151452391805634, 10857046999023057135944570762232829481370756359578518086990519993285655852781, 17805874995975841540914202342111839520379459829704422454583296818431106115052, 13392588948715843804641432497768002650278120570034223513918757245338268106653, 6152845192698230377440204073057238033424791113774748884801148069022325658846, 13760496706863554449593094343798996929546352261485265365831743695186162488392, 10168917783125035928329339378130255896597415372015030444874307897081997728948, 15338339620195733484325031668011173090672215643291231872576243132177438055881, 10104509023153927337647655231628382133731833653099790728025758502925918550767, 13448048280709447326318302930315758447948705837394892676501482696723894570897\n]\n```\n\n### Mitigation\n\nThe gas cost required to call Precompile may be changed in the future and can differ between chains. Therefore, instead of using `PAIRING_CHECK_GAS_LIMIT`, you should use a variable that can be set by an administrator.\n\n## Discussion\n\n**sherlock-admin2**\n\nThe protocol team fixed this issue in the following PRs/commits:\nhttps://github.com/symbioticfi/relay-contracts/pull/33/commits/cb0c4e22963b3bc5f532b6250e6891fa077c6069\n\n\n\n\n",
+    "summary": "\nThe bug report discusses an issue with the EcParing precompile always failing on certain chains due to a hardcoded gas limit. This means that the BlsBn254 signature, which is used for signing, is not available on some chains. The root cause of this issue is a bug in the code, where the gas cost for the precompile is not properly calculated and can vary between chains. This was discovered by multiple individuals and has been fixed by the protocol team. To mitigate this issue, the hardcoded gas limit should be replaced with a variable that can be set by an administrator. ",
+    "report_date": "2025-07-10T15:00:00.000Z",
+    "contest_prize_txt": "100000 USDC",
+    "contest_link": "https://app.sherlock.xyz/audits/contests/967",
+    "sponsor_name": "",
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "",
+    "github_link": "https://github.com/sherlock-audit/2025-06-symbiotic-relay-judging/issues/422",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "967",
+    "slug": "m-6-blsbn254-is-not-available-in-certain-chains-due-to-hardcoded-gas-limit-sherlock-symbiotic-relay-git",
+    "firm_name": "Sherlock",
+    "firm_logo_square": "sherlock_square.png",
+    "protocol_name": "Symbiotic Relay",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Drynooo"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "0x73696d616f"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "klaus"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Sherlock",
+        "logo_square": "sherlock_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Symbiotic Relay",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

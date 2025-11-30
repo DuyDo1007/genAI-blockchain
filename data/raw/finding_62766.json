@@ -1,0 +1,45 @@
+{
+    "id": 62766,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 16,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3443,
+    "title": "[L-06] Dust withdrawals block admin collateral by reducing `liquidityBufferSize`",
+    "content": "\n_Resolved_\n\nThe `YuzuProto.withdrawCollateral()` allows admins to withdraw excess collateral from the protocol by specifying the amount of assets they want to withdraw, and this function relies on `liquidityBufferSize()` to determine the maximum withdrawable amount.\n\nThe `liquidityBufferSize()` calculation subtracts `totalUnfinalizedOrderValue()` from the contract's asset balance, which can be reduced by pending redemption orders.\n\n```solidity\nfunction withdrawCollateral(uint256 assets, address receiver) public virtual {\n    uint256 liquidityBuffer = liquidityBufferSize();\n    if (assets > liquidityBuffer) {\n        revert ExceededLiquidityBuffer(assets, liquidityBuffer);\n    }\n    SafeERC20.safeTransfer(IERC20(asset()), receiver, assets);\n    emit WithdrawnCollateral(receiver, assets);\n}\n\nfunction liquidityBufferSize() public view virtual override returns (uint256) {\n    return super.liquidityBufferSize() - totalUnfinalizedOrderValue();\n}\n```\nWhen users perform instant withdrawals, they can reduce the available `liquidityBufferSize()` by consuming available liquidity. This creates a situation where legitimate admin collateral withdrawals might fail unexpectedly.\n\nThis can occur either through normal user operations or by intentionally executing small instant withdrawals (dust amounts) that incur small/zero fees.\n\n**Recommendation**\n\nConsider allowing admins to withdraw the maximum available amount by implementing a special flag (such as passing `type(uint256).max`) that would withdraw the remaining available liquidity buffer.\n\n\n\n",
+    "summary": "",
+    "report_date": "2025-09-28T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/pashov/audits/blob/master/team/md/YuzuUSD-security-review_2025-08-28.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "l-06-dust-withdrawals-block-admin-collateral-by-reducing-liquiditybuffersize-pashov-audit-group-none-yuzuusd_2025-08-28-markdown",
+    "firm_name": "Pashov Audit Group",
+    "firm_logo_square": "Pashov_square.png",
+    "protocol_name": "YuzuUSD_2025-08-28",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Pashov Audit Group"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Pashov Audit Group",
+        "logo_square": "Pashov_square.png"
+    },
+    "protocols_protocol": {
+        "name": "YuzuUSD_2025-08-28",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

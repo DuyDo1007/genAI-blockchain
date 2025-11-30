@@ -1,0 +1,55 @@
+{
+    "id": 62006,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 37,
+    "impact": "LOW",
+    "finders_count": 3,
+    "protocol_id": 3365,
+    "title": "Mnemonic Regex Loophole Allows Abuse of Secure Storage",
+    "content": "**Update**\nMarked as \"Fixed\" by the client. Addressed in: `f07ce8ff4159397d26be23c34f2ee1bb111612b9`. The client provided the following explanation:\n\n> Add mnemonic input sanitation with whitespace normalization\n\n**File(s) affected:**`wallet/index.ts`\n\n**Description:** The `validateWallet` function uses a regex that permits arbitrary `\\s` separators, allowing attackers to embed excessive whitespace-separated data. This could enable misuse of secure storage for arbitrary data injection. The regex `/^(?:[a-z]+\\s+){11}[a-z]+\\b|\\b(?:[a-z]+\\s+){23}[a-z]+\\b$/` does not strictly enforce word count or input size, accepting inputs longer than valid 12 or 24-word mnemonics.\n\n**Recommendation:** Normalize mnemonics before encryption (e.g., trim ends, enforce single space between words). Reject inputs that exceed the expected word count or byte size to prevent storage abuse.",
+    "summary": "",
+    "report_date": "2025-08-26T12:12:16.438Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://certificate.quantstamp.com/full/saucer-swap-wallet/d30efab8-8abd-46b1-bba5-6360b87e3aa3/index.html",
+    "sponsor_name": "",
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://certificate.quantstamp.com/full/saucer-swap-wallet/d30efab8-8abd-46b1-bba5-6360b87e3aa3/index.html",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "mnemonic-regex-loophole-allows-abuse-of-secure-storage-quantstamp-saucerswap-wallet-markdown",
+    "firm_name": "Quantstamp",
+    "firm_logo_square": "quantstamp_square.png",
+    "protocol_name": "SaucerSwap Wallet",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Albert Heinle"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Darren Jensen"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Jonathan Mevs"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Quantstamp",
+        "logo_square": "quantstamp_square.png"
+    },
+    "protocols_protocol": {
+        "name": "SaucerSwap Wallet",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

@@ -1,0 +1,60 @@
+{
+    "id": 62038,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 37,
+    "impact": "MEDIUM",
+    "finders_count": 4,
+    "protocol_id": 3368,
+    "title": "Emergency Pause Functionality Not Implemented",
+    "content": "**Update**\nMarked as \"Fixed\" by the client. Addressed in: `fcf703d`.\n\n![Image 38: Alert icon](https://certificate.quantstamp.com/full/sapien/ffb7e698-6178-46f0-8df8-52e537af70c0/static/media/success-icon-alert.4e26c8d3b65fdf9f4f0789a4086052ba.svg)\n\n**Update**\nMarked as \"Fixed\" by the client. Addressed in: `f99f1d2ce37b2710534182bb2166b648dbb14d5c`. The client provided the following explanation:\n\n> The vulnerability was fixed by implementing the missing pause() and unpause() functions in the Rewards contract.\n\n![Image 39: Alert icon](https://certificate.quantstamp.com/full/sapien/ffb7e698-6178-46f0-8df8-52e537af70c0/static/media/success-icon-alert.4e26c8d3b65fdf9f4f0789a4086052ba.svg)\n\n**Update**\nMarked as \"Fixed\" by the client. Addressed in: `f99f1d2ce37b2710534182bb2166b648dbb14d5c`. The client provided the following explanation:\n\n> The vulnerability was fixed by implementing the missing pause() and unpause() functions in the Rewards contract.\n\n**File(s) affected:**`Rewards.sol`\n\n**Description:** The `Rewards` contract inherits from `PausableUpgradeable` and includes pause checks in critical functions, but does not implement the actual `pause()` and `unpause()` functions. This means the contract cannot be paused in case of an emergency, despite functions being marked with `whenNotPaused` modifier.\n\n**Recommendation:** Implement pause functionality by adding the `pause()` and `unpause()` functions.",
+    "summary": "\nThe client has reported a bug in the `Rewards` contract, which is used in the `PausableUpgradeable` contract. The bug prevents the contract from being paused in case of an emergency, even though it includes checks for pausing in critical functions. The client has recommended implementing the `pause()` and `unpause()` functions to address this issue. The bug has been marked as \"Fixed\" by the client and the fix can be found in the code `f99f1d2ce37b2710534182bb2166b648dbb14d5c`.",
+    "report_date": "2025-03-30T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://certificate.quantstamp.com/full/sapien/ffb7e698-6178-46f0-8df8-52e537af70c0/index.html",
+    "sponsor_name": "",
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://certificate.quantstamp.com/full/sapien/ffb7e698-6178-46f0-8df8-52e537af70c0/index.html",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "emergency-pause-functionality-not-implemented-quantstamp-sapien-markdown",
+    "firm_name": "Quantstamp",
+    "firm_logo_square": "quantstamp_square.png",
+    "protocol_name": "Sapien",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Paul Clemson"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Julio Aguilar"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Mostafa Yassin"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Tim Sigl"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Quantstamp",
+        "logo_square": "quantstamp_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Sapien",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

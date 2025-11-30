@@ -1,0 +1,60 @@
+{
+    "id": 62901,
+    "kind": "PDF",
+    "auditfirm_id": 6,
+    "impact": "MEDIUM",
+    "finders_count": 4,
+    "protocol_id": 3419,
+    "title": "num_txs is incorrectly incremented on transaction replacement in pending pool",
+    "content": "## Medium Risk Vulnerability Report\n\n## Severity\n**Medium Risk**\n\n## Context\n`mod.rs#L64-L69`\n\n## Description\nIn the pending pool, the number of transactions present is tracked by `self.num_txs`, which is used for various checks, such as determining whether to drop a transaction if `self.num_txs >= MAX_TXS`. The issue arises in the function `try_insert_tx`, where `num_txs` is incorrectly incremented by 1, even during transaction replacement.\n\n```rust\nmod.rs#L64-L69:\nindexmap::map::Entry::Occupied(tx_list) => {\n    let tx = tx_list.into_mut().try_insert_tx(event_tracker, tx)?;\n    self.num_txs += 1;\n    Some(tx)\n}\n```\n\n```rust\nlist.rs#L58-L69:\nEntry::Occupied(mut entry) => {\n    let existing_tx = entry.get();\n    if &tx <= existing_tx {\n        event_tracker.drop(tx.hash(), EthTxPoolDropReason::ExistingHigherPriority);\n        return None;\n    }\n    event_tracker.replace_pending(existing_tx.hash(), tx.hash(), tx.is_owned());\n    entry.insert(tx);\n    Some(entry.into_mut())\n}\n```\n\nIn the pending pool, if a nonce in the transaction pool is already occupied and if a new transaction is better than the currently existing transaction, it will replace the existing transaction. Consequently, `Some(entry.into_mut())` will be returned.\n\nThis leads to the incorrect increment of `self.num_txs` with `self.num_txs += 1;`. In reality, the total number of transactions in the pending pool has not changed since the transaction has merely been replaced by a better one. Thus, `self.num_txs` will be inaccurately tracked by the pending pool, potentially causing transactions to be incorrectly dropped even though `MAX_TXS` has not been reached.\n\n## Recommendation\nOnly increment the `self.num_txs` counter if the current nonce entry is vacant.\n\n## Category\n**Labs**: Fixed in PR 1980.\n\n## Spearbit\nFix verified.",
+    "summary": "\nA medium risk vulnerability has been identified in the transaction pool, specifically in the function `try_insert_tx`. This function incorrectly increments the counter for the number of transactions present in the pending pool, even when a transaction is being replaced. This can lead to incorrect tracking of the number of transactions and potentially cause valid transactions to be dropped. A fix has been verified and is available in PR 1980.",
+    "report_date": "2025-09-19T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Monad-Spearbit-Security-Review-September-2025.pdf",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Monad-Spearbit-Security-Review-September-2025.pdf",
+    "github_link": "",
+    "pdf_link": "https://solodit-bucket.s3.amazonaws.com/storage/reports/spearbit/Monad-Spearbit-Security-Review-September-2025.pdf",
+    "pdf_page_from": 27,
+    "contest_id": "",
+    "slug": "num_txs-is-incorrectly-incremented-on-transaction-replacement-in-pending-pool-spearbit-none-monad-pdf",
+    "firm_name": "Spearbit",
+    "firm_logo_square": "spearbit_square.png",
+    "protocol_name": "Monad",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Haxatron"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Dtheo"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Guido Vranken"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Rikard Hjort"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Spearbit",
+        "logo_square": "spearbit_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Monad",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

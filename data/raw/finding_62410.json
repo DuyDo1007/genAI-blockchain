@@ -1,0 +1,45 @@
+{
+    "id": 62410,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 34,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3405,
+    "title": "[LOGLAB-20] `BasisStrategy::_afterIncreasePosition` may send asset to vault without `LogarithmVault.processingPendingWithdrawRequests`",
+    "content": "**Severity:** Low\n\n**Description:** The exit fee is calculated based on the amount of assets to be deutilized for the redeem/withdraw. It means only the asset amount above the `idleAssets` is subject to exit fee.\n\nAlso note that if asset is sent to the vault, it should call the `LogarithmVault.processPendingWithdrawRequests()` to ensure that the sent asset is processed for the pending withdraw. So, if there is pending withdrawal, the vault does not consider the sent asset to be 'idle'.\n\nIn the `afterAdjustPosition` called by the hedgeManager, if the adjust was to utilize, but the requested collateral delta amount is bigger than the response collateral delta amount (exceeding threshold), the deviation is sent back to the vault:\n```\n                    $.asset.safeTransferFrom(hedgeManager(), vault(), uint256(-collateralDeviation));\n```\nEven though this will make the `BasisStrategy` to pause, one can still request withdraw on the vault. If somebody is calling `requestWithdraw` after this particular case of the `afterAdjustPosition`, the exit fee might consider this collateral deviation as idle asset and incorrectly calculate the exit fee. On top of it, this asset sent by hedgeManager via BasisStrategy will be withdrawn without being queued or processed.\n```\n    function maxWithdraw(address owner) public view virtual override returns (uint256) {\n        if (paused()) {\n            return 0;\n        }\n        uint256 assets = super.maxWithdraw(owner);\n        uint256 withdrawableAssets = idleAssets();\n        return assets > withdrawableAssets ? withdrawableAssets : assets;\n    }\n```\n```\n// BasisStrategy::_afterIncreasePosition\nif (requestParams.collateralDeltaAmount > 0) {\n  (bool exceedsThreshold, int256 collateralDeviation) = _checkDeviation(\n      responseParams.collateralDeltaAmount, requestParams.collateralDeltaAmount, _responseDeviationThreshold\n  );\n  if (exceedsThreshold) {\n      if (collateralDeviation < 0) {\n          shouldPause = true;\n          $.asset.safeTransferFrom(hedgeManager(), vault(), uint256(-collateralDeviation));\n      }\n  }\n```\n\n**Remediation:**  Consider calling `LogarithmVault.processPendingWithdrawRequests()` after transferring asset to vault.\n\n**Status:** Fixed\n\n- - -",
+    "summary": "",
+    "report_date": "2024-11-25T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/solodit/solodit_content/blob/main/reports/Hexens/2024-11-25-BasisOS.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "loglab-20-basisstrategy_afterincreaseposition-may-send-asset-to-vault-without-logarithmvaultprocessingpendingwithdrawrequests-hexens-none-basisos-markdown",
+    "firm_name": "Hexens",
+    "firm_logo_square": "Hexens_square.png",
+    "protocol_name": "Basisos",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Hexens"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Hexens",
+        "logo_square": "Hexens_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Basisos",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

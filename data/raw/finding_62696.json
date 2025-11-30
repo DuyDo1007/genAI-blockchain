@@ -1,0 +1,45 @@
+{
+    "id": 62696,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 23,
+    "impact": "MEDIUM",
+    "finders_count": 1,
+    "protocol_id": 3435,
+    "title": "E‑Mode Misconfiguration Causing Inaccurate Collateral Accounting",
+    "content": "##### Description\nThis issue has been identified within the `supportEMode` function of the `RiskEngineModule` contract.\n\nAn asset may be removed from an existing E‑Mode category while still retaining its elevated collateral factor. In this scenario, if a user remains in E‑Mode, the removed asset continues to be valued with a higher collateral factor instead of returning to its true collateral value. The same issue applies to borrowed assets and their liquidation thresholds. This mismatch can yield inaccurate liquidity calculations and potentially lead to bad debt for the protocol.\n\nThe issue is classified as **medium** severity because it can expose the protocol to significant financial risk through inaccurate collateral accounting.\n\n##### Recommendation\nWe recommend prohibiting the removal of asset permissions from an existing E‑Mode category. If adjustments are necessary, consider creating a new E‑Mode category instead. Alternatively, implement robust checks in `_getCollateralFactor` and `_getLiquidationThreshold` to verify that if an asset is no longer permitted in a particular E‑Mode, the default collateral or liquidation thresholds are applied.\n",
+    "summary": "\nThe report states that there is a bug in the `supportEMode` function of the `RiskEngineModule` contract. This bug allows for an asset to be removed from an E-Mode category while still keeping its higher collateral factor. This can lead to inaccurate liquidity calculations and potential financial risk for the protocol. The severity of this issue is classified as medium. The recommendation is to prohibit the removal of asset permissions from an existing E-Mode category or to implement checks to ensure that default collateral and liquidation thresholds are applied if an asset is no longer permitted in a particular E-Mode.",
+    "report_date": "2025-09-18T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/mixbytes/audits_public/blob/master/NUTS%20Finance/Pike/README.md#2-emode-misconfiguration-causing-inaccurate-collateral-accounting",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "emode-misconfiguration-causing-inaccurate-collateral-accounting-mixbytes-none-nuts-finance-markdown",
+    "firm_name": "MixBytes",
+    "firm_logo_square": "mixbytes_square.png",
+    "protocol_name": "NUTS Finance",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "MixBytes"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "MixBytes",
+        "logo_square": "mixbytes_square.png"
+    },
+    "protocols_protocol": {
+        "name": "NUTS Finance",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

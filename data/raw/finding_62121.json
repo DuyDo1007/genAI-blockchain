@@ -1,0 +1,45 @@
+{
+    "id": 62121,
+    "kind": "PDF",
+    "auditfirm_id": 9,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3382,
+    "title": "Change of program output offsets breaks compatibility with old programs",
+    "content": "## Description\n\nThe structure of data and offsets in the program output was changed. A new field for data availability mode was added in offset 1, shifting the old fields one position in the output structure. This makes old program outputs incompatible with the new version, as the old output’s `N_ASSET_CONFIGS` is now interpreted as `DATA_AVAILABILITY_MODE`, and the minimum size is increased to nine fields.\n\n## Recommendations\n\n## Short term\nEnsure that when contracts are upgraded, operators send the correct version of the program outputs to update the state.\n\n## Long term\nWhen changing data structures, consider making the changes backward compatible with the current version by adding new data fields to the end of the structure instead of shifting existing fields.",
+    "summary": "",
+    "report_date": "2025-08-11T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://github.com/trailofbits/publications/blob/master/reviews/2025-08-starkware-starkex-diff-review-securityreview.pdf",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/trailofbits/publications/blob/master/reviews/2025-08-starkware-starkex-diff-review-securityreview.pdf",
+    "github_link": "",
+    "pdf_link": "https://solodit-bucket.s3.amazonaws.com/storage/reports/trailofbits/2025-08-starkware-starkex-diff-review-securityreview.pdf",
+    "pdf_page_from": 11,
+    "contest_id": "",
+    "slug": "change-of-program-output-offsets-breaks-compatibility-with-old-programs-trailofbits-none-starkware-starkex-diff-review-pdf",
+    "firm_name": "TrailOfBits",
+    "firm_logo_square": "trailofbits_square.png",
+    "protocol_name": "StarkWare StarkEx Diff Review",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Guillermo Larregay Trail of Bits PUBLIC"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "TrailOfBits",
+        "logo_square": "trailofbits_square.png"
+    },
+    "protocols_protocol": {
+        "name": "StarkWare StarkEx Diff Review",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

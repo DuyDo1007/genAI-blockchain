@@ -1,0 +1,45 @@
+{
+    "id": 62426,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 34,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3406,
+    "title": "[MNBD1-10] Incorrect Assumption on totalVolume in distributeToProjects() May Lead to Misallocation or Revert",
+    "content": "**Severity:** Low\n\n**Path:** contracts/MoonBound.sol#L224-L250 \n\n**Description:** The `distributeToProjects()` function calculates each creator’s share using `totalVolume` as the denominator:\n```\nuint256 creatorShare = (kasToProjects * tokenVolumes[i]) / totalVolume;\n```\nHowever, it assumes that `totalVolume == sum(tokenVolumes)`, without enforcing this constraint. If the sum of `tokenVolumes` is not equal to totalVolume, the distribution becomes inaccurate—potentially underpaying creators or causing a revert due to rounding or insufficient balance.\n\nTo ensure correct behavior, the function should either validate that `totalVolume` matches the sum of `tokenVolumes`, or compute `totalVolume` internally to eliminate this dependency.\n\nThe same issue applies to the function `distributeToNFTStakers()`.\n```\nfunction distributeToProjects(\n  uint256 kasToDistribute,\n  address[] calldata tokenCreators,\n  uint256[] calldata tokenVolumes,\n  uint256 totalVolume\n) internal {\n  uint256 kasToProjects = (kasToDistribute * 10) / 100;\n  for (uint256 i = 0; i < tokenCreators.length; i++) {\n    uint256 creatorShare = (kasToProjects * tokenVolumes[i]) / totalVolume;\n    (bool projectSuccess, ) = tokenCreators[i].call{ value: creatorShare }('');\n    require(projectSuccess, 'Failed to transfer to token creator');\n  }\n}\n\nfunction distributeToNFTStakers(\n  uint256 kasToDistribute,\n  address[] calldata nftStakers,\n  uint256[] calldata stakerPowers,\n  uint256 totalPowerStaked\n) internal {\n  uint256 kasToNFTStakers = (kasToDistribute * 10) / 100;\n  for (uint256 i = 0; i < nftStakers.length; i++) {\n    uint256 stakerShare = (kasToNFTStakers * stakerPowers[i]) / totalPowerStaked;\n    (bool stakerSuccess, ) = nftStakers[i].call{ value: stakerShare }('');\n    require(stakerSuccess, 'Failed to transfer to NFT staker');\n  }\n}\n```\n\n**Remediation:**  Consider adding a check to ensure that the sum of all elements in the `tokenVolumes[]` array matches the `totalVolume` value. A similar validation should also be applied in the `distributeToNFTStakers()` function.\n\n**Status:**  Fixed\n\n- - -",
+    "summary": "",
+    "report_date": "2025-05-26T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/solodit/solodit_content/blob/main/reports/Hexens/2025-05-26-Moonbound.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "mnbd1-10-incorrect-assumption-on-totalvolume-in-distributetoprojects-may-lead-to-misallocation-or-revert-hexens-none-moonbound-markdown",
+    "firm_name": "Hexens",
+    "firm_logo_square": "Hexens_square.png",
+    "protocol_name": "Moonbound",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Hexens"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Hexens",
+        "logo_square": "Hexens_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Moonbound",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

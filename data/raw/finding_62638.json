@@ -1,0 +1,45 @@
+{
+    "id": 62638,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 30,
+    "impact": "HIGH",
+    "finders_count": 1,
+    "protocol_id": 3429,
+    "title": "[C-01] Withdrawal Calculation Causes Underflow, Locking All User Funds",
+    "content": "\n## Severity\n\nCritical Risk\n\n## Description\n\nThe withdrawal function includes the user in their own delegation list and uses ceiling division for all calculations. This causes `totalDelegatedAmount` to exceed the requested withdrawal amount, resulting in an underflow when calculating `remainingAmount = amount - totalDelegatedAmount`, which renders all withdrawals unsuccessful.\n\n## Location of Affected Code\n\nFile: [src/BvtRewardVault.sol#L155](https://github.com/batoshidao/berabtc-vault-token/blob/c68f412b3c7dfd99d3f6302a42bdf772ededb2a3/src/BvtRewardVault.sol#L155)\n\n```solidity\nfunction withdraw(uint256 amount) external nonReentrant {\n  // code\n\n  // Calculate and withdraw from delegated stakes\n  for (uint256 i = 0; i < users.length; i++) {\n      address user = users[i];\n      uint256 delegatedAmount = delegatedStakes[msg.sender][user];\n      if (delegatedAmount > 0) {\n          uint256 withdrawAmount = (delegatedAmount * amount + stakes[msg.sender] - 1)  / stakes[msg.sender];\n          if (withdrawAmount > 0) {\n              totalDelegatedAmount += withdrawAmount;\n              _delegateWithdraw(msg.sender, user, withdrawAmount);\n          }\n      }\n  }\n  // Calculate remaining amount to withdraw from user's own stake\n  uint256 remainingAmount = amount - totalDelegatedAmount;\n  if (remainingAmount > 0) {\n      _delegateWithdraw(msg.sender, msg.sender, remainingAmount);\n  }\n  // code\n}\n```\n\n## Impact\n\nAll withdrawals fail due to underflow, permanently locking user funds.\n\n## Recommendation\n\nΕxclude the user from their delegation list and handle their portion separately, and also, consider using floor division with remainder assignment to prevent over-calculation.\n\n## Team Response\n\nFixed.\n\n",
+    "summary": "\nThis bug report is about a critical issue in the withdrawal function of a smart contract. The function includes the user in their own delegation list and uses a certain calculation method, which causes an underflow error and makes all withdrawals unsuccessful. The affected code is located in a specific file and line, and the impact of this bug is that it locks user funds permanently. The recommendation is to exclude the user from their delegation list and use a different calculation method to prevent similar issues in the future. The team has confirmed that they have fixed the bug.",
+    "report_date": "2025-09-17T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 5,
+    "general_score": 5,
+    "source_link": "https://github.com/shieldify-security/audits-portfolio-md/blob/main/Terplayer-BVT-Staking&Distribution-Security-Review.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "c-01-withdrawal-calculation-causes-underflow-locking-all-user-funds-shieldify-none-terplayer-bvt-stakingdistribution-markdown",
+    "firm_name": "Shieldify",
+    "firm_logo_square": "Shieldify_square.png",
+    "protocol_name": "Terplayer Bvt Staking&Distribution",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Shieldify Security"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Shieldify",
+        "logo_square": "Shieldify_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Terplayer Bvt Staking&Distribution",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

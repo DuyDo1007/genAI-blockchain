@@ -1,0 +1,60 @@
+{
+    "id": 62157,
+    "kind": "PDF",
+    "auditfirm_id": 6,
+    "impact": "LOW",
+    "finders_count": 4,
+    "protocol_id": 3384,
+    "title": "_calcRateBound needs to return bounds that are tighter",
+    "content": "## Severity: Low Risk\n\n## Context\n`MarginViewUtils.sol#L222-L247`\n\n## Description/Recommendation\n`_calcRateBound` needs to return bounds that are tighter when:\n\n- Purging out of bound orders, the bounds returned must be tighter so that the areas of ticks purged would be larger.\n- Checking the margin, the bounds for worst rates need to be tighter.\n\nLocation bounds need to be:\n- `_checkMargin` tighter\n- `forcePurgeOobOrders` tighter\n- `forcePurgeOobOrders` tighter\n\nNote that the value of the first input `rMark` fed into `__calcRateBoundPositive` is always non-negative. Based on the boros research paper and also Finding #96 of the paper, we know that:\n\n- All the `_ctx().loUpperSlopeBase1e4`, `_ctx().loLowerSlopeBase1e4`, `_ctx().loUpperConstBase1e4` are positive.\n- Except `_ctx().loLowerConstBase1e4` (which if the constants are picked from the paper or Finding #96, then this value should be the opposite of `_ctx().loUpperConstBase1e4`).\n\nIn these scenarios, the rounding directions are not tighter:\n1. If `market.rMark >= market.k_iThresh (I ≤ rm(t))` and `side == Side.SHORT`.\n2. If `- market.rMark >= market.k_iThresh (rm(t) ≤ −I)` and `side == Side.LONG` (original side).\n\nIn general, depending on the conditions, one needs to use two different variants of `mulBase1e4` and round in a direction that would make the bounds tighter.\n\n## Acknowledgements\n- Pendle Finance: Acknowledged.\n- Spearbit: Acknowledged.\n\n## Related\n- Research Finding 97.\n- Research Finding 96.\n\nAlso, based on the above research findings, the current functions used for calculating the bounds are incorrect.",
+    "summary": "",
+    "report_date": "2025-08-22T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Pendle-Spearbit-Security-Review-August-2025.pdf",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Pendle-Spearbit-Security-Review-August-2025.pdf",
+    "github_link": "",
+    "pdf_link": "https://solodit-bucket.s3.amazonaws.com/storage/reports/spearbit/Pendle-Spearbit-Security-Review-August-2025.pdf",
+    "pdf_page_from": 40,
+    "contest_id": "",
+    "slug": "calcratebound-needs-to-return-bounds-that-are-tighter-spearbit-none-pendle-core-v3-pdf",
+    "firm_name": "Spearbit",
+    "firm_logo_square": "spearbit_square.png",
+    "protocol_name": "Pendle Core v3",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Saw-mon and Natalie"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Ethan"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Desmond Ho"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "RustyRabbit"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Spearbit",
+        "logo_square": "spearbit_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Pendle Core v3",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

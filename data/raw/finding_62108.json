@@ -1,0 +1,120 @@
+{
+    "id": 62108,
+    "kind": "GIT",
+    "auditfirm_id": 3,
+    "impact": "HIGH",
+    "finders_count": 15,
+    "protocol_id": 3135,
+    "title": "H-3: Unable to withdraw native tokens because vault and redeem hooks do not handle native tokens",
+    "content": "\nSource: https://github.com/sherlock-audit/2025-07-mellow-flexible-vaults-judging/issues/147 \n\n## Found by \n0x23r0, 0xc0ffEE, 7, Cybrid, Greed, dan\\_\\_vinci, edger, hunt1, katz, ke1caM, khaye26, klaus, t.aksoy, theboiledcorn, weblogicctf\n\n### Summary\n\nThe vault and redeem hook do not handle native token, preventing them from processing native token withdrawal requests. Users cannot withdraw native tokens.\n\n### Root Cause\n\n\nThe vault is generally implemented to support native tokens, and native tokens are included in the [supported token list](https://github.com/sherlock-audit/2025-07-mellow-flexible-vaults/tree/eca8836d68d65bcbfc52c6f04cf6b4b1597555bf?tab=readme-ov-file#q-if-you-are-integrating-tokens-are-you-allowing-only-whitelisted-tokens-to-work-with-the-codebase-or-any-complying-with-the-standard-are-they-assumed-to-have-certain-properties-eg-be-non-reentrant-are-there-any-types-of-weird-tokens-you-want-to-integrate). However, when querying token balances during withdrawal, it does not consider the case where the asset token is a native token. This causes withdrawals to fail.\n\n1. RedeemQueue and SignatureRedeemQueue call `vault.getLiquidAssets` to query the token balance for processing withdrawals. If no hook is used, it calls ERC20's `balanceOf`. If the asset is a native token, this function call fails and the transaction is reverted.  [modules/ShareModule.sol#L150](https://github.com/sherlock-audit/2025-07-mellow-flexible-vaults/blob/eca8836d68d65bcbfc52c6f04cf6b4b1597555bf/flexible-vaults/src/modules/ShareModule.sol#L150)\n\n```solidity\nfunction getLiquidAssets() public view returns (uint256) {\n    ...\n    address hook = getHook(queue);\n@>  return hook == address(0) ? IERC20(asset).balanceOf(address(this)) : IRedeemHook(hook).getLiquidAssets(asset);\n}\n```\n\n2. If a hook is used, it calls `Hook.getLiquidAssets`. Currently, only BasicRedeemHook exists as a redeem hook. The `BasicRedeemHook.getLiquidAssets` function fails if the asset is a native token because `balanceOf` fails and gets reverted. [hooks/BasicRedeemHook.sol#L35-L39](https://github.com/sherlock-audit/2025-07-mellow-flexible-vaults/blob/eca8836d68d65bcbfc52c6f04cf6b4b1597555bf/flexible-vaults/src/hooks/BasicRedeemHook.sol#L35-L39) \n\n```solidity\nfunction getLiquidAssets(address asset) public view virtual returns (uint256 assets) {\n    IVaultModule vault = IVaultModule(msg.sender);\n@>  assets = IERC20(asset).balanceOf(address(vault));\n    uint256 subvaults = vault.subvaults();\n    for (uint256 i = 0; i < subvaults; i++) {\n        address subvault = vault.subvaultAt(i);\n@>      assets += IERC20(asset).balanceOf(subvault);\n    }\n}\n```\n\n3. RedeemQueue and SignatureRedeemQueue call `vault.callHook` to process withdrawals. This function calls `Hook.callHook` via delegatecall if a redeem hook is registered. Currently, only BasicRedeemHook exists as a redeem hook. `BasicRedeemHook.callHook` fails if the asset is a native token because `balanceOf` fails and gets reverted. [hooks/BasicRedeemHook.sol#L11-L19](https://github.com/sherlock-audit/2025-07-mellow-flexible-vaults/blob/eca8836d68d65bcbfc52c6f04cf6b4b1597555bf/flexible-vaults/src/hooks/BasicRedeemHook.sol#L11-L19)\n\n```solidity\nfunction callHook(address asset, uint256 assets) public virtual {\n    IVaultModule vault = IVaultModule(address(this));\n@>  uint256 liquid = IERC20(asset).balanceOf(address(vault));\n    ...\n    for (uint256 i = 0; i < subvaults; i++) {\n        address subvault = vault.subvaultAt(i);\n@>      uint256 balance = IERC20(asset).balanceOf(subvault);\n        ...\n    }\n}\n```\n\n\n### Internal Pre-conditions\n\n1. Using native token as asset token\n\n### External Pre-conditions\n\nNone\n\n### Attack Path\n\n1. Attempt to withdraw after depositing native token\n\n### Impact\n\nCannot withdraw native token. Users cannot withdraw asset token.\n\n### PoC\n\nThe following PoC shows that `vault.getLiquidAssets` fails. Add to `flexible-vaults/test/unit/modules/ShareModule.t.sol` and run.\n\n```solidity\nfunction test_poc_GetLiquidAssets() external {\n    address asset = address(0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE); // native\n    assets.push(address(asset));\n\n    Deployment memory deployment = createVault(vaultAdmin, vaultProxyAdmin, assets);\n\n    vm.startPrank(vaultAdmin);\n    deployment.vault.setQueueLimit(2);\n    deployment.vault.createQueue(0, true, vaultProxyAdmin, address(asset), new bytes(0));\n    deployment.vault.createQueue(0, false, vaultProxyAdmin, address(asset), new bytes(0));\n    assertEq(deployment.vault.getQueueCount(), 2, \"Queue count should be 2\");\n    vm.stopPrank();\n\n    address depositQueue = deployment.vault.queueAt(address(asset), 0);\n    address redeemQueue = deployment.vault.queueAt(address(asset), 1);\n\n    vm.prank(redeemQueue);\n    vm.expectRevert();\n    deployment.vault.getLiquidAssets();\n}\n```\n\n### Mitigation\n\nWhen the asset token is a native token, query the native token balance instead of using `ERC20.balanceOf`.\n\n\n## Discussion\n\n**sherlock-admin2**\n\nThe protocol team fixed this issue in the following PRs/commits:\nhttps://github.com/mellow-finance/flexible-vaults/pull/10/files\n\n\n\n\n",
+    "summary": "\nThis bug report discusses an issue found by a group of users involving the vault and redeem hook not handling native tokens properly. This prevents users from withdrawing native tokens from the protocol. The root cause of the issue is that when querying token balances during withdrawal, the code does not consider the case where the asset token is a native token. This causes withdrawals to fail. The report provides a detailed explanation of the code and how it fails in different scenarios. The impact of this bug is that users cannot withdraw their native tokens from the protocol. The report also includes a proof of concept and suggests a mitigation for the issue. The protocol team has fixed this issue in a recent pull request.",
+    "report_date": "2025-07-28T15:00:00.000Z",
+    "contest_prize_txt": "70000 USDC",
+    "contest_link": "https://app.sherlock.xyz/audits/contests/964",
+    "sponsor_name": "",
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "",
+    "github_link": "https://github.com/sherlock-audit/2025-07-mellow-flexible-vaults-judging/issues/147",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "964",
+    "slug": "h-3-unable-to-withdraw-native-tokens-because-vault-and-redeem-hooks-do-not-handle-native-tokens-sherlock-mellow-flexible-vaults-git",
+    "firm_name": "Sherlock",
+    "firm_logo_square": "sherlock_square.png",
+    "protocol_name": "Mellow Flexible Vaults",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "0x23r0"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "dan\\_\\_vinci"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "ke1caM"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "khaye26"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "edger"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "weblogicctf"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "klaus"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "hunt1"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "katz"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Greed"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Cybrid"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "theboiledcorn"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "dan\\_\\_vinci"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "0xc0ffEE"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "7"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "t.aksoy"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Sherlock",
+        "logo_square": "sherlock_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Mellow Flexible Vaults",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

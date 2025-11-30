@@ -1,0 +1,60 @@
+{
+    "id": 62115,
+    "kind": "GIT",
+    "auditfirm_id": 3,
+    "impact": "MEDIUM",
+    "finders_count": 4,
+    "protocol_id": 3135,
+    "title": "M-4: Protocol Fee Exponential Compounding in ShareModule.handleReport",
+    "content": "\nSource: https://github.com/sherlock-audit/2025-07-mellow-flexible-vaults-judging/issues/161 \n\n## Found by \nauditgpt, blockace, bughuntoor, tedox\n\n### Summary\n\nThe protocol fee calculation in `ShareModule.handleReport` function suffers from exponential compounding instead of linear accumulation. When `handleReport` is called frequently (e.g., daily), the protocol fee is applied to the current total shares which includes all previously accrued fees, leading to higher-than-intended fee extraction.\n\n### Root Cause\n\nIn [`ShareModule.handleReport`](https://github.com/sherlock-audit/2025-07-mellow-flexible-vaults/blob/eca8836d68d65bcbfc52c6f04cf6b4b1597555bf/flexible-vaults/src/modules/ShareModule.sol#L281-L284) at line 281-284:\n\n```solidity\nuint256 fees = feeManager_.calculateFee(address(this), asset, priceD18, shareManager_.totalShares());\nif (fees != 0) {\n    shareManager_.mint(feeManager_.feeRecipient(), fees);\n}\n```\n\nThe issue is that `shareManager_.totalShares()` includes all previously minted shares, including fees that were already taken. This means each subsequent fee calculation is based on an inflated share count, leading to exponential compounding rather than linear fee accumulation.\n\nThe `FeeManager.calculateFee` function calculates fees based on the current total shares:\n\n```solidity\nfunction calculateFee(address vault, address asset, uint256 priceD18, uint256 totalShares) external view returns (uint256) {\n    // ... other fee calculations ...\n    uint256 protocolFee = (totalShares * protocolFeeRate * timeElapsed) / (365 days * 1e6);\n    return protocolFee;\n}\n```\n\n\n### Internal Pre-conditions\n\n1. Protocol fees are enabled in the FeeManager\n2. `handleReport` function is called frequently (e.g., daily or more often)\n3. The vault has existing shares that include previously accrued fees\n4. The fee recipient is properly configured\n\n### External Pre-conditions\n\n1. The vault has active deposits and share minting\n2. Regular reporting cycles are established (daily/weekly reports)\n3. Protocol fee rates are set to non-zero values\n\n### Attack Path\n\n1. **Initial Setup**: A vault is created with a 5% annual protocol fee rate\n2. **Daily Reports**: The `handleReport` function is called daily for 365 days\n3. **Fee Calculation**: Each day, fees are calculated based on `totalShares()` which includes previous day's fees\n4. **Exponential Growth**: The fee base grows each day, leading to compounding effects\n5. **Result**: After 365 days, the actual fee taken is 5.11% instead of the intended 5%\n\n### Impact\n\nUsers pay higher fees than intended, with the difference increasing over time\n\n### PoC\n\n```solidity\n// test/unit/modules/ShareModule.t.sol\nfunction testExponentialProtocolFeeVulnerability() external {\n\tDeployment memory deployment = createVault(vaultAdmin, vaultProxyAdmin, assets);\n\t\n\t// Set up a 5% annual protocol fee (5e4 in D6 format)\n\tvm.prank(vaultAdmin);\n\tdeployment.feeManager.setFees(0, 0, 0, 5e4); // 5% protocol fee\n\t\n\t// Set the base asset for the vault\n\tvm.prank(vaultAdmin);\n\tdeployment.feeManager.setBaseAsset(address(deployment.vault), address(asset));\n\t\n\t// Create a deposit queue\n\tvm.prank(vaultAdmin);\n\tdeployment.vault.setQueueLimit(1);\n\tvm.prank(vaultAdmin);\n\tdeployment.vault.createQueue(0, true, vaultProxyAdmin, address(asset), new bytes(0));\n\t\n\t// Mint some initial shares to simulate existing deposits\n\tMockTokenizedShareManager(address(deployment.shareManager)).mintShares(user, 1000 ether);\n\t\n\t// Record initial state\n\tuint256 initialTotalShares = deployment.shareManager.totalShares();\n\tuint256 initialFeeRecipientShares = deployment.shareManager.sharesOf(vaultAdmin);\n\t\n\t// Start from a base timestamp\n\tuint256 baseTimestamp = block.timestamp;\n\t\n\t// Call handleReport daily for 365 days\n\tfor (uint256 day = 1; day <= 365; day++) {\n\t\tuint256 timestamp = baseTimestamp + day * 1 days;\n\t\t\n\t\t// Move time forward by 1 day\n\t\tvm.warp(timestamp);\n\t\t\n\t\t// Call handleReport as the oracle with the current timestamp\n\t\tvm.prank(address(deployment.vault.oracle()));\n\t\tdeployment.vault.handleReport(address(asset), 1e18, uint32(timestamp - 1 hours), uint32(timestamp - 1 hours));\n\t}\n\t\n\t// Check final state\n\tuint256 finalTotalShares = deployment.shareManager.totalShares();\n\tuint256 finalFeeRecipientShares = deployment.shareManager.sharesOf(vaultAdmin);\n\t\n\t// Calculate the total fees taken\n\tuint256 totalFeesTaken = finalFeeRecipientShares - initialFeeRecipientShares;\n\t\n\t// Calculate what the fees should be with linear compounding (5% annual)\n\tuint256 expectedFees = (initialTotalShares * 5) / 100; // 5% of initial shares\n\t\n\tconsole.log(\"Initial total shares:\", initialTotalShares);\n\tconsole.log(\"Final total shares:\", finalTotalShares);\n\tconsole.log(\"Initial fee recipient shares:\", initialFeeRecipientShares);\n\tconsole.log(\"Final fee recipient shares:\", finalFeeRecipientShares);\n\tconsole.log(\"Total fees taken:\", totalFeesTaken);\n\tconsole.log(\"Expected fees (5% linear):\", expectedFees);\n}\n```\n\n\n### Mitigation\n\nThe recommended fix would be to modify the fee calculation to calculate fess on assets amount based on total assets, and then mint corresponding shares to the fee recipient.\n\n## Discussion\n\n**sherlock-admin2**\n\nThe protocol team fixed this issue in the following PRs/commits:\nhttps://github.com/mellow-finance/flexible-vaults/pull/28/files\n\n\n\n\n",
+    "summary": "\nThe bug report discusses an issue found in the protocol fee calculation of the Mellow Flexible Vaults system. The problem occurs when the `handleReport` function is called frequently, resulting in higher-than-intended fees being extracted. This is due to the fact that the function uses an inflated share count, including previously accrued fees, leading to exponential compounding instead of linear accumulation. This can have a significant impact on users, resulting in them paying higher fees over time. The report also includes details on the root cause, internal and external pre-conditions, attack path, impact, and proof of concept. The recommended fix is to modify the fee calculation to calculate fees based on total assets and mint corresponding shares to the fee recipient. The issue has been fixed by the protocol team in a recent pull request.",
+    "report_date": "2025-07-28T15:00:00.000Z",
+    "contest_prize_txt": "70000 USDC",
+    "contest_link": "https://app.sherlock.xyz/audits/contests/964",
+    "sponsor_name": "",
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "",
+    "github_link": "https://github.com/sherlock-audit/2025-07-mellow-flexible-vaults-judging/issues/161",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "964",
+    "slug": "m-4-protocol-fee-exponential-compounding-in-sharemodulehandlereport-sherlock-mellow-flexible-vaults-git",
+    "firm_name": "Sherlock",
+    "firm_logo_square": "sherlock_square.png",
+    "protocol_name": "Mellow Flexible Vaults",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "tedox"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "auditgpt"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "blockace"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "bughuntoor"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Sherlock",
+        "logo_square": "sherlock_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Mellow Flexible Vaults",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

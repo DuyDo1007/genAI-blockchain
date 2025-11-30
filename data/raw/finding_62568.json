@@ -1,0 +1,45 @@
+{
+    "id": 62568,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 16,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3420,
+    "title": "[L-10] Data inconsistency risk from modifying critical addresses in `cardAllocationPool`",
+    "content": "\n_Acknowledged_\n\nThe `CardAllocationPool` contract contains critical parameters such as `packetNFTAddress`, `cardNFTAddress`, and `s_vrfCoordinator`. \n\n```solidity\n    function updateCardAddress(address newCardAddress) external onlyRole(redeemManagerRoleId) {\n        if (newCardAddress == address(0)) revert InvalidCardContract();\n        address oldAddress = cardNFTAddress;\n        cardNFTAddress = newCardAddress;\n        emit CardAddressUpdated(oldAddress, newCardAddress);\n    }\n\n    function updatePacketAddress(address newPacketAddress) external onlyRole(redeemManagerRoleId) {\n        if (newPacketAddress == address(0)) revert InvalidPacketContract();\n        address oldAddress = packetNFTAddress;\n        packetNFTAddress = newPacketAddress;\n        emit PacketAddressUpdated(oldAddress, newPacketAddress);\n    }\n\n    function setCoordinator(address _vrfCoordinator) external onlyRoleOrCoordinator(redeemManagerRoleId) {\n        if (_vrfCoordinator == address(0)) {\n            revert ZeroAddress();\n        }\n        s_vrfCoordinator = IVRFCoordinatorV2Plus(_vrfCoordinator);\n\n        emit CoordinatorSet(_vrfCoordinator);\n    }\n```\n\nModifying these addresses after they have been set can lead to significant issues, including data inconsistency.\n\nFor instance, if the addresses are changed while there are ongoing operations, such as packet open requests that rely on the original addresses, the `fulfillRandomWords` may fail. This could result in unexpected behavior, errors, or even the locking of NFTs, as the contract may attempt to interact with the wrong addresses, leading to a breakdown in functionality.\n\n\n\n",
+    "summary": "",
+    "report_date": "2025-09-11T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/pashov/audits/blob/master/team/md/RipIt-security-review_2025-04-25.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "l-10-data-inconsistency-risk-from-modifying-critical-addresses-in-cardallocationpool-pashov-audit-group-none-ripit_2025-04-25-markdown",
+    "firm_name": "Pashov Audit Group",
+    "firm_logo_square": "Pashov_square.png",
+    "protocol_name": "RipIt_2025-04-25",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Pashov Audit Group"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Pashov Audit Group",
+        "logo_square": "Pashov_square.png"
+    },
+    "protocols_protocol": {
+        "name": "RipIt_2025-04-25",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

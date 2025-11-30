@@ -1,0 +1,45 @@
+{
+    "id": 62660,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 23,
+    "impact": "HIGH",
+    "finders_count": 1,
+    "protocol_id": 3435,
+    "title": "Exchange Rate Fluctuations Can Freeze Protocol or Inflate LP Total Supply",
+    "content": "##### Description\nThis issue has been identified within the `collectFeeOrYield()` logic of the `SelfPeggingAsset` contract.\n\nIf yield margin is low and pool has sufficient liquidity, then even a slight decrease in an underlying token’s exchange rate triggers the `ImbalancedPool` error during fee or yield collection, causing the invariant check to revert. Because yield collection occurs in every user-facing function (mint, swap, redeem, etc.), this effectively locks the entire pool until the owner or an administrator intervenes.\n\nTo prevent such freezes, one could set the existing yield margin parameter to a high value. However, if price fluctuations occur both up and down, simply using a margin to ignore smaller downward movements will allow total LP supply to inflate when prices fluctuate upward, while downward fluctuations remain unaccounted for. Over time, this mismatch between the total LP supply and actual locked liquidity `D` could diminish the real value of LP tokens or even risk pool insolvency.\n\nThis is classified as **high** severity because a downward price move can create a partial or complete denial-of-service, and ignoring repeated negative fluctuations inflates total LP supply without real backing.\n\n##### Recommendation\nWe recommend adjusting the system so that negative fluctuations are accounted for by proportionally reducing `LPToken.totalSupply`, rather than relying solely on a high yield margin. This ensures impermanent losses caused by decreased exchange rate are distributed among LP holders and prevents LP supply from growing unchecked when both upward and downward price movements occur.\n",
+    "summary": "\nThis bug report discusses an issue with the `collectFeeOrYield()` function in the `SelfPeggingAsset` contract. If the yield margin is low and there is enough liquidity in the pool, even a small decrease in the exchange rate of an underlying token can cause the `ImbalancedPool` error, locking the entire pool until the owner or administrator intervenes. This can lead to a denial-of-service and inflate the total supply of LP tokens, potentially causing pool insolvency. The recommended solution is to adjust the system so that downward price movements are accounted for by reducing the total supply of LP tokens, rather than relying solely on a high yield margin. This will distribute impermanent losses among LP holders and prevent unchecked growth of the LP supply.",
+    "report_date": "2025-09-19T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/mixbytes/audits_public/blob/master/NUTS%20Finance/Tapio/README.md#1-exchange-rate-fluctuations-can-freeze-protocol-or-inflate-lp-total-supply",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "exchange-rate-fluctuations-can-freeze-protocol-or-inflate-lp-total-supply-mixbytes-none-nuts-finance-markdown",
+    "firm_name": "MixBytes",
+    "firm_logo_square": "mixbytes_square.png",
+    "protocol_name": "NUTS Finance",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "MixBytes"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "MixBytes",
+        "logo_square": "mixbytes_square.png"
+    },
+    "protocols_protocol": {
+        "name": "NUTS Finance",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

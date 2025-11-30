@@ -1,0 +1,45 @@
+{
+    "id": 62875,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 30,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3454,
+    "title": "[L-01] Unrestricted ERC721 Receipt Can Trap NFTs in the Contract",
+    "content": "\n## Severity\n\nLow Risk\n\n## Description\n\nThe contract accepts any ERC-721 via `onERC721Received()`, but only manages and returns the configured `nft` and only those staked via the `stake()` function. NFTs sent directly are accepted and then become unrecoverable because there is no withdrawal path for arbitrary token collections.\n\n## Location of Affected Code\n\nFile: [src/NFTStaking.sol#L252](https://github.com/Honeypot-Finance/new_nft_staking/blob/02d5afe0b5327642f48fffe29ec2cb4607a078e7/src/NFTStaking.sol#L252)\n\n```solidity\n// Required for receiving ERC721 tokens\nfunction onERC721Received(\n    address,\n    address,\n    uint256,\n    bytes calldata\n) external pure override returns (bytes4) {\n    return IERC721Receiver.onERC721Received.selector;\n}\n```\n\n## Impact\n\nNFT tokens sent directly can become permanently locked in the contract, resulting in user loss and reputational risk.\n\n## Recommendation\n\nRestrict `onERC721Received()` to only accept tokens from the configured `NFT` address during staking and revert otherwise, or implement an explicit rescue/withdraw path for non-whitelisted collections.\n\nAlternatively, remove `onERC721Received()` and use `transferFrom()` instead of `safeTransferFrom()` during the staking call.\n\n## Team Response\n\nAcknowledged.\n\n",
+    "summary": "",
+    "report_date": "2025-10-08T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/shieldify-security/audits-portfolio-md/blob/main/HoneypotFinance-NFTStaking-Security-Review.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "l-01-unrestricted-erc721-receipt-can-trap-nfts-in-the-contract-shieldify-none-honeypotfinance-nftstaking-markdown",
+    "firm_name": "Shieldify",
+    "firm_logo_square": "Shieldify_square.png",
+    "protocol_name": "Honeypotfinance Nftstaking",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Shieldify Security"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Shieldify",
+        "logo_square": "Shieldify_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Honeypotfinance Nftstaking",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

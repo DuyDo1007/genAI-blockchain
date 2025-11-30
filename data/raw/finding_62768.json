@@ -1,0 +1,45 @@
+{
+    "id": 62768,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 16,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3443,
+    "title": "[L-08] Excessively large max values allowed in `setRedeemDelay()` and `setFillWindow()`",
+    "content": "\n_Resolved_\n\n`setRedeemDelay()` in the `StakedYuzuUSD` and `setFillWindow()` in `YuzuProto` contracts set the waiting period users must wait before finalizing their redemption. The issue is that this value can be set up to `type(uint32).max`, which equals 136 years. If mistakenly set to an extremely high value, some redemptions may never be callable within a human lifetime.\n\nRecommendation: Restrict the maximum delay to a reasonable value that can be completed within a human lifespan.\n\n\n\n",
+    "summary": "",
+    "report_date": "2025-09-28T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/pashov/audits/blob/master/team/md/YuzuUSD-security-review_2025-08-28.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "l-08-excessively-large-max-values-allowed-in-setredeemdelay-and-setfillwindow-pashov-audit-group-none-yuzuusd_2025-08-28-markdown",
+    "firm_name": "Pashov Audit Group",
+    "firm_logo_square": "Pashov_square.png",
+    "protocol_name": "YuzuUSD_2025-08-28",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Pashov Audit Group"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Pashov Audit Group",
+        "logo_square": "Pashov_square.png"
+    },
+    "protocols_protocol": {
+        "name": "YuzuUSD_2025-08-28",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

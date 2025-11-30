@@ -1,0 +1,45 @@
+{
+    "id": 62724,
+    "kind": "GIT",
+    "auditfirm_id": 3,
+    "impact": "MEDIUM",
+    "finders_count": 1,
+    "protocol_id": 3324,
+    "title": "M-1: Wrong direction of rounding in redeem may lead to drain if exchange rate grows large",
+    "content": "\nSource: https://github.com/sherlock-audit/2025-07-malda-judging/issues/81 \n\n## Found by \ncergyk\n\n## Description\n\nIn the mToken contract, forked from compound v2, the same wrong direction rounding is introduced in the `__redeem` function:\n\n[mToken.sol#L614-L630](https://github.com/sherlock-audit/2025-07-malda/blob/main/malda-lending/src/mToken/mToken.sol#L614-L630):\n```solidity\n        if (redeemTokensIn > 0) {\n            /*\n             * We calculate the exchange rate and the amount of underlying to be redeemed:\n             *  redeemTokens = redeemTokensIn\n             *  redeemAmount = redeemTokensIn x exchangeRateCurrent\n             */\n            redeemTokens = redeemTokensIn;\n            redeemAmount = mul_ScalarTruncate(exchangeRate, redeemTokensIn);\n        } else {\n            /*\n             * We get the current exchange rate and calculate the amount to be redeemed:\n             *  redeemTokens = redeemAmountIn / exchangeRate\n             *  redeemAmount = redeemAmountIn\n             */\n>>          redeemTokens = div_(redeemAmountIn, exchangeRate); //@audit should round up, as this is the amount of tokens pulled from user\n            redeemAmount = redeemAmountIn;\n        }\n```\n\nThis wrong direction of rounding leads to pull less shares from the user while the amount sent out is the same as requested.\nIn most cases the losses should be negligible (1 wei of shares per operation), because the division operates at 1e18 precision, and the exchange rate starts as a small value initially (0.02).\n\n### Inflating exchange rate\n\nWe will show that the first depositor is able to increase the exchange rate by an arbitrary factor, by using the rounding against him during `mint` and `redeem`(shares), when supply is initially zero.\nAs can be seen in the mint function:\n\n[mToken.sol#L699-L707](https://github.com/sherlock-audit/2025-07-malda/blob/main/malda-lending/src/mToken/mToken.sol#L699-L707):\n```solidity\n    uint256 mintTokens = div_(actualMintAmount, exchangeRate);\n    require(mintTokens >= minAmountOut, mt_MinAmountNotValid());\n\n    // avoid exchangeRate manipulation\n    if (totalSupply == 0) {\n        //@audit 1000 of shares are minted to the zero address \n        totalSupply = 1000;\n        accountTokens[address(0)] = 1000;\n        //@audit underflow if initial mint is below 1000\n        mintTokens -= 1000;\n    }\n```\n\nWhen the totalSupply is zero, at least 1000 shares have to be minted initially, which means that 20 wei of token has to be supplied (due to the 0.02 initial exchange rate).\n\n#### Reach exchange rate of exp\n\nThen the first depositor repeats the steps:\n1. Mint by providing 1 wei of underlying (mints 50 shares to the depositor)\n2. Redeem 25 shares *2 -> sends 0 underlying to the depositor\n\neach time these steps are repeated, the `totalUnderlying` of the market is increased by 1 while `totalSupply` is unchanged. This means the `exchangeRate` is increasing. We need to repeat this 980 times to reach `echangeRate == exp`\n\n> As a side note, the host chain here is `Linea`, and although repeating these steps many times costs a lot of gas (around 50M), the gas would be very cheap; Such a step of 1000 iterations only costs around 0.20$ at current ethereum price. Also please note that the gas limit by block is very large (2B).\n\n#### Increase exchange rate exponentially\n\nWhen `exchangeRate > exp`, the process is simpler we only need to provide 1 wei and 0 shares are minted. From now on, we double the exchange rate at each step of 1000 iterations:\n\nIndeed when exchange rate is X*exp, we can call mint with X wei, which will mint 0 shares.\n\n> With this in mind and taking the example of USDC, reaching an exchange rate value of 1e6*exp, would take approx 20 iterations and cost ~5$ of gas, plus the cost of donating 1000$ of token to the market.\n\n#### Target exchange rate of 1e6*exp reached\n\nThe attacker just has to wait for new depositors to supply into the market, and then he can call redeemUnderlying 1e6 by 1e6, which will burn zero shares. \n\n### Recommendation\n\nConsider fixing the rounding in redeem, make the division by exchange rate round up:\n[mToken.sol#L614-L630](https://github.com/sherlock-audit/2025-07-malda/blob/main/malda-lending/src/mToken/mToken.sol#L614-L630):\n```diff\n        } else {\n            /*\n             * We get the current exchange rate and calculate the amount to be redeemed:\n             *  redeemTokens = redeemAmountIn / exchangeRate\n             *  redeemAmount = redeemAmountIn\n             */\n-           redeemTokens = div_(redeemAmountIn, exchangeRate);\n+           redeemTokens = divUp_(redeemAmountIn, exchangeRate);\n            redeemAmount = redeemAmountIn;\n        }\n```\n\n\n## Discussion\n\n**sherlock-admin2**\n\nThe protocol team fixed this issue in the following PRs/commits:\nhttps://github.com/malda-protocol/malda-lending/pull/117\n\n\n**CergyK**\n\nFix looks good, redeem underlying now rounds up, in favor of the protocol\n\n\n\n",
+    "summary": "\nThe bug report describes an issue in the mToken contract, which is used for lending and borrowing money. The problem is caused by a mistake in the code that calculates the exchange rate and the amount of money to be redeemed. This mistake can lead to losses for users who deposit money into the contract. The report also explains how an attacker can exploit this mistake to increase the exchange rate and potentially steal money from the contract. The report recommends fixing the code to prevent this issue from happening. The team responsible for the contract has already fixed the issue in a recent update.",
+    "report_date": "2025-08-14T17:00:00.000Z",
+    "contest_prize_txt": "80000 USDC",
+    "contest_link": "https://app.sherlock.xyz/audits/contests/1029",
+    "sponsor_name": "",
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "",
+    "github_link": "https://github.com/sherlock-audit/2025-07-malda-judging/issues/81",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "1029",
+    "slug": "m-1-wrong-direction-of-rounding-in-redeem-may-lead-to-drain-if-exchange-rate-grows-large-sherlock-malda-git",
+    "firm_name": "Sherlock",
+    "firm_logo_square": "sherlock_square.png",
+    "protocol_name": "Malda",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "cergyk"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Sherlock",
+        "logo_square": "sherlock_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Malda",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

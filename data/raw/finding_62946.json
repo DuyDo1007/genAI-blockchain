@@ -1,0 +1,45 @@
+{
+    "id": 62946,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 16,
+    "impact": "MEDIUM",
+    "finders_count": 1,
+    "protocol_id": 3464,
+    "title": "[M-03] Malicious adapter pool can censor fixed investors or overcollateralize",
+    "content": "\n_Resolved_\n\n## Severity\n\n**Impact:** High\n\n**Likelihood:** Low\n\n## Description\n\nThe protocol currently lacks an upper bound check on the actual liquidity provided by Fixed Side investors during capital deployment. In the `deployCapital()` process, token amounts (amount0, amount1) are calculated using pool parameters obtained via `pool.slot0()`. However, the provided pool address is not verified against Uniswap V3 Factory to ensure authenticity.\n\n### Adapter Deployment (Unverified Pool):\n\n```solidity\nfunction createAdapter(\n    uint256 adapterTypeId,\n    address poolAddress,\n    bytes calldata data\n) public virtual {\n    ...\n    IAdapter(adapterAddress).initialize(adapterId, poolAddress, defaultDepositTolerance, data);\n}\n```\n\n### Adapter Initialization:\n\n```solidity\nfunction initialize(\n    uint256 _id,\n    address _pool,\n    uint256 _depositTolerance,\n    bytes memory uniV3InitData\n) public virtual override onlyWithoutVaultAttached onlyFactory {\n    ...\n    IUniswapV3Pool uniswapV3Pool = IUniswapV3Pool(_pool);\n    pool = uniswapV3Pool;\n}\n```\n\nA malicious actor can deploy an adapter pointing to a fake pool contract that returns manipulated `sqrtPriceX96` values, causing incorrect computation of required token amounts. As a result, the Fixed Side investor (even unintentionally) may provide **significantly more liquidity** than intended when minting the position.\n\n### Token Amount Calculation using slot0():\n\n```solidity\n(uint160 sqrtRatioX96, , , , , , ) = pool.slot0();\n(uint256 amount0, uint256 amount1) = LiquidityAmounts.getAmountsForLiquidity(\n    sqrtRatioX96,\n    poolMinTick.getSqrtRatioAtTick(),\n    poolMaxTick.getSqrtRatioAtTick(),\n    fixedSideCapacity\n);\n```\n\nWhile the protocol verifies that actual minted liquidity meets a minimum threshold (`l * invDepositTolerance`), there is no check ensuring that the liquidity does **not exceed** a maximum limit:\n\n```solidity\nrequire(uint256(l) * invDepositTolerance / 10000 < _liquidity, \"L\");\n```\n\n### Attack Scenarios:\n\n1. **Overcollateralization Exploit:**\n\n   * Overcollateralizing Fixed Side shifts the position's weight towards Variable Side investors.\n   * Variable Side participants unfairly receive a larger share of the position's yield, while Fixed Side investors risk more capital than intended.\n\n2. **Censorship of Fixed Side Participation (Denial of Service):**\n\n   * By setting the malicious pool's slot0() to return extreme values, an attacker can cause the calculated `amount0` and `amount1` to be unrealistically small.\n   * Honest Fixed Side investors' calls will be reverted due to current slippage protection, effectively **blocking their ability to deploy capital**.\n   * This **censorship vector** can be used to paralyze Fixed Side participation in specific Vaults.\n\nThis scenario can occur even if Fixed Side investors are non-malicious. However, a deliberate attacker could exploit this by:\n\n1. Deploying a malicious adapter with a manipulated pool.\n2. Forcing Fixed Side investors to overcontribute liquidity.\n3. Or, preventing Fixed Side investors from participating altogether (censorship).\n4. Then, entering as a Variable Side investor to gain an outsized share of profits without proportional risk.\n\n## Recommendations\n\n1. **Enforce Upper Bound Liquidity Checks:**\n\n   * After minting, verify that the actual liquidity does not exceed a defined tolerance:\n\n     ```solidity\n     require(_liquidity <= uint256(l) * depositTolerance / 10000, \"Excessive liquidity\");\n     ```\n   * Where `depositTolerance` could be set to a reasonable upper slippage (e.g., 10100 = +1%).\n\n2. **Ensure Adapter Pool Authenticity:**\n\n   * Validate the pool address against Uniswap V3 Factory in the adapter constructor to prevent malicious pool injection.\n\n\n\n",
+    "summary": "",
+    "report_date": "2025-10-13T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/pashov/audits/blob/master/team/md/Saffron-security-review_2025-07-31.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "m-03-malicious-adapter-pool-can-censor-fixed-investors-or-overcollateralize-pashov-audit-group-none-saffron_2025-07-31-markdown",
+    "firm_name": "Pashov Audit Group",
+    "firm_logo_square": "Pashov_square.png",
+    "protocol_name": "Saffron_2025-07-31",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Pashov Audit Group"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Pashov Audit Group",
+        "logo_square": "Pashov_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Saffron_2025-07-31",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

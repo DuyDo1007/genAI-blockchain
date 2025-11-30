@@ -1,0 +1,45 @@
+{
+    "id": 62611,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 16,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3421,
+    "title": "[L-14] Prizes need upper bound to prevent `configureRarity` going OOG",
+    "content": "\n_Resolved_\n\nPrizes for a rarity pool can be added using `addPrize()` and currently there is no upper limit to the prizes that can be added for a rarity pool , due to this the function `configureRarity()` might go out of gas when it tries to transfer the prize NFTs in the rarity pool to the msg.sender  , meaning rarity pools configuration would fail when needed , this functionality is crucial to the system to de-activate/activate rarities and to transfer out NFTs stuck in the contract due to failed transfers.\n\nRecommendation:\nHave a safe upper limit on how many NFT prizes max can be added to a rarity pool.\n\n\n\n",
+    "summary": "",
+    "report_date": "2025-09-11T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/pashov/audits/blob/master/team/md/RipIt-security-review_2025-05-10.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "l-14-prizes-need-upper-bound-to-prevent-configurerarity-going-oog-pashov-audit-group-none-ripit_2025-05-10-markdown",
+    "firm_name": "Pashov Audit Group",
+    "firm_logo_square": "Pashov_square.png",
+    "protocol_name": "RipIt_2025-05-10",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Pashov Audit Group"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Pashov Audit Group",
+        "logo_square": "Pashov_square.png"
+    },
+    "protocols_protocol": {
+        "name": "RipIt_2025-05-10",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

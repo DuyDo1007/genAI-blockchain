@@ -1,0 +1,60 @@
+{
+    "id": 62044,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 37,
+    "impact": "LOW",
+    "finders_count": 4,
+    "protocol_id": 3368,
+    "title": "Missing `_disableInitializers()` Call in the Constructor",
+    "content": "**Update**\nMarked as \"Fixed\" by the client. Addressed in: `5754DB9`.\n\n![Image 62: Alert icon](https://certificate.quantstamp.com/full/sapien/ffb7e698-6178-46f0-8df8-52e537af70c0/static/media/success-icon-alert.4e26c8d3b65fdf9f4f0789a4086052ba.svg)\n\n**Update**\nMarked as \"Fixed\" by the client. Addressed in: `55c3880b64b39f94f2d85cc640940c78e3554645`. The client provided the following explanation:\n\n> The _disableInitializers() function is now being called in the constructors which now exist.\n\n![Image 63: Alert icon](https://certificate.quantstamp.com/full/sapien/ffb7e698-6178-46f0-8df8-52e537af70c0/static/media/success-icon-alert.4e26c8d3b65fdf9f4f0789a4086052ba.svg)\n\n**Update**\nMarked as \"Fixed\" by the client. Addressed in: `55c3880b64b39f94f2d85cc640940c78e3554645`. The client provided the following explanation:\n\n> The _disableInitializers() function is now being called in the constructors which now exist.\n\n**File(s) affected:**`SapTestToken.sol`, `Rewards.sol`, `SapienStaking.sol`\n\n**Description:** To prevent initialization of the implementation contract, lock it down by calling `_disableInitializers()` in the constructor. Read more in the OpenZeppelin documentation for the [initializable contract](https://docs.openzeppelin.com/contracts/5.x/api/proxy#Initializable).\n\n**Recommendation:** Add `constructors` with a call to `_disableInitializers()` to all contracts.",
+    "summary": "",
+    "report_date": "2025-03-30T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://certificate.quantstamp.com/full/sapien/ffb7e698-6178-46f0-8df8-52e537af70c0/index.html",
+    "sponsor_name": "",
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://certificate.quantstamp.com/full/sapien/ffb7e698-6178-46f0-8df8-52e537af70c0/index.html",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "missing-_disableinitializers-call-in-the-constructor-quantstamp-sapien-markdown",
+    "firm_name": "Quantstamp",
+    "firm_logo_square": "quantstamp_square.png",
+    "protocol_name": "Sapien",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Paul Clemson"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Julio Aguilar"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Mostafa Yassin"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Tim Sigl"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Quantstamp",
+        "logo_square": "quantstamp_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Sapien",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

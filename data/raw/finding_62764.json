@@ -1,0 +1,45 @@
+{
+    "id": 62764,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 16,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3443,
+    "title": "[L-04] Incorrect rounding on incentive calculation in `_applyFeeOrIncentiveOnTotal()`",
+    "content": "\n_Resolved_\n\nThe `_applyFeeOrIncentiveOnTotal()` applies fees or incentives to assets. When handling negative `feePpm` (incentives), it uses `_feeOnRaw()` which rounds up via `Math.Rounding.Ceil`. \n\nThis rounding direction favors users at the protocol's expense, as incentives are consistently calculated slightly higher than mathematically precise.\n\n```solidity\nfunction _applyFeeOrIncentiveOnTotal(uint256 assets, int256 feePpm) internal pure returns (uint256) {\n    if (feePpm >= 0) {\n        --- SNIPPED ---\n    } else {\n        /// @dev Negative fee (incentive) - increase assets returned\n@>      uint256 incentive = _feeOnRaw(assets, SafeCast.toUint256(-feePpm));\n        return assets + incentive;\n    }\n}\n\nfunction _feeOnRaw(uint256 assets, uint256 feePpm) internal pure returns (uint256) {\n@>   return Math.mulDiv(assets, feePpm, 1e6, Math.Rounding.Ceil);\n}\n```\n\nConsider using `Math.Rounding.Floor` for incentive calculation.\n\n```diff\n-       uint256 incentive = _feeOnRaw(assets, SafeCast.toUint256(-feePpm));\n+       uint256 incentivePpm = SafeCast.toUint256(-feePpm);\n+       uint256 incentive = Math.mulDiv(assets, incentivePpm, 1e6, Math.Rounding.Floor);\n```\n\n\n\n",
+    "summary": "",
+    "report_date": "2025-09-28T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/pashov/audits/blob/master/team/md/YuzuUSD-security-review_2025-08-28.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "l-04-incorrect-rounding-on-incentive-calculation-in-_applyfeeorincentiveontotal-pashov-audit-group-none-yuzuusd_2025-08-28-markdown",
+    "firm_name": "Pashov Audit Group",
+    "firm_logo_square": "Pashov_square.png",
+    "protocol_name": "YuzuUSD_2025-08-28",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Pashov Audit Group"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Pashov Audit Group",
+        "logo_square": "Pashov_square.png"
+    },
+    "protocols_protocol": {
+        "name": "YuzuUSD_2025-08-28",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

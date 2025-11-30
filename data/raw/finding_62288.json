@@ -1,0 +1,55 @@
+{
+    "id": 62288,
+    "kind": "PDF",
+    "auditfirm_id": 6,
+    "impact": "MEDIUM",
+    "finders_count": 3,
+    "protocol_id": 3396,
+    "title": "Usage of IERC20 methods would fail on some tokens due to lack of return of boolean value",
+    "content": "## Security Advisory\n\n## Severity: Medium Risk\n\n### Context\nMiniPool.sol#L228\n\n### Description\nIn some contracts, IERC20 methods (`transfer`/`approve`) are used, and will fail when used with some tokens. Most notable and popular example of this is USDT on Ethereum mainnet, which lacks a boolean return value for both of these methods. This means that the Solidity call to USDT will revert when attempting to decode the return value.\n\n- **MiniPool.sol#L228:**\n  ```solidity\n  IERC20(underlying).approve(vars.LendingPool, vars.amountReceived);\n  ```\n- **RewardForwarder.sol#L146:**\n  ```solidity\n  IERC20(rewardToken).transfer(forwarder, amount);\n  ```\n- **ATokenERC6909.sol#L238:**\n  ```solidity\n  IERC20(_underlyingAssetAddresses[id]).transfer(to, amount);\n  ```\n\n### Recommendation\nUse `safeTransfer` / `forceApprove` from the SafeERC20 library instead:\n\n- **MiniPool.sol#L228:**\n  ```solidity\n  - IERC20(underlying).approve(vars.LendingPool, vars.amountReceived);\n  + IERC20(underlying).forceApprove(vars.LendingPool, vars.amountReceived);\n  ```\n- **RewardForwarder.sol#L146:**\n  ```solidity\n  - IERC20(rewardToken).transfer(forwarder, amount);\n  + IERC20(rewardToken).safeTransfer(forwarder, amount);\n  ```\n- **ATokenERC6909.sol#L238:**\n  ```solidity\n  - IERC20(_underlyingAssetAddresses[id]).transfer(to, amount);\n  + IERC20(_underlyingAssetAddresses[id]).safeTransfer(to, amount);\n  ```\n\n### Additional Information\n- **Astera:** Fixed in commit d58e3c76.\n- **Spearbit:** Fix verified.",
+    "summary": "\nThis bug report discusses a medium risk security issue in the MiniPool contract. The issue is related to the use of IERC20 methods, which can fail when used with certain tokens, such as USDT on the Ethereum mainnet. The report recommends using `safeTransfer` and `forceApprove` from the SafeERC20 library instead. This issue has been fixed in the Astera commit d58e3c76 and verified by Spearbit. ",
+    "report_date": "2025-08-29T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Astera-Spearbit-Security-Review-December-2024.pdf",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Astera-Spearbit-Security-Review-December-2024.pdf",
+    "github_link": "",
+    "pdf_link": "https://solodit-bucket.s3.amazonaws.com/storage/reports/spearbit/Astera-Spearbit-Security-Review-December-2024.pdf",
+    "pdf_page_from": 23,
+    "contest_id": "",
+    "slug": "usage-of-ierc20-methods-would-fail-on-some-tokens-due-to-lack-of-return-of-boolean-value-spearbit-none-astera-pdf",
+    "firm_name": "Spearbit",
+    "firm_logo_square": "spearbit_square.png",
+    "protocol_name": "Astera",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Saw-mon and Natalie"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Cergyk"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Jonatas Martins"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Spearbit",
+        "logo_square": "spearbit_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Astera",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

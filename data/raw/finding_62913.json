@@ -1,0 +1,60 @@
+{
+    "id": 62913,
+    "kind": "PDF",
+    "auditfirm_id": 6,
+    "impact": "LOW",
+    "finders_count": 4,
+    "protocol_id": 3419,
+    "title": "Undeﬁned behavior and type confusion in db_metadata.hpp atomic_memcpy",
+    "content": "## Severity: Low Risk\n\n## Context\n`db_metadata.hpp#L497-L521`\n\n## Description\n`atomic_memcpy` aims to implement an atomic version of `memcpy` by casting the source and destination buffers as contiguous regions of `std::atomic<uint64_t>` objects. Casting primitive types as objects bypasses object construction and is undefined behavior. \n\nMoreover, `db_metadata` invokes `atomic_memcpy` to copy `db_metadata` objects, which pack a variety of primitive types other than just `uint64_t`, such as `uint8_t`, `uint32_t`, sub-structs, and unions. Casting these to the (conceptually) incompatible object `std::atomic<uint64_t>` is type confusion.\n\n## Category Labs\nWe are tracking it in this monad issue [1589](#).\n\n## Spearbit\nAcknowledged.",
+    "summary": "",
+    "report_date": "2025-09-19T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Monad-Spearbit-Security-Review-September-2025.pdf",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Monad-Spearbit-Security-Review-September-2025.pdf",
+    "github_link": "",
+    "pdf_link": "https://solodit-bucket.s3.amazonaws.com/storage/reports/spearbit/Monad-Spearbit-Security-Review-September-2025.pdf",
+    "pdf_page_from": 45,
+    "contest_id": "",
+    "slug": "undefined-behavior-and-type-confusion-in-db_metadatahpp-atomic_memcpy-spearbit-none-monad-pdf",
+    "firm_name": "Spearbit",
+    "firm_logo_square": "spearbit_square.png",
+    "protocol_name": "Monad",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Haxatron"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Dtheo"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Guido Vranken"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Rikard Hjort"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Spearbit",
+        "logo_square": "spearbit_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Monad",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

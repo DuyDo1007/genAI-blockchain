@@ -1,0 +1,45 @@
+{
+    "id": 62433,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 34,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3407,
+    "title": "[ZLS1-9] Calling ZealousSwapFarms.setRewardToken() May Result in Inflated or Incorrect Staker Payouts",
+    "content": "**Severity:** Low\n\n**Path:** contracts/ZealousSwapFarms.sol#L442-L452 \n\n**Description:** The `setRewardToken() `function in `ZealousSwapFarms` allows the farm owner to update the reward token. However, this change can be made without first distributing all pending rewards in the previous token. As a result, stakers may unintentionally receive rewards in the new token, potentially leading to incorrect or inflated payouts.\n\nFor example:\n\n- Alice has 1,000 USDC in unclaimed rewards (`pendingReward(some_pid, Alice) = 1000 USDC`).\n\n- The owner calls `setRewardToken()` to change the reward token from USDC to BTC.\n\n- When Alice later calls `claim(some_pid)`, she receives 1,000 BTC instead of 1,000 USDC, creating a massive unintended profit.\n\nThis flaw could lead to significant financial discrepancies.\n```\nfunction setRewardToken(IERC20 _newRewardToken) public onlyOwner {\n    require(\n        address(_newRewardToken) != address(0),\n        \"ZealousSwapFarms: Invalid token address\"\n    );\n\n    massUpdatePools();\n\n    rewardToken = _newRewardToken;\n    emit RewardTokenUpdated(address(_newRewardToken));\n}\n```\n\n**Remediation:**  When updating the reward token for a pool, we recommend deploying a new farm contract and instructing users to migrate their stakes to the new contract to prevent reward inconsistencies.\n\n**Status:**  Fixed\n\n- - -",
+    "summary": "",
+    "report_date": "2025-05-26T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/solodit/solodit_content/blob/main/reports/Hexens/2025-05-26-Zealous.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "zls1-9-calling-zealousswapfarmssetrewardtoken-may-result-in-inflated-or-incorrect-staker-payouts-hexens-none-zealous-markdown",
+    "firm_name": "Hexens",
+    "firm_logo_square": "Hexens_square.png",
+    "protocol_name": "Zealous",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Hexens"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Hexens",
+        "logo_square": "Hexens_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Zealous",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

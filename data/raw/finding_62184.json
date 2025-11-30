@@ -1,0 +1,45 @@
+{
+    "id": 62184,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 16,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3389,
+    "title": "[L-11] Flash loan attack reallocates liquidity to riskier strategy vaults",
+    "content": "\n_Acknowledged_\n\nIn `EulerEarn`, user deposits are distributed across the underlying `supplyQueue` strategy vaults according to their remaining capacity. The `_supplyStrategy()` function iterates through this queue and deposits funds into the first supply strategy vault with available capacity. If a supply strategy vault hits its cap, the `EulerEarn` vault proceeds to the next one until the entire deposit is allocated:\n\n```solidity\nfunction _supplyStrategy(uint256 assets) internal {\n        for (uint256 i; i < supplyQueue.length; ++i) {\n            IERC4626 id = supplyQueue[i];\n\n            uint256 supplyCap = config[id].cap;\n            if (supplyCap == 0) continue;\n\n            uint256 supplyAssets = _expectedSupplyAssets(id);\n\n            uint256 toSupply =\n                UtilsLib.min(UtilsLib.min(supplyCap.zeroFloorSub(supplyAssets), id.maxDeposit(address(this))), assets);\n\n            if (toSupply > 0) {\n                // Using try/catch to skip vaults that revert.\n                try id.deposit(toSupply, address(this)) returns (uint256 suppliedShares) {\n                    config[id].balance = (config[id].balance + suppliedShares).toUint112();\n                    assets -= toSupply;\n                } catch {}\n            }\n\n            if (assets == 0) return;\n        }\n\n        if (assets != 0) revert ErrorsLib.AllCapsReached();\n    }\n```\n\nHowever, this design introduces a risk of **manipulative reallocation of liquidity**, where a malicious actor can perform a flash-loan attack: deposit a large amount of assets into `EulerEarn`, trigger redistribution across the `supplyQueue`, and then withdraw those assets in the same transaction. This causes the liquidity to be shifted away from larger, safer supply strategy vaults and into smaller or riskier ones.\n\nFor instance:\n\n- Assume there are two strategy vaults (A and B) in the `supplyQueue` with caps of 100M and 20M, respectively. Supply strategy vault A currently holds 20M, and supply strategy vault B holds 1M.\n- An attacker can deposit 99M into `EulerEarn`, causing funds to overflow from A into B. Then they immediately withdraw the 99M, leaving B with a disproportionate amount of the vault’s total liquidity.\n\nThis exploit allows attackers to manipulate portfolio allocation in `EulerEarn`, degrading performance and increasing risk exposure. Moreover, withdrawing a large share from one strategy vault could cause liquidity shortages and negatively impact users of that strategy vault.\n\n**Recommendations**\n\nConsider increasing the supply cap of the first strategy vault in the `supplyQueue` to a high value to make it act as a buffer to absorb temporary surges and protect smaller strategy vaults.\n\n\n### Euler comments\n\nWe acknowledge the finding, will keep as is. Behaviour is the same in the original codebase.\n\n\n\n",
+    "summary": "",
+    "report_date": "2025-08-27T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/pashov/audits/blob/master/team/md/EulerEarn-security-review_2025-07-25.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "l-11-flash-loan-attack-reallocates-liquidity-to-riskier-strategy-vaults-pashov-audit-group-none-eulerearn_2025-07-25-markdown",
+    "firm_name": "Pashov Audit Group",
+    "firm_logo_square": "Pashov_square.png",
+    "protocol_name": "EulerEarn_2025-07-25",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Pashov Audit Group"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Pashov Audit Group",
+        "logo_square": "Pashov_square.png"
+    },
+    "protocols_protocol": {
+        "name": "EulerEarn_2025-07-25",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

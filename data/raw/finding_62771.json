@@ -1,0 +1,45 @@
+{
+    "id": 62771,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 16,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3443,
+    "title": "[L-11] Users can frontrun to escape ILP losses by forfeiting small yield",
+    "content": "\n_Resolved_\n\nThe `YuzuILP` (Insurance Liquidity Pool) is designed to accrue yield and cover losses for users. According to the documentation, on **redeem** tokens are priced based on the pool share **excluding the yield accrued since the last pool-size update**.  \n```solidity\n    function _convertToSharesRedeemed(uint256 assets, Math.Rounding rounding) internal view returns (uint256) {\n        // slither-disable-next-line incorrect-equality\n        if (poolSize == 0) {\n            return totalSupply();\n        }\n        return Math.mulDiv(totalSupply(), assets, poolSize, rounding);  //Note: poolSize is used instead of totalAssets() to simulate withdraw on last update\n    }\n```\nThis design aims to prevent \"yield sniping,\" where an attacker deposits after an update and withdraws before the next one to capture most of the yield without taking on risk. To achieve this, any accrued yield since the last update is forfeited when redeeming.  \n\nHowever, this mechanism still allows users to frontrun large losses. If an incident occurs that requires the ILP to cover a large loss, users can immediately redeem their position. By doing so, they only forfeit a small amount of yield accrued since the last update  (+ small fee) while escaping a much larger loss from the insurance coverage:\n\nThis creates an **asymmetric risk exposure**, where rational users can opt out right before large losses are applied, undermining the insurance design of the protocol.\n\n**Recommendations**\n\n- Prevent one-step redeem/withdrawals on `YuzuILP`.* \n- For two-step redeems, ensure to use the share price in the **second step** which reflects losses, so users cannot escape pending losses by exiting early. \n\n\n\n",
+    "summary": "",
+    "report_date": "2025-09-28T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/pashov/audits/blob/master/team/md/YuzuUSD-security-review_2025-08-28.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "l-11-users-can-frontrun-to-escape-ilp-losses-by-forfeiting-small-yield-pashov-audit-group-none-yuzuusd_2025-08-28-markdown",
+    "firm_name": "Pashov Audit Group",
+    "firm_logo_square": "Pashov_square.png",
+    "protocol_name": "YuzuUSD_2025-08-28",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Pashov Audit Group"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Pashov Audit Group",
+        "logo_square": "Pashov_square.png"
+    },
+    "protocols_protocol": {
+        "name": "YuzuUSD_2025-08-28",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

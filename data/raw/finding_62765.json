@@ -1,0 +1,45 @@
+{
+    "id": 62765,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 16,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3443,
+    "title": "[L-05] Returned shares token decimals wrong if asset has over 6 decimals",
+    "content": "\n_Resolved_\n\nThe `YuzuProto` contract and its children (`YuzuUSD`, `YuzuILP`) inherit from OpenZeppelin's `ERC20Upgradeable`. This base contract provides a default `decimals()` function that returns `18`.\n\n```solidity\n// ERC20Upgradeable.sol\nfunction decimals() public view virtual returns (uint8) {\n    return 18;\n}\n```\n\n```solidity\n// YuzuProto.sol\nfunction _decimalsOffset() internal view virtual returns (uint8) {\n    return 12;\n}\n```\n\nHowever, the share tokens represented by these contracts should have decimals based on their underlying assets plus any offset.\n\nFor instance, `YuzuProto` defines a `_decimalsOffset()` of `12`, which should be added to the underlying asset's decimals. This works correctly when the underlying asset has 6 decimals (like `USDC` or `USDT`), resulting in 18 decimals for the share token. But if the underlying asset has more than 6 decimals (like `DAI` with 18 decimals), the share token should return 30 decimals (`18+12`).\n\nThe `decimals()` function should be overridden to properly return the underlying asset's decimals plus the `_decimalsOffset()` to ensure accurate representation of share tokens.\n\n\n\n",
+    "summary": "",
+    "report_date": "2025-09-28T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/pashov/audits/blob/master/team/md/YuzuUSD-security-review_2025-08-28.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "l-05-returned-shares-token-decimals-wrong-if-asset-has-over-6-decimals-pashov-audit-group-none-yuzuusd_2025-08-28-markdown",
+    "firm_name": "Pashov Audit Group",
+    "firm_logo_square": "Pashov_square.png",
+    "protocol_name": "YuzuUSD_2025-08-28",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Pashov Audit Group"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Pashov Audit Group",
+        "logo_square": "Pashov_square.png"
+    },
+    "protocols_protocol": {
+        "name": "YuzuUSD_2025-08-28",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

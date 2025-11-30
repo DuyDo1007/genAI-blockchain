@@ -1,0 +1,45 @@
+{
+    "id": 62365,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 34,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3403,
+    "title": "[FTN-9] Code optimisation",
+    "content": "**Severity:** Low\n\n**Path:** core/state_transition.go:TransitionDb()\n\n**Description:** Function `TransitionDb()` will transition the state by applying the current message and returning the evm execution result. During the execution of the `TransitionDb()`, activity scores are logged before and after refunds. Since function `TransitionDb()` will be called during the execution of any transaction, logging will also occur during any transaction, which can significantly slow down the blockchain as a whole.  \n```\nfunc (st *StateTransition) TransitionDb() (*ExecutionResult, error) {\n    [...]\n    \n    for _, act := range st.state.GetCurrentActivities() {\n        log.Debug(\"Activities before refund\", \"address\", act.Address, \"activity\", act.Activity, \"delta\", act.DeltaActivity) // @note logs in for loops\n    }\n\n    [...]\n    \n    for _, act := range st.state.GetCurrentActivities() {\n        log.Debug(\"Activities after refund\", \"address\", act.Address, \"activity\", act.Activity, \"delta\", act.DeltaActivity)\n    }\n\n    [...]\n}\n```\n\n**Remediation:**  We would suggest implementing the logging logic, in which only those `activity` parameters that were changed during the transaction will be included in the logs.\n\n**Status:** Fixed\n\n\n- - -",
+    "summary": "",
+    "report_date": "2023-04-06T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/solodit/solodit_content/blob/main/reports/Hexens/2023-04-06-Bahamut.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "ftn-9-code-optimisation-hexens-none-bahamut-markdown",
+    "firm_name": "Hexens",
+    "firm_logo_square": "Hexens_square.png",
+    "protocol_name": "Bahamut",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Hexens"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Hexens",
+        "logo_square": "Hexens_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Bahamut",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

@@ -1,0 +1,55 @@
+{
+    "id": 62318,
+    "kind": "PDF",
+    "auditfirm_id": 6,
+    "impact": "MEDIUM",
+    "finders_count": 3,
+    "protocol_id": 2863,
+    "title": "GMToken isn't redeemable due to lacking burn(uint256 amount) function",
+    "content": "## Severity: Medium Risk\n\n## Context\n- **Files:** GMToken.sol#L21, GMTokenManager.sol#L251-L257\n\n## Description\nRedeeming GM tokens for RWA tokens will revert because the redemption attempts to call `burn(quote.quantity)` on the GMToken, which it doesn't implement.\n\n## Proof of Concept\n```diff\ndiff --git a/forge-tests/globalMarkets/gmTokens/tokenDeployIntegration.t.sol\nb/forge-tests/globalMarkets/gmTokens/tokenDeployIntegration.t.sol\nindex b763df1..c4d485c 100644\n--- a/forge-tests/globalMarkets/gmTokens/tokenDeployIntegration.t.sol\n+++ b/forge-tests/globalMarkets/gmTokens/tokenDeployIntegration.t.sol\n@@ -29,6 +29,7 @@ contract GMTokenFactoryTest_ETH is OUSG_InstantManager_BasicDeployment {\n    OndoComplianceGMView public ondoComplianceGMView;\n    TokenPauseManager public tokenPauseManager;\n    GMTokenManager public gmTokenManager;\n+   address public newGmToken;\n    IssuanceHours public issuanceHours;\n    onUSD public onusd;\n@@ -152,7 +153,7 @@ contract GMTokenFactoryTest_ETH is OUSG_InstantManager_BasicDeployment {\n    function test_deployAndMintNewGMToken() public {\n        vm.prank(OUSG_GUARDIAN);\n-       address newGmToken = gmTokenFactory.deployAndRegisterToken(\n+       newGmToken = gmTokenFactory.deployAndRegisterToken(\n            \"Test GM Token\",\n            \"TGT\",\n            OUSG_GUARDIAN\n@@ -204,6 +205,41 @@ contract GMTokenFactoryTest_ETH is OUSG_InstantManager_BasicDeployment {\n        assertEq(onusd.totalSupply(), onUsdSupply - depositAmount);\n    }\n+   function test_deployMintAndRedeemNewGMToken() public {\n+       test_deployAndMintNewGMToken();\n+       \n+       uint256 rwaAmount = 1e18;\n+       uint256 expiration = block.timestamp + 1 hours;\n+       \n+       // now do redemption\n+       IGMTokenManager.Quote memory quote = IGMTokenManager.Quote({\n+           chainId: block.chainid,\n+           attestationId: 2,\n+           userId: aliceID,\n+           asset: address(newGmToken),\n+           price: 150e18,\n+           quantity: rwaAmount,\n+           expiration: expiration,\n+           side: IGMTokenManager.QuoteSide.SELL,\n+           additionalData: \"\"\n+       });\n+       \n+       // Create the attestation signature\n+       bytes memory signature = _createAttestation(attesterPrivateKey, quote);\n+       \n+       // Approve manager to spend user 's newGmToken\n+       vm.startPrank(alice);\n+       IERC20(newGmToken).approve(address(gmTokenManager), rwaAmount);\n+       \n+       gmTokenManager.redeemWithAttestation(\n+           quote,\n+           signature,\n+           address(onusd),\n+           0\n+       );\n+   }\n+\n    function _createAttestation(\n        uint256 signerPrivateKey,\n        IGMTokenManager.Quote memory quote\n```\nGets a generic revert because there isn't a function that matches the requested function selector when running `forge test --mt test_deployMintAndRedeemNewGMToken --rpc-url mainnet`. The test passes after adding:\n```solidity\nfunction burn(uint256 amount) external {\n    _burn(msg.sender, amount);\n}\n```\n\n## Recommendation\nHave GMToken inherit `ERC20BurnableUpgradeable` (and `IRWALIke` interface), as it contains both the `burn(uint256 amount)` and `burnFrom(address from, uint256 amount)` functions. Also, as an optimization, `burnFrom()` can be called instead of `safeTransferFrom()` and `burn()`:\n```solidity\nIRWALike(quote.asset).burnFrom(_msgSender(), quote.quantity);\n```\n\n## Ondo Finance\nFixed in PR 432.\n\n## Spearbit\nFix verified.",
+    "summary": "\nThe report discusses a bug in the GMToken and GMTokenManager smart contracts. When trying to redeem GM tokens for RWA tokens, the transaction reverts because the GMToken does not have a `burn()` function. This was discovered during testing and a fix has been suggested by adding the `ERC20BurnableUpgradeable` and `IRWALike` interfaces to the GMToken contract. The bug has been fixed in a pull request by Ondo Finance and verified by Spearbit.",
+    "report_date": "2025-06-17T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Ondo-Spearbit-Security-Review-May-2025.pdf",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/spearbit/portfolio/blob/master/pdfs/Ondo-Spearbit-Security-Review-May-2025.pdf",
+    "github_link": "",
+    "pdf_link": "https://solodit-bucket.s3.amazonaws.com/storage/reports/spearbit/Ondo-Spearbit-Security-Review-May-2025.pdf",
+    "pdf_page_from": 5,
+    "contest_id": "",
+    "slug": "gmtoken-isnt-redeemable-due-to-lacking-burnuint256-amount-function-spearbit-none-ondo-rwa-internal-pdf",
+    "firm_name": "Spearbit",
+    "firm_logo_square": "spearbit_square.png",
+    "protocol_name": "Ondo RWA Internal",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "CarrotSmuggler"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Anurag Jain"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Desmond Ho"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Spearbit",
+        "logo_square": "spearbit_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Ondo RWA Internal",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

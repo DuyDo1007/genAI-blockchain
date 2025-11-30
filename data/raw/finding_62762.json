@@ -1,0 +1,45 @@
+{
+    "id": 62762,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 16,
+    "impact": "LOW",
+    "finders_count": 1,
+    "protocol_id": 3443,
+    "title": "[L-02] Constant 1:1 peg between `YuzuUSD` and `USDC` may fail after large protocol loss",
+    "content": "\n_Acknowledged_\n\nIf the protocol suffers a loss greater than the available insurance coverage, the hard-coded 1:1 price assumption between YuzuUSD and USDC becomes problematic. In such a scenario, the system would not be able to reflect the devalued backing of YuzuUSD, leading to potential insolvency risks or unfair redemptions. It is recommended to introduce a dynamic pricing mechanism that accounts for protocol losses and adjusts the YuzuUSD exchange rate accordingly.  \n```solidity\n    function _convertToShares(uint256 assets, Math.Rounding) internal view override returns (uint256) {\n        return assets * 10 ** _decimalsOffset();\n    }\n\n    function _convertToAssets(uint256 shares, Math.Rounding rounding) internal view override returns (uint256) {\n        if (rounding == Math.Rounding.Floor) {\n            return shares / 10 ** _decimalsOffset();\n        } else {\n            return Math.ceilDiv(shares, 10 ** _decimalsOffset());\n        }\n    }\n```\n\n\n\n",
+    "summary": "",
+    "report_date": "2025-09-28T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/pashov/audits/blob/master/team/md/YuzuUSD-security-review_2025-08-28.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "l-02-constant-11-peg-between-yuzuusd-and-usdc-may-fail-after-large-protocol-loss-pashov-audit-group-none-yuzuusd_2025-08-28-markdown",
+    "firm_name": "Pashov Audit Group",
+    "firm_logo_square": "Pashov_square.png",
+    "protocol_name": "YuzuUSD_2025-08-28",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Pashov Audit Group"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Pashov Audit Group",
+        "logo_square": "Pashov_square.png"
+    },
+    "protocols_protocol": {
+        "name": "YuzuUSD_2025-08-28",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

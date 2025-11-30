@@ -1,0 +1,45 @@
+{
+    "id": 62381,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 34,
+    "impact": "HIGH",
+    "finders_count": 1,
+    "protocol_id": 1408,
+    "title": "[FNG-15] CErc721 liquidation will always revert if interest state is up-to-date",
+    "content": "**Severity:** High\n\n**Path:** CErc721.sol:_liquidateBorrow#L428-L464\n\n**Description:** The function `_liquidateBorrow` of the CErc721 contract fetches the current exchange rate using `accrueInterest()` on line 431:\n```\nuint assetsExchangeRate = accrueInterest();\n```\nAfterwards, this value is used in a check for freshness on lines 436-438:\n```\nif (accrualBlockNumber != getBlockNumber() || assetsExchangeRate == 0) {\n    revert LiquidateFreshnessCheck();\n}\n```\nHowever, the function `accrueInterest()` only returns the exchange rate at the end of the function after the interest state has been updated. The function will short-circuit if the interest state had already been updated in the same block (i.e. `accrualBlockNumber`  is equal to `block.number`), which can be seen in lines 651-653:\n```\nif (accrualBlockNumberPrior == currentBlockNumber) {\n    return NO_ERROR;\n}\n```\nIn this case, it will return `NO_ERROR` (`0`) and consequently the `_liquidateBorrow` function will always revert due to the freshness check.\n\nAs a result, liquidations will always fail if there were any interactions with the CToken, if there are multiple liquidations in one block and liquidations could be blocked by front-running with a call to `accrueInterest()`.\n```\n    function _liquidateBorrow(address liquidator, address borrower, uint[] memory nftIds) override external nonReentrant returns (uint) {\n        require(msg.sender == address(comptroller), \"unauthorized\");\n\n        uint assetsExchangeRate = accrueInterest();\n\n        uint repayAmount = nftIds.length * expScale;\n        \n        /* Verify market's block number equals current block number */\n        if (accrualBlockNumber != getBlockNumber() || assetsExchangeRate == 0) {\n            revert LiquidateFreshnessCheck();\n        }\n\n        /* Fail if borrower = liquidator */\n        if (borrower == liquidator) {\n            revert LiquidateLiquidatorIsBorrower();\n        }\n\n        /* Fail if repayAmount = 0 */\n        if (repayAmount == 0) {\n            revert LiquidateCloseAmountIsZero();\n        }\n\n        /* Fail if repayBorrow fails */\n        uint repayInterest;\n        (repayAmount, repayInterest) = repayBorrowFresh(liquidator, borrower, nftIds, 0);\n\n        /* We emit a LiquidateBorrow event */\n        //emit LiquidateBorrow(liquidator, borrower, nftIds, repayInterest, cTokenCollaterals, seizeTokensList);\n\n        // convert interest value to NFT units\n        repayInterest = repayInterest * expScale / assetsExchangeRate;\n\n        // combine in NFT unit terms for seizure calculation\n        uint actualRepayAmount = repayAmount + repayInterest;\n\n        return actualRepayAmount;\n    }\n```\n\n**Remediation:**  Either `accrueInterest()` should return the exchange rate in the short-circuit branch, or `_liquidateBorrow` should handle this case correctly.\n\n**Status:**  Fixed\n\n\n- - -",
+    "summary": "\nThis bug report is about a high severity bug found in the `_liquidateBorrow` function of the CErc721 contract. The function uses the `accrueInterest()` function to get the current exchange rate, but there is a problem with this. The `accrueInterest()` function only returns the exchange rate after updating the interest state, so if the interest state has already been updated in the same block, the function will return a value of 0. This causes the `_liquidateBorrow` function to always fail because of a freshness check. This means that liquidations will always fail if there were any interactions with the CToken, if there are multiple liquidations in one block, or if there is a front-running call to `accrueInterest()`. The bug has been fixed, but it could have been prevented if either `accrueInterest()` returned the exchange rate in the short-circuit branch or if `_liquidateBorrow` handled this case correctly.",
+    "report_date": "2023-11-06T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/solodit/solodit_content/blob/main/reports/Hexens/2023-11-06-Fungify.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "fng-15-cerc721-liquidation-will-always-revert-if-interest-state-is-up-to-date-hexens-none-fungify-markdown",
+    "firm_name": "Hexens",
+    "firm_logo_square": "Hexens_square.png",
+    "protocol_name": "Fungify",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Hexens"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Hexens",
+        "logo_square": "Hexens_square.png"
+    },
+    "protocols_protocol": {
+        "name": "Fungify",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

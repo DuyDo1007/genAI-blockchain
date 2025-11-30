@@ -1,0 +1,50 @@
+{
+    "id": 62336,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 11,
+    "impact": "LOW",
+    "finders_count": 2,
+    "protocol_id": 3401,
+    "title": "Compliance check discrepancy between `onUSDManager` and `onUSD` transfers",
+    "content": "**Description:** When minting or redeeming `onUSD` via `onUSDManager`, the contract extends `BaseRWAManager`, which performs a compliance check using the `onUSD` token address (`address(onUSD)`) as the `rwaToken` identifier. This happens in [`BaseRWAManager::_processSubscription`](https://github.com/ondoprotocol/rwa-internal/blob/a74d03f4a71bd9cac09e8223377b47f7d64ca8d4/contracts/xManager/rwaManagers/BaseRWAManager.sol#L171-L172):\n\n```solidity\n// Reverts if user address is not compliant\nondoCompliance.checkIsCompliant(rwaToken, _msgSender());\n```\n\nThe same check occurs during redemptions via [`BaseRWAManager::_processRedemption`](https://github.com/ondoprotocol/rwa-internal/blob/a74d03f4a71bd9cac09e8223377b47f7d64ca8d4/contracts/xManager/rwaManagers/BaseRWAManager.sol#L243-L244).\n\nSeparately, the `onUSD` token contract itself performs compliance checks inside [`onUSD::_beforeTokenTransfer`](https://github.com/ondoprotocol/rwa-internal/blob/a74d03f4a71bd9cac09e8223377b47f7d64ca8d4/contracts/globalMarkets/onUSD.sol#L168-L180), which is invoked during transfers, minting, and burning. This function calls the inherited [`OndoComplianceGMClientUpgradeable::_checkIsCompliant`](https://github.com/ondoprotocol/rwa-internal/blob/a74d03f4a71bd9cac09e8223377b47f7d64ca8d4/contracts/globalMarkets/gmTokenCompliance/OndoComplianceGMClientUpgradeable.sol#L86-L88), which delegates to [`OndoComplianceGMView::checkIsCompliant`](https://github.com/ondoprotocol/rwa-internal/blob/a74d03f4a71bd9cac09e8223377b47f7d64ca8d4/contracts/globalMarkets/gmTokenCompliance/OndoComplianceGMView.sol#L75-L81):\n\n```solidity\nfunction checkIsCompliant(address user) external override {\n  compliance.checkIsCompliant(gmIdentifier, user);\n}\n```\n\nHere, [`OndoComplianceGMViewgmIdentifier`](https://github.com/ondoprotocol/rwa-internal/blob/a74d03f4a71bd9cac09e8223377b47f7d64ca8d4/contracts/globalMarkets/gmTokenCompliance/OndoComplianceGMView.sol#L34-L36) is a hardcoded address derived from the string `\"global_markets\"` and used as the `rwaToken` identifier:\n\n```solidity\naddress public gmIdentifier =\n  address(uint160(uint256(keccak256(abi.encodePacked(\"global_markets\")))));\n```\n\nAs a result, minting and redeeming will trigger two compliance checks with different identifiers:\n\n* `address(onUSD)` via the manager logic\n* `gmIdentifier` via the token's `_beforeTokenTransfer`\n\n**Impact:** Although `_beforeTokenTransfer` runs during minting and burning, meaning both compliance checks still occur, the use of two different `rwaToken` identifiers introduces an unnecessary inconsistency. If the two compliance lists are not aligned, minting or redeeming could revert unexpectedly, despite the user being compliant under one identifier.\n\n**Recommended Mitigation:** There are two possible mitigation approaches, depending on which compliance identifier is intended as canonical for `onUSD`.\n\n1) Update `OnUSD::_beforeTokenTransfer` to explicitly use `address(this)` as the `rwaToken` in all compliance checks. This aligns the transfer/mint/burn logic with the identifier used in the manager’s mint/redeem flow, ensuring consistency and eliminating the need to maintain two separate compliance lists.\n\n   ```solidity\n   if (from != msg.sender && to != msg.sender) {\n     compliance.checkIsCompliant(address(this), msg.sender);\n   }\n\n   if (from != address(0)) {\n     // If not minting\n     compliance.checkIsCompliant(address(this), from);\n   }\n\n   if (to != address(0)) {\n     // If not burning\n     compliance.checkIsCompliant(address(this), to);\n   }\n   ```\n\n2) If `gmIdentifier` is intended to serve as a shared compliance identity for global markets assets (including `onUSD`), consider using `gmIdentifier` in the `onUSDManager` mint/redeem flow as well. This would unify all compliance checks under a single identifier, reducing operational fragmentation.\n\n\n**Ondo:** Acknowledged. The `OndoCompliance` check in the `USDonManager` only exists due to the `USDonManager` inheriting the `BaseRWAManager` - since the check already exists in `USDon` transfers themselves it would be completely redundant if used. Knowing this, we will leave the sanctions and blocklist unset for `USDon` in `OndoCompliance` so that the checks coming from the `USDonManager` are effectively bypassed, and we instead rely on checks stemming from `USDon` transfers themselves and keyed on the `gmIdentifier`.\n\n\\clearpage",
+    "summary": "",
+    "report_date": "2025-07-14T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/solodit/solodit_content/blob/main/reports/Cyfrin/2025-07-14-cyfrin-ondo-global-markets-v2.0.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "compliance-check-discrepancy-between-onusdmanager-and-onusd-transfers-cyfrin-none-ondo-global-markets-markdown",
+    "firm_name": "Cyfrin",
+    "firm_logo_square": "Cyfrin_square.jpg",
+    "protocol_name": "Ondo Global Markets",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Immeas"
+            }
+        },
+        {
+            "wardens_warden": {
+                "handle": "Al-Qa'qa'"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Cyfrin",
+        "logo_square": "Cyfrin_square.jpg"
+    },
+    "protocols_protocol": {
+        "name": "Ondo Global Markets",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}

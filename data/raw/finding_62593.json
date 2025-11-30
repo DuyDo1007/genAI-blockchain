@@ -1,0 +1,45 @@
+{
+    "id": 62593,
+    "kind": "MARKDOWN",
+    "auditfirm_id": 16,
+    "impact": "HIGH",
+    "finders_count": 1,
+    "protocol_id": 3421,
+    "title": "[C-02] Missing packet ID in `finalizeOpen()` causes NFT loss",
+    "content": "\n_Resolved_\n\n## Severity\n\n**Impact:** High\n\n**Likelihood:** High\n\n## Description\n\nIn the `Packet.sol` contract, the `finalizeOpen()` function has a critical flaw that will cause all transactions to fail when the `burnType` is **INSTANT_OPEN_PACKET**.\nWhen processing an **INSTANT_OPEN_PACKET** burn type, the function attempts to add the packet to inventory by calling `packetStore.addPacketsToInventory(packetIds)`. However, it creates a new array to hold the packet ID but never actually assigns the packet ID to the array:\n```solidity\nif (burnType == BurnType.INSTANT_OPEN_PACKET) {\n    _transfer(ownerOf(packetId), address(this), packetId);\n    this.approve(address(packetStore), packetId);\n\n    uint256[] memory packetIds = new uint256[](1);\n    // Missing: packetIds[0] = packetId;\n    packetStore.addPacketsToInventory(packetIds);\n}\n```\nAs a result, the `packetIds` array contains only default values (zeros), not the actual packet ID, causing `addPacketsToInventory()` to attempt to process an invalid packet ID. This will lead to a revert in `addPacketsToInventory()` when it tries to validate a zero packet ID\n\n```solidity\nif (!_validatePacketTypeId(packetTypeId)) revert InvalidPacketType(packetTypeId);\n```\n\nThis issue results in the user losing their packet NFT (as it's transferred to the contract) but not receiving anything in return, as the transaction fails during the call to `packetStore.addPacketsToInventory()`.\n\n### Proof of Concept\n\nPlease copy the following POC in `CardAllocationPoolTest.t.sol`\n\n```solidity\nfunction testPOC() public {\n        uint256 packetType = 1;\n        uint256 packetId = 1;\n        uint256[] memory cardIds = _mintCardsToAdmin(3);\n\n        // Add bundle to pool\n        vm.startPrank(admin);\n        bytes32 bundleProvenance = keccak256(abi.encode(cardIds));\n        pool.addCardBundlesToPacketPool(packetType, cardIds, cardIds, bundleProvenance);\n        vm.stopPrank();\n\n        // Setup packet\n        vm.startPrank(admin);\n        packet.registerPacketType(\n            PacketStorage.PacketTypeParams({packetTypeName: \"Test Pack\", packetTypeMetadata: \"Test Metadata\"})\n        );\n\n        packet.mintTo(\n            PacketStorage.PacketMintParams({\n                packetTypeId: packetType,\n                packetMetadata: \"Test Packet\",\n                packetSerialNumber: \"TEST-001\"\n            }),user\n        );\n\n        vm.stopPrank(); \n\n        // User initiates burn which will trigger instantOpenPacket\n        \n        vm.startPrank(user);\n        vm.expectRevert(RipFunStore.InvalidPacketType.selector);\n        packet.initiateBurn(\n            PacketStorage.PacketBurnParams({packetId: packetId, burnType: PacketStorage.BurnType.INSTANT_OPEN_PACKET})\n        );\n        vm.stopPrank();\n\n        // Verify request was made\n        //assertTrue(coordinator.lastRequestId() == 0);\n    }\n```\n## Recommendations\n\nAdd the missing assignment to store the packet ID in the array before calling `addPacketsToInventory()`\n```diff\n function finalizeOpen(uint256 packetId, uint256[] memory selectedBundle, string memory openMetadata)\n        external\n        onlyRole(ALLOCATION_MANAGER_ROLE)\n    {\n       //...\n        if (burnType == BurnType.INSTANT_OPEN_PACKET) {\n            _transfer(ownerOf(packetId), address(this), packetId);\n            this.approve(address(packetStore), packetId);\n\n            uint256[] memory packetIds = new uint256[](1);\n+           packetIds[0] = packetId;\n            packetStore.addPacketsToInventory(packetIds);\n        } else {\n          //...\n        }\n        //...\n    }\n```\nThis will ensure that the correct packet ID is passed to the `addPacketsToInventory()` function, allowing the transaction to complete successfully.\n\n\n\n",
+    "summary": "\nThe bug report is about a critical flaw in the `Packet.sol` contract that causes all transactions to fail when the `burnType` is **INSTANT_OPEN_PACKET**. This happens because the function `finalizeOpen()` does not properly assign the packet ID to an array before calling `packetStore.addPacketsToInventory()`. This results in the user losing their packet NFT without receiving anything in return. The report recommends adding the missing assignment to store the packet ID in the array to fix the issue.",
+    "report_date": "2025-09-11T00:00:00.000Z",
+    "contest_prize_txt": "",
+    "contest_link": "",
+    "sponsor_name": null,
+    "sponsor_link": "",
+    "quality_score": 0,
+    "general_score": 0,
+    "source_link": "https://github.com/pashov/audits/blob/master/team/md/RipIt-security-review_2025-05-10.md",
+    "github_link": "",
+    "pdf_link": "",
+    "pdf_page_from": 0,
+    "contest_id": "",
+    "slug": "c-02-missing-packet-id-in-finalizeopen-causes-nft-loss-pashov-audit-group-none-ripit_2025-05-10-markdown",
+    "firm_name": "Pashov Audit Group",
+    "firm_logo_square": "Pashov_square.png",
+    "protocol_name": "RipIt_2025-05-10",
+    "bookmarked": false,
+    "read": false,
+    "issues_issue_finders": [
+        {
+            "wardens_warden": {
+                "handle": "Pashov Audit Group"
+            }
+        }
+    ],
+    "auditfirms_auditfirm": {
+        "name": "Pashov Audit Group",
+        "logo_square": "Pashov_square.png"
+    },
+    "protocols_protocol": {
+        "name": "RipIt_2025-05-10",
+        "protocols_protocolcategoryscore": []
+    },
+    "issues_issuetagscore": []
+}
