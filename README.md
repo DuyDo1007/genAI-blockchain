@@ -1,171 +1,263 @@
 # GenAI for Blockchain Security
 
-Hệ thống phân tích và phát hiện lỗ hổng bảo mật trong Smart Contracts sử dụng AI.
+Dự án sử dụng Generative AI để phân tích và phát hiện các vấn đề bảo mật trong smart contracts blockchain.
 
-**Stack**: Sentence-Transformers + FAISS + IsolationForest + Streamlit + OpenAI API
+## Tính năng
 
-## 🎯 Tính năng
+1. **RAG (Retrieval-Augmented Generation) QA**: Hệ thống hỏi đáp dựa trên tài liệu về smart contract security
+2. **Anomaly Detection**: Phát hiện các findings bất thường trong smart contracts sử dụng Isolation Forest
+3. **Data Processing**: Xử lý và chuẩn hóa dữ liệu từ JSON files
+4. **Vector Store**: Lưu trữ embeddings trong FAISS để tìm kiếm nhanh
 
-### 1. **RAG Q&A** - Hỏi đáp về Smart Contract Security
-
-- Truy vấn kiến thức từ 912 audit findings
-- Sử dụng FAISS vector store để tìm documents liên quan
-- Generate câu trả lời bằng OpenAI API
-- User chỉ cần nhập API key
-
-### 2. **Anomaly Detection** - Phát hiện bất thường
-
-- Phát hiện findings bất thường trong smart contracts
-- Sử dụng IsolationForest model (15% contamination)
-- Anomaly Score: < 0 = anomaly, ≥ 0 = normal
-- Hỗ trợ batch processing
-
-### 3. **Data Processing** - Xử lý dữ liệu
-
-- Chuyển đổi 912 JSON files → CSV
-- Trích xuất contract name, function name
-- Tạo embeddings (384-dimensional)
-
-## 📁 Cấu trúc
+## Cấu trúc dự án
 
 ```
 genai-blockchain-security/
 ├── data/
-│   ├── raw/                           # 912 JSON files
-│   └── processed/
-│       ├── findings.csv               # Processed data
-│       ├── faiss_index.bin            # Vector store
-│       ├── metadf.parquet             # Metadata
-│       ├── evaluation_results.csv     # Model results
-│       └── score_distribution.png     # Anomaly scores chart
-├── models/
-│   ├── trained_if.pkl                 # IsolationForest model
-│   └── score_distribution.png         # Evaluation plot
+│   ├── raw/                        # Dữ liệu JSON gốc (912 files)
+│   ├── processed/                  # Dữ liệu sau khi xử lý
+│   └── synthetic/                  # Dữ liệu sinh thêm bởi GenAI
 ├── notebooks/
-│   ├── 01_data_exploration.ipynb
-│   ├── 02_data_preprocessing.ipynb
-│   └── 03_model_training.ipynb
+│   ├── 01_data_exploration.ipynb   # Khám phá dữ liệu
+│   ├── 02_data_preprocessing.ipynb # Làm sạch, chuẩn hóa
+│   └── 03_model_training.ipynb    # Huấn luyện mô hình AI
+├── models/
+│   ├── trained_if.pkl              # Mô hình Isolation Forest đã train
+│   └── autoencoder_model.h5        # (nếu dùng deep learning)
 ├── src/
-│   ├── app.py                         # Streamlit UI (3 tabs)
-│   ├── data_preprocessing.py          # JSON → CSV conversion
-│   ├── ingest_to_vectorstore.py       # Create FAISS index
-│   ├── model_training.py              # Train IsolationForest
-│   ├── evaluate_model.py              # Model evaluation
-│   ├── rag_qa.py                      # RAG functions
-│   └── __init__.py
+│   ├── __init__.py
+│   ├── app.py                      # Web demo (Streamlit)
+│   ├── data_preprocessing.py       # Code xử lý dữ liệu
+│   ├── genai_data_generator.py     # Sinh dữ liệu giả bằng GenAI
+│   ├── model_training.py           # Huấn luyện mô hình phát hiện bất thường
+│   ├── evaluate_model.py           # Đánh giá mô hình
+│   ├── ingest_to_vectorstore.py    # Tạo FAISS index từ embeddings
+│   └── rag_qa.py                   # RAG QA functions
 ├── requirements.txt
-├── run_demo.sh                        # Auto run all steps
-└── README.md
+├── README.md
+└── run_demo.sh                     # Script chạy nhanh toàn hệ thống
 ```
 
-## 🚀 Quick Start
+## Cài đặt
 
-### 1. Setup
+### Yêu cầu hệ thống
+
+- **Python**: 3.9, 3.10, hoặc 3.11 (khuyến nghị **Python 3.10**)
+  - Python 3.9: Tối thiểu
+  - Python 3.10: Khuyến nghị (ổn định nhất)
+  - Python 3.11: Được hỗ trợ nhưng có thể có vấn đề với TensorFlow
+  - Python 3.12+: Không được hỗ trợ (TensorFlow chưa hỗ trợ)
+
+**Kiểm tra Python version:**
 
 ```bash
-# Create virtual environment
+python --version
+# hoặc
+python3 --version
+```
+
+**Tải Python:**
+
+- Windows: https://www.python.org/downloads/
+- Linux/Mac: Thường đã có sẵn, hoặc dùng package manager
+
+### Tạo môi trường Python ảo (Khuyến nghị)
+
+**Cách 1: Sử dụng script tự động (Khuyến nghị)**
+
+```bash
+# Linux/Mac/Windows (Git Bash)
+bash setup_venv.sh
+```
+
+Script này sẽ tự động:
+
+- Tạo virtual environment trong thư mục `.venv/`
+- Cài đặt tất cả dependencies từ `requirements.txt`
+- Nâng cấp pip, setuptools, wheel
+
+**Cách 2: Tạo thủ công**
+
+```bash
+# Tạo virtual environment
 python -m venv .venv
 
-# Activate
+# Kích hoạt virtual environment
 # Linux/Mac:
 source .venv/bin/activate
+
 # Windows (Git Bash):
 source .venv/Scripts/activate
 
-# Install dependencies
+# Windows (CMD):
+.venv\Scripts\activate
+
+# Cài đặt dependencies
 pip install -r requirements.txt
 ```
 
-### 2. Run Full Pipeline
+**Lưu ý:** Sau khi tạo virtual environment, luôn nhớ kích hoạt nó trước khi chạy các lệnh Python:
 
 ```bash
+source .venv/bin/activate  # Linux/Mac
+# hoặc
+source .venv/Scripts/activate  # Windows (Git Bash)
+```
+
+### Cài đặt dependencies (nếu không dùng virtual environment)
+
+```bash
+pip install -r requirements.txt
+```
+
+2. **Chuẩn bị dữ liệu:**
+
+```bash
+# Xử lý dữ liệu từ JSON sang CSV
+python src/data_preprocessing.py
+```
+
+3. **Tạo vector store (FAISS index):**
+
+```bash
+# Tạo embeddings và FAISS index cho RAG
+python src/ingest_to_vectorstore.py
+```
+
+4. **Train model:**
+
+```bash
+# Train Isolation Forest model cho anomaly detection
+python src/model_training.py
+```
+
+5. **Đánh giá mô hình (tùy chọn):**
+
+```bash
+# Đánh giá mô hình và tạo báo cáo
+python src/evaluate_model.py
+```
+
+### Chạy nhanh với script
+
+Sử dụng script `run_demo.sh` để chạy tất cả các bước tự động:
+
+```bash
+# Linux/Mac
+bash run_demo.sh
+
+# Windows (Git Bash)
 bash run_demo.sh
 ```
 
-This will automatically:
+Script này sẽ tự động:
 
-- ✓ Preprocess data (JSON → CSV)
-- ✓ Create FAISS vector store
-- ✓ Train IsolationForest model
-- ✓ Evaluate model
-- ✓ Launch Streamlit app at http://localhost:8501
+- Tạo và kích hoạt virtual environment (nếu chưa có)
+- Kiểm tra và cài đặt dependencies
+- Xử lý dữ liệu
+- Tạo vector store
+- Train model
+- Đánh giá mô hình (nếu có)
 
-### 3. Or Run Individual Steps
+## Sử dụng
+
+### Sử dụng Jupyter Notebooks
+
+Các notebook trong thư mục `notebooks/` cung cấp môi trường tương tác để:
+
+- **01_data_exploration.ipynb**: Khám phá và phân tích dữ liệu
+- **02_data_preprocessing.ipynb**: Làm sạch và chuẩn hóa dữ liệu
+- **03_model_training.ipynb**: Huấn luyện và đánh giá mô hình
+
+Mở Jupyter Notebook:
 
 ```bash
-# Step 1: Data preprocessing
-python src/data_preprocessing.py
+jupyter notebook notebooks/
+```
 
-# Step 2: Create vector store
-python src/ingest_to_vectorstore.py
+### Demo với Streamlit
 
-# Step 3: Train model
-python src/model_training.py
+**📖 Xem hướng dẫn chi tiết:** [DEMO_GUIDE.md](DEMO_GUIDE.md)
 
-# Step 4: Evaluate model
-python src/evaluate_model.py
+**Cách chạy nhanh:**
 
-# Step 5: Launch app
+#### Windows PowerShell
+
+1. **Chuẩn bị (chỉ cần chạy 1 lần đầu):**
+
+```powershell
+# Tạo virtual environment và cài đặt dependencies
+.\setup_venv.ps1
+
+# Chạy toàn bộ pipeline (xử lý dữ liệu, train model, v.v.)
+.\run_demo.ps1
+```
+
+2. **Chạy demo Streamlit:**
+
+```powershell
+# Đảm bảo đã kích hoạt virtual environment
+.\.venv\Scripts\Activate.ps1
 streamlit run src/app.py
 ```
 
-## 📊 Model Performance
+**Lưu ý:** Nếu gặp lỗi "execution of scripts is disabled", chạy:
 
-**IsolationForest (contamination=0.15):**
-
-- Anomalies Detected: 137/912 (15.02%)
-- Precision: 0.0876
-- Recall: 0.0828
-- F1 Score: 0.0851
-- Accuracy: 0.7171
-
-**Anomaly Score Distribution:**
-
-- Range: -0.0291 to 0.0548
-- Mean: 0.0145
-- Std: 0.0141
-- Threshold: 0 (< 0 = anomaly)
-
-## 🎨 Streamlit UI
-
-### Tab 1: Upload Contract
-
-- Upload JSON/CSV files
-- Display contract info
-- View statistics
-
-### Tab 2: RAG Q&A (Full RAG)
-
-- Enter OpenAI API key
-- Ask questions about smart contract security
-- Retrieve 1-10 documents
-- Auto-generate answers
-- View retrieved documents
-
-### Tab 3: Anomaly Detection
-
-- Single prediction: Paste finding text
-- Batch prediction: Upload CSV file
-- Get anomaly score and classification
-
-## 💻 Usage Examples
-
-### RAG Q&A
-
-```python
-from src.rag_qa import rag_query
-
-result = rag_query(
-    query="What is reentrancy vulnerability?",
-    api_key="sk-...",
-    k=5
-)
-
-print(result['answer'])
-print(result['documents'])
+```powershell
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
 ```
 
-### Anomaly Detection
+#### Linux/Mac/Windows (Git Bash)
+
+1. **Chuẩn bị (chỉ cần chạy 1 lần đầu):**
+
+```bash
+# Tạo virtual environment và cài đặt dependencies
+bash setup_venv.sh
+
+# Kích hoạt virtual environment
+source .venv/bin/activate  # Linux/Mac
+source .venv/Scripts/activate  # Windows (Git Bash)
+
+# Chạy toàn bộ pipeline (xử lý dữ liệu, train model, v.v.)
+bash run_demo.sh
+```
+
+2. **Chạy demo Streamlit:**
+
+```bash
+# Đảm bảo đã kích hoạt virtual environment
+streamlit run src/app.py
+```
+
+Ứng dụng sẽ mở tại `http://localhost:8501` với 2 tính năng chính:
+
+1. **RAG QA**: Nhập câu hỏi về smart contract security, hệ thống sẽ:
+
+   - Tìm kiếm các documents liên quan
+   - Tạo prompt với context
+   - Bạn có thể copy prompt và sử dụng với OpenAI API
+
+2. **Anomaly Detection**: Paste một finding hoặc smart contract snippet để:
+   - Tính anomaly score
+   - Phát hiện xem có bất thường hay không
+
+### Sử dụng trực tiếp trong code
+
+**RAG QA:**
+
+```python
+from src.rag_qa import retrieve, compose_prompt
+
+# Tìm kiếm documents
+docs = retrieve("reentrancy vulnerability", k=3)
+
+# Tạo prompt
+prompt = compose_prompt("What is reentrancy?", docs)
+print(prompt)
+```
+
+**Anomaly Detection:**
 
 ```python
 import joblib
@@ -177,109 +269,34 @@ clf = meta['clf']
 model = SentenceTransformer(meta['emb_model_name'])
 
 # Predict
-text = "Your finding text"
-emb = model.encode([text], convert_to_numpy=True)
+text = "Your finding text here"
+emb = model.encode([text])
 score = clf.decision_function(emb)[0]
 is_anomaly = clf.predict(emb)[0] == -1
-
-print(f"Score: {score:.4f}")
-print(f"Anomaly: {is_anomaly}")
 ```
 
-## 📦 Technologies
+## Dữ liệu
 
-| Component         | Library               | Version |
-| ----------------- | --------------------- | ------- |
-| Embeddings        | Sentence-Transformers | 2.7+    |
-| Vector Store      | FAISS                 | 1.8+    |
-| Anomaly Detection | scikit-learn          | 1.5+    |
-| Web UI            | Streamlit             | 1.31+   |
-| LLM Integration   | OpenAI                | 1.3+    |
-| Data Processing   | pandas, numpy         | Latest  |
+Dữ liệu trong `data/raw/` chứa các findings từ smart contract audits với format:
 
-## ⚙️ Configuration
+- `id`: ID của finding
+- `title`: Tiêu đề
+- `content`: Nội dung chi tiết
+- `impact`: Mức độ ảnh hưởng (LOW/MEDIUM/HIGH)
+- `protocol_id`: ID của protocol
+- `auditfirm_id`: ID của audit firm
 
-### Embedding Model
+## Models
 
-- Model: `sentence-transformers/all-MiniLM-L6-v2`
-- Dimensions: 384
-- Speed: ~0.1ms per text
+- **Embedding Model**: `sentence-transformers/all-MiniLM-L6-v2` (384 dimensions)
+- **Anomaly Detection**: Isolation Forest với contamination=0.05
 
-### IsolationForest Parameters
+## Lưu ý
 
-- contamination: 0.15 (15% expected anomalies)
-- n_estimators: 100
-- n_jobs: -1 (use all cores)
+- Đảm bảo đã chạy `data_preprocessing.py` và `ingest_to_vectorstore.py` trước khi sử dụng RAG QA
+- Đảm bảo đã train model (`model_training.py`) trước khi sử dụng Anomaly Detection
+- Để sử dụng OpenAI API cho RAG, bạn cần set `OPENAI_API_KEY` environment variable
 
-### FAISS Index
+## Tác giả
 
-- Type: IndexFlatL2
-- Distance metric: L2 (Euclidean)
-- Search: O(n\*d) complexity
-
-## 📝 Data Format
-
-**findings.csv** structure:
-
-```
-id          | title                          | content           | impact | ...
-62000       | Reentrancy Vulnerability       | Description...    | HIGH   | ...
-62001       | Integer Overflow in Transfer   | Description...    | MEDIUM | ...
-```
-
-## 🔧 Troubleshooting
-
-**Issue**: Scores too close to 0
-
-- **Solution**: Increase contamination in model_training.py (0.15 → 0.2)
-
-**Issue**: FAISS index not found
-
-- **Solution**: Run `python src/ingest_to_vectorstore.py`
-
-**Issue**: Model not trained
-
-- **Solution**: Run `python src/model_training.py`
-
-**Issue**: OpenAI API error
-
-- **Solution**: Check API key, ensure it's valid and has quota
-
-## 📈 Performance
-
-- **Training Time**: ~2 minutes
-- **Prediction Time**: <100ms per text
-- **Memory Usage**: ~500MB
-- **Data Size**: 912 findings × 384 dimensions
-
-## 📄 Files
-
-| File                           | Purpose                             |
-| ------------------------------ | ----------------------------------- |
-| `src/app.py`                   | Streamlit UI application            |
-| `src/model_training.py`        | Train IsolationForest               |
-| `src/evaluate_model.py`        | Evaluate model performance          |
-| `src/rag_qa.py`                | RAG functions (retrieve + generate) |
-| `src/ingest_to_vectorstore.py` | Create FAISS index                  |
-| `src/data_preprocessing.py`    | Convert JSON to CSV                 |
-| `requirements.txt`             | Python dependencies                 |
-| `run_demo.sh`                  | Auto-run all steps                  |
-
-## 🎓 Next Steps
-
-1. **Improve Model**
-
-   - Experiment with different contamination values
-   - Try other anomaly detection algorithms
-   - Add feature engineering
-
-2. **Enhance RAG**
-
-   - Implement prompt caching
-   - Add response quality metrics
-   - Fine-tune retrieval threshold
-
-3. **Scale**
-   - Use GPU acceleration for embeddings
-   - Implement batch processing
-   - Add API layer
+Dự án GenAI for Blockchain Security

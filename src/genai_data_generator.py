@@ -13,7 +13,7 @@ OUT_CSV = 'data/synthetic/gen_synthetic_findings.csv'
 
 # Option A: OpenAI API (khuyến nghị)
 try:
-    from openai import OpenAI
+    import openai
     OPENAI_AVAILABLE = True
 except ImportError:
     OPENAI_AVAILABLE = False
@@ -69,14 +69,14 @@ def generate_with_openai(n=50, model="gpt-3.5-turbo"):
     if not api_key:
         raise ValueError("OPENAI_API_KEY environment variable chưa được set")
     
-    client = OpenAI(api_key=api_key)
+    openai.api_key = api_key
     outputs = []
     
     print(f"Đang sinh {n} samples bằng OpenAI {model}...")
     
     for i in range(n):
         try:
-            response = client.chat.completions.create(
+            response = openai.ChatCompletion.create(
                 model=model,
                 messages=[
                     {"role": "system", "content": "You are an expert in smart contract security."},
