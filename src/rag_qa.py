@@ -116,42 +116,39 @@ Answer concisely and accurately. Cite which document (number) you used for each 
     return prompt
 
 
-def generate_answer_with_openai(query, docs, api_key=None, model="gpt-3.5-turbo"):
+def generate_answer_with_openai(query, docs, api_key=None, model="gpt-4o-mini"):
     """
-    Generate answer bằng OpenAI API
-    
-    Args:
-        query: Câu hỏi
-        docs: Documents đã retrieve
-        api_key: OpenAI API key
-        model: Model name
-    
-    Returns:
-        str: Generated answer
+    Generate answer bằng OpenAI API (Client v1.0+)
     """
     try:
-        import openai
+        from openai import OpenAI
     except ImportError:
-        raise ImportError("OpenAI package chưa được cài đặt. Cần: pip install openai")
+        raise ImportError("OpenAI package chưa được cài đặt.")
     
-    if api_key:
-        openai.api_key = api_key
-    elif not os.getenv('OPENAI_API_KEY'):
-        raise ValueError("Cần cung cấp OpenAI API key")
+    # Get API key
+    if not api_key:
+        api_key = os.getenv('OPENAI_API_KEY')
+    
+    if not api_key:
+        return "⚠️ Không tìm thấy API Key. Vui lòng thiết lập OPENAI_API_KEY trong .env hoặc nhập trong giao diện."
+        
+    client = OpenAI(api_key=api_key)
     
     prompt = compose_prompt(query, docs)
     
-    response = openai.ChatCompletion.create(
-        model=model,
-        messages=[
-            {"role": "system", "content": "You are an expert in smart contract security."},
-            {"role": "user", "content": prompt}
-        ],
-        temperature=0.7,
-        max_tokens=500
-    )
-    
-    return response.choices[0].message.content
+    try:
+        response = client.chat.completions.create(
+            model=model,
+            messages=[
+                {"role": "system", "content": "You are an expert in smart contract security."},
+                {"role": "user", "content": prompt}
+            ],
+            temperature=0.3, # Giảm nhiệt độ để câu trả lời chính xác hơn
+            max_tokens=800
+        )
+        return response.choices[0].message.content
+    except Exception as e:
+        return f"❌ Lỗi OpenAI API: {str(e)}"
 
 
 if __name__ == '__main__':

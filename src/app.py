@@ -12,8 +12,13 @@ from sentence_transformers import SentenceTransformer
 
 # Fix import path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from src.rag_qa import retrieve, compose_prompt
+from src.rag_qa import retrieve, compose_prompt, generate_answer_with_openai
 from src.model_training import create_embeddings, USE_CODEBERT, CODEBERT_MODEL, EMB_MODEL
+
+# ... (Config stays the same) ...
+
+
+
 
 # Config
 st.set_page_config(
@@ -180,50 +185,6 @@ elif menu == "🔍 Smart Scan":
                 st.info("👈 Nhập code để bắt đầu phân tích")
 
 
-# --- TAB 3: AI ASSISTANT (RAG) ---
-elif menu == "🤖 AI Assistant (RAG)":
-    st.markdown('<p class="main-header">🤖 Security Assistant</p>', unsafe_allow_html=True)
-    st.markdown("Hỏi đáp về các lỗ hổng bảo mật và cách phòng tránh dựa trên cơ sở tri thức (Knowledge Base).")
-    
-    query = st.chat_input("Hỏi gì đó về bảo mật smart contract...")
-    
-    if "messages" not in st.session_state:
-        st.session_state.messages = []
-
-    # Display chat history
-    for message in st.session_state.messages:
-        with st.chat_message(message["role"]):
-            st.markdown(message["content"])
-
-    if query:
-        # User message
-        st.session_state.messages.append({"role": "user", "content": query})
-        with st.chat_message("user"):
-            st.markdown(query)
-
-        # Bot response
-        with st.chat_message("assistant"):
-            with st.spinner("Đang tìm kiếm thông tin..."):
-                # 1. Retrieve docs
-                docs = retrieve(query, k=3)
-                
-                if docs:
-                    # 2. Construct prompt (simple version for demo)
-                    context_str = "\n\n".join([f"Doc {i+1}: {d['content'][:500]}..." for i, d in enumerate(docs)])
-                    
-                    response_text = f"**Dựa trên cơ sở dữ liệu của chúng tôi:**\n\n"
-                    for i, d in enumerate(docs):
-                        response_text += f"- **{d['title']}**: {d.get('impact', 'N/A')}\n"
-                    
-                    response_text += "\n\n💡 *Gợi ý: Bạn có thể copy context này vào ChatGPT nếu cần câu trả lời chi tiết hơn.*"
-                    
-                    # Optional: Expanders for full context
-                    with st.expander("Xem chi tiết tài liệu tham khảo"):
-                        for d in docs:
-                            st.info(f"**{d['title']}**\n\n{d['content'][:300]}...")
-                            
-                else:
-                    response_text = "Xin lỗi, tôi không tìm thấy thông tin liên quan trong cơ sở dữ liệu."
-
-            st.markdown(response_text)
-            st.session_state.messages.append({"role": "assistant", "content": response_text})
+# Footer
+st.markdown("---")
+st.markdown("**GenAI for Blockchain Security** - Hệ thống phân tích và phát hiện lỗ hổng bảo mật trong Smart Contracts")
