@@ -69,32 +69,11 @@ if [ ! -f "requirements.txt" ]; then
 fi
 
 # Function tự động fix lỗi Keras/TensorFlow
+# Function tự động fix lỗi Keras/TensorFlow (Đã loại bỏ do gây xung đột trên Python 3.12)
+# Dependencies được quản lý trong requirements.txt
 fix_keras_tensorflow() {
-    echo -e "${YELLOW}🔧 Đang tự động sửa xung đột Keras/TensorFlow...${NC}"
-    
-    # Uninstall tất cả Keras và TensorFlow
-    pip uninstall -y keras tf-keras tensorflow 2>/dev/null || true
-    
-    # Cài lại TensorFlow và Keras 2
-    echo -e "${YELLOW}Đang cài TensorFlow 2.13 và Keras 2.14...${NC}"
-    pip install -q --no-cache-dir tensorflow==2.13.0 keras==2.14.0 tf-keras==2.14.1
-    
-    # Kiểm tra xem có hoạt động không
-    python -c "import tensorflow as tf; import keras; print('OK')" 2>/dev/null
-    if [ $? -eq 0 ]; then
-        echo -e "${GREEN}✓ Đã sửa xung đột Keras/TensorFlow${NC}"
-        return 0
-    else
-        echo -e "${YELLOW}⚠️  Thử cách khác...${NC}"
-        # Thử cách 2: Cài TensorFlow 2.12
-        pip uninstall -y keras tf-keras tensorflow 2>/dev/null || true
-        pip install -q --no-cache-dir tensorflow==2.12.0 keras==2.12.0
-        python -c "import tensorflow as tf; import keras; print('OK')" 2>/dev/null
-        if [ $? -eq 0 ]; then
-            echo -e "${GREEN}✓ Đã sửa xung đột (dùng TensorFlow 2.12)${NC}"
-            return 0
-        fi
-    fi
+    echo -e "${YELLOW}⚠️  Lỗi Keras/TensorFlow được phát hiện. Vui lòng kiểm tra requirements.txt và đảm bảo cài đặt phiên bản tương thích với Python ${TRAVIS_PYTHON_VERSION:-3.x}.${NC}"
+    echo -e "${YELLOW}   Khuyến nghị: pip install --upgrade tensorflow keras tf-keras${NC}"
     return 1
 }
 
@@ -131,17 +110,8 @@ run_with_retry() {
 echo -e "${YELLOW}Đang cài đặt dependencies (nếu chưa có)...${NC}"
 
 # Uninstall Keras 3 nếu có (gây xung đột với Transformers)
-echo -e "${YELLOW}Kiểm tra và sửa xung đột Keras...${NC}"
-pip uninstall -y keras 2>/dev/null || true
-pip uninstall -y tf-keras 2>/dev/null || true
-
-# Cài numpy đúng version trước (faiss-cpu cần numpy>=1.25.0)
-echo -e "${YELLOW}Đang cài numpy>=1.25.0...${NC}"
-pip install -q --upgrade "numpy>=1.25.0,<3.0.0"
-
-# Cài TensorFlow và Keras 2 trước
-echo -e "${YELLOW}Đang cài TensorFlow 2.13 và Keras 2.14...${NC}"
-pip install -q --no-cache-dir tensorflow==2.13.0 keras==2.14.0 tf-keras==2.14.1
+# Cài các dependencies từ requirements.txt
+echo -e "${YELLOW}Đang cài đặt/cập nhật dependencies...${NC}"
 
 # Cài các dependencies còn lại
 pip install -q -r requirements.txt || echo "⚠️  Một số packages có thể đã được cài đặt"

@@ -238,13 +238,24 @@ def extract_contract_info_fallback(content: str) -> Tuple[str, str, str]:
     # Ưu tiên code blocks có ngôn ngữ, nếu không có thì dùng tất cả
     code_blocks = code_blocks_with_lang if code_blocks_with_lang else all_code_blocks
     
+    # Fallback levels:
+    # 1. Blocks with language
+    # 2. All blocks
+    # 3. Raw heuristic extraction (contract ... { ... })
+    
+    if not code_blocks:
+        # Try to find raw solidity code
+        raw_solidity = re.findall(r'(contract\s+[A-Z][a-zA-Z0-9_]*\s*\{[\s\S]{20,2000})', content)
+        if raw_solidity:
+             code_blocks = raw_solidity
+    
     if code_blocks:
         # Lọc và làm sạch code blocks
         cleaned_blocks = []
         for block in code_blocks[:5]:  # Lấy tối đa 5 code blocks
             cleaned = block.strip()
             # Chỉ lấy block có độ dài hợp lý (ít nhất 20 ký tự, không quá 5000 ký tự)
-            if 20 <= len(cleaned) <= 5000:
+            if 20 <= len(cleaned) <= 10000: # Increased limit
                 cleaned_blocks.append(cleaned)
         if cleaned_blocks:
             code = '\n\n---\n\n'.join(cleaned_blocks)

@@ -420,14 +420,80 @@ def plot_score_distribution(scores, save_path='models/score_distribution.png'):
     plt.close()
 
 
+MODEL_PATH_CLF = 'models/trained_classifier.pkl'
+
+def evaluate_classifier():
+    """Đánh giá Supervised Classifier"""
+    print("=" * 50)
+    print("DANH GIA SUPERVISED CLASSIFIER")
+    print("=" * 50)
+    
+    if not os.path.exists(MODEL_PATH_CLF):
+        raise FileNotFoundError(f"Model không tồn tại tại {MODEL_PATH_CLF}")
+        
+    print("Đang load model...")
+    meta = joblib.load(MODEL_PATH_CLF)
+    clf = meta['clf']
+    emb_model_name = meta.get('emb_model_name', EMB_MODEL)
+    use_codebert = meta.get('use_codebert', False)
+    
+    print("Đang load dữ liệu...")
+    df = load_data()
+    df_with_code = df[df['code'].notna() & (df['code'].astype(str).str.strip() != '')]
+    
+    print("Đang tạo embeddings...")
+    texts = df_with_code['code'].astype(str).tolist()
+    embeddings = create_embeddings(texts, use_codebert=use_codebert, model_name=emb_model_name)
+    
+    print("Đang predict...")
+    y_pred = clf.predict(embeddings)
+    y_scores = clf.predict_proba(embeddings)[:, 1] # Probability of Vuln
+    
+    y_true, _ = create_ground_truth_labels(df_with_code)
+    # y_true returns -1 for anomaly, 1 for normal (for IsolationForest compat) or 0/1 depending on logic
+    # Let's check create_ground_truth_labels in this file...
+    # In evaluate_model.py it returns: y_true (IsolForest style: -1/1), labels (0/1 where 1=Anomaly)
+    # create_ground_truth_labels returns: y_true (-1/1), labels (0/1)
+    
+    _, y_true_binary = create_ground_truth_labels(df_with_code)
+    
+    # Calculate metrics
+    precision = precision_score(y_true_binary, y_pred, zero_division=0)
+    recall = recall_score(y_true_binary, y_pred, zero_division=0)
+    f1 = f1_score(y_true_binary, y_pred, zero_division=0)
+    accuracy = accuracy_score(y_true_binary, y_pred)
+    
+    print("\n" + "-" * 50)
+    print("METRICS (Classifier)")
+    print("-" * 50)
+    print(f"Precision: {precision:.4f}")
+    print(f"Recall:    {recall:.4f}")
+    print(f"F1 Score:  {f1:.4f}")
+    print(f"Accuracy:  {accuracy:.4f}")
+    
+    print(classification_report(y_true_binary, y_pred, target_names=['Safe', 'Vuln']))
+    
+    return {'f1': f1, 'val_scores': y_scores}
+
+
 if __name__ == '__main__':
     import sys
     
-    model_type = sys.argv[1] if len(sys.argv) > 1 else 'if'
+    model_type = sys.argv[1] if len(sys.argv) > 1 else 'all'
     
     if model_type == 'ae':
         evaluate_autoencoder()
-    else:
+    elif model_type == 'if':
         results = evaluate_isolation_forest()
         plot_score_distribution(results['results_df']['anomaly_score'])
+    elif model_type == 'classifier':
+        evaluate_classifier()
+    else:
+        print("Evaluating ALL models...")
+        try: evaluate_isolation_forest() 
+        except: pass
+        try: evaluate_autoencoder()
+        except: pass
+        evaluate_classifier()
+
 

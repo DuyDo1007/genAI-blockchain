@@ -399,16 +399,135 @@ def train_models(model_type='both', **kwargs):
             batch_size=kwargs.get('batch_size', 32),
             validation_split=kwargs.get('validation_split', 0.2)
         )
+    
+    if model_type in ['classifier', 'all']:
+        train_classifier(
+            n_estimators=kwargs.get('n_estimators', 100)
+        )
+
+
+def extract_code_features(df):
+    """
+    Trích xuất features từ code (Utility shared with evaluate_model)
+    """
+    features = {}
+    if 'code' not in df.columns: return features
+    code_col = df['code'].astype(str)
+    
+    features['code_length'] = code_col.str.len()
+    features['num_lines'] = code_col.str.count('\n') + 1
+    features['num_functions'] = code_col.str.lower().str.count('function')
+    
+    # Security-related patterns
+    features['has_require'] = code_col.str.contains(r'\brequire\b', case=False, na=False)
+    features['num_require'] = code_col.str.lower().str.count('require')
+    
+    # Vulnerability indicators
+    features['has_transfer'] = code_col.str.contains(r'\.transfer\(|transfer\(', case=False, na=False)
+    features['has_call'] = code_col.str.contains(r'\.call\(|call\(', case=False, na=False)
+    features['has_delegatecall'] = code_col.str.contains(r'delegatecall', case=False, na=False)
+    features['has_reentrancy'] = code_col.str.contains(r'reentrancy', case=False, na=False)
+    
+    return features
+
+
+def create_ground_truth_labels(df):
+    """
+    Tạo labels cho converting to supervised problem
+    """
+    labels = np.zeros(len(df))
+    
+    # 1. Impact based
+    high_impact_mask = df['impact'].str.upper() == 'HIGH'
+    labels[high_impact_mask] = 1
+    
+    medium_impact_mask = df['impact'].str.upper() == 'MEDIUM'
+    if 'vulnerability_label' in df.columns:
+        critical_vulns = ['REENTRANCY', 'OVERFLOW', 'UNDERFLOW', 'ACCESS_CONTROL']
+        for vuln in critical_vulns:
+            vuln_mask = df['vulnerability_label'].str.upper().str.contains(vuln, na=False)
+            labels[medium_impact_mask & vuln_mask] = 1
+            
+    # 2. Code features based
+    if 'code' in df.columns:
+        code_features = extract_code_features(df)
+        if 'code_length' in code_features:
+            long_code = code_features['code_length'] > code_features['code_length'].quantile(0.75)
+            has_vuln_patterns = (
+                code_features.get('has_transfer', pd.Series([False]*len(df))) |
+                code_features.get('has_call', pd.Series([False]*len(df))) |
+                code_features.get('has_delegatecall', pd.Series([False]*len(df)))
+            )
+            labels[long_code & has_vuln_patterns] = 1
+            
+    return labels
+
+
+def train_classifier(n_estimators=100, random_state=42):
+    """
+    Huấn luyện Supervised Classifier (RandomForest)
+    """
+    from sklearn.ensemble import RandomForestClassifier
+    from sklearn.metrics import classification_report
+    
+    print("=" * 50)
+    print("Huấn luyện Classifier (Supervised)")
+    print("=" * 50)
+    
+    df = load_data()
+    df_with_code = df[df['code'].notna() & (df['code'].astype(str).str.strip() != '')]
+    if len(df_with_code) == 0:
+        raise ValueError("No code found")
+        
+    print(f"  - Dữ liệu: {len(df_with_code)} samples")
+    
+    # Prepare Features (Embeddings)
+    texts = df_with_code['code'].astype(str).tolist()
+    print("Đang tạo embeddings...")
+    emb = create_embeddings(texts, use_codebert=USE_CODEBERT)
+    
+    # Prepare Labels
+    y = create_ground_truth_labels(df_with_code)
+    print(f"  - Labels distribution: Safe={np.sum(y==0)}, Vuln={np.sum(y==1)}")
+    
+    # Train/Test Split
+    X_train, X_test, y_train, y_test = train_test_split(emb, y, test_size=0.2, random_state=random_state)
+    
+    # Train
+    print(f"Đang train RandomForest ({n_estimators} estimators)...")
+    clf = RandomForestClassifier(n_estimators=n_estimators, random_state=random_state, n_jobs=-1, class_weight='balanced')
+    clf.fit(X_train, y_train)
+    
+    # Evaluate briefly
+    y_pred = clf.predict(X_test)
+    print("Kết quả trên tập test split:")
+    print(classification_report(y_test, y_pred, target_names=['Safe', 'Vuln']))
+    
+    # Save
+    os.makedirs('models', exist_ok=True)
+    emb_model_used = CODEBERT_MODEL if USE_CODEBERT else EMB_MODEL
+    meta = {
+        'clf': clf,
+        'emb_model_name': emb_model_used,
+        'use_codebert': USE_CODEBERT,
+        'type': 'classifier'
+    }
+    joblib.dump(meta, 'models/trained_classifier.pkl')
+    print(f"✓ Đã lưu Classifier vào models/trained_classifier.pkl")
+    return meta
 
 
 if __name__ == '__main__':
-    # Mặc định train cả 2 models
-    model_type = sys.argv[1] if len(sys.argv) > 1 else 'both'
+    # Mặc định train tất cả
+    model_type = sys.argv[1] if len(sys.argv) > 1 else 'all'
     
     if model_type == 'if':
         train_isolation_forest()
     elif model_type == 'ae':
         train_autoencoder()
+    elif model_type == 'classifier':
+        train_classifier()
     else:
-        print("Huan luyen ca IsolationForest va Autoencoder...")
-        train_models(model_type='both')
+        print("Huan luyen TOAN BO mo hinh (Autoencoder, IsolationForest, Classifier)...")
+        train_models(model_type='both') # call existing
+        train_classifier() # call new
