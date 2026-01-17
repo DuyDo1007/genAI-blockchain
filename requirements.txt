@@ -13,7 +13,6 @@ torch>=2.0.0
 faiss-cpu>=1.7.4
 
 # Deep Learning
-# Deep Learning
 tensorflow>=2.16.1
 keras>=3.0.0
 tf-keras>=2.16.0

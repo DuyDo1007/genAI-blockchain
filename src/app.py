@@ -8,17 +8,11 @@ import streamlit as st
 import pandas as pd
 import joblib
 import numpy as np
-from sentence_transformers import SentenceTransformer
 
 # Fix import path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from src.rag_qa import retrieve, compose_prompt, generate_answer_with_openai
-from src.model_training import create_embeddings, USE_CODEBERT, CODEBERT_MODEL, EMB_MODEL
-
-# ... (Config stays the same) ...
-
-
-
+from src.rag_qa import retrieve, generate_answer_with_openai
+from src.model_training import create_embeddings, CODEBERT_MODEL
 
 # Config
 st.set_page_config(
@@ -31,7 +25,6 @@ st.set_page_config(
 # Paths
 MODEL_PATH_CLF = 'models/trained_classifier.pkl'
 DATA_PATH = 'data/processed/findings.csv'
-META_PATH = 'data/processed/metadf.parquet'
 
 # Styling
 st.markdown("""
@@ -77,7 +70,7 @@ with st.sidebar:
     if model_meta:
         st.success("✓ Model đã sẵn sàng")
         st.caption(f"Model: {model_meta.get('type', 'Unknown')}")
-        st.caption(f"Embeddings: {'CodeBERT' if model_meta.get('use_codebert') else 'SentenceTransformer'}")
+        st.caption(f"Embeddings: CodeBERT ({CODEBERT_MODEL})")
     else:
         st.warning("⚠️ Model chưa khả dụng")
         st.caption("Hãy chạy training trước")
@@ -95,13 +88,13 @@ if menu == "📊 Dashboard":
         with col1:
             st.metric("Total Records", len(df))
         with col2:
-            n_vuln = df['impact'].astype(str).str.upper().eq('HIGH').sum()
+            n_vuln = df['impact'].astype(str).str.upper().eq('HIGH').sum() if 'impact' in df.columns else 0
             st.metric("High Severity", n_vuln, delta_color="inverse")
         with col3:
-            n_code = df['code'].notna().sum()
+            n_code = df['code'].notna().sum() if 'code' in df.columns else 0
             st.metric("Code Snippets", n_code)
         with col4:
-            n_funcs = df['function_name'].nunique()
+            n_funcs = df['function_name'].nunique() if 'function_name' in df.columns else 0
             st.metric("Unique Functions", n_funcs)
             
         st.markdown("---")
@@ -126,7 +119,7 @@ if menu == "📊 Dashboard":
 # --- TAB 2: SMART SCAN ---
 elif menu == "🔍 Smart Scan":
     st.markdown('<p class="main-header">🔍 Smart Contract Scanner</p>', unsafe_allow_html=True)
-    st.markdown("Phân tích mã nguồn Solidity sử dụng **AI Supervised Learning**.")
+    st.markdown("Phân tích mã nguồn Solidity sử dụng **AI Supervised Learning** với **CodeBERT**.")
     
     col_input, col_result = st.columns([1, 1])
     
@@ -135,7 +128,7 @@ elif menu == "🔍 Smart Scan":
         code_input = st.text_area(
             "Paste Solidity code here:",
             height=400,
-            placeholder="contract MyToken {\n    mapping(address => uint) balances;\n    ...\n}"
+            placeholder="contract MyToken {\n    mapping(address => uint) balances;\n    ...\\n}"
         )
         
         analyze_btn = st.button("🚀 Analyze Security", type="primary", use_container_width=True)
@@ -148,35 +141,36 @@ elif menu == "🔍 Smart Scan":
                 st.error("Model chưa được load. Vui lòng kiểm tra lại quá trình training.")
             else:
                 try:
-                    with st.spinner("Đang phân tích vector code..."):
+                    with st.spinner("Đang phân tích vector code (CodeBERT)..."):
                         # 1. Feature Extraction (Embeddings)
                         clf = model_meta['clf']
-                        use_bert = model_meta.get('use_codebert', True)
                         
                         # Create embedding for input
-                        emb = create_embeddings([code_input], use_codebert=use_bert)
+                        emb = create_embeddings([code_input])
                         
-                        # 2. Prediction
-                        prob = clf.predict_proba(emb)[0] # [Prob_Safe, Prob_Vuln]
-                        is_vuln = prob[1] > 0.5
-                        confidence = prob[1] if is_vuln else prob[0]
-                        
-                        # 3. Display
-                        st.markdown("---")
-                        if is_vuln:
-                            st.error(f"🚨 PHÁT HIỆN NGUY CƠ BẢO MẬT")
-                            st.metric("Mức độ rủi ro", f"{prob[1]*100:.1f}%", delta="High Risk", delta_color="inverse")
-                            st.error("Code này có các đặc trưng giống với các lỗ hổng đã biết.")
+                        if emb.size == 0:
+                            st.error("Lỗi tạo embedding. Vui lòng kiểm tra lại.")
                         else:
-                            st.success(f"✅ AN TOÀN CAO")
-                            st.metric("Độ an toàn", f"{prob[0]*100:.1f}%", delta="Safe")
-                            st.success("Không tìm thấy mẫu lỗ hổng phổ biến.")
+                            # 2. Prediction
+                            prob = clf.predict_proba(emb)[0] # [Prob_Safe, Prob_Vuln]
+                            is_vuln = prob[1] > 0.3
                             
-                        # Explanation (Fake LIME for demo or Real feature highlights if imp)
-                        with st.expander("Chi tiết kỹ thuật"):
-                            st.write(f"- **Algorithm**: RandomForest Classifier")
-                            st.write(f"- **Embedding**: {model_meta.get('emb_model_name')}")
-                            st.write(f"- **Vector Size**: {emb.shape[1]} dimensions")
+                            # 3. Display
+                            st.markdown("---")
+                            if is_vuln:
+                                st.error(f"🚨 PHÁT HIỆN NGUY CƠ BẢO MẬT")
+                                st.metric("Mức độ rủi ro", f"{prob[1]*100:.1f}%", delta="High Risk", delta_color="inverse")
+                                st.error("Code này có các đặc trưng giống với các lỗ hổng đã biết.")
+                            else:
+                                st.success(f"✅ AN TOÀN CAO")
+                                st.metric("Độ an toàn", f"{prob[0]*100:.1f}%", delta="Safe")
+                                st.success("Không tìm thấy mẫu lỗ hổng phổ biến.")
+                                
+                            # Detail
+                            with st.expander("Chi tiết kỹ thuật"):
+                                st.write(f"- **Algorithm**: RandomForest Classifier")
+                                st.write(f"- **Embedding**: {CODEBERT_MODEL}")
+                                st.write(f"- **Vector Size**: {emb.shape[1]} dimensions")
                             
                 except Exception as e:
                     st.error(f"Lỗi phân tích: {e}")
@@ -184,6 +178,43 @@ elif menu == "🔍 Smart Scan":
             if not code_input:
                 st.info("👈 Nhập code để bắt đầu phân tích")
 
+
+# --- TAB 3: AI ASSISTANT (RAG) ---
+elif menu == "🤖 AI Assistant (RAG)":
+    st.markdown('<p class="main-header">🤖 AI Security Assistant</p>', unsafe_allow_html=True)
+    st.markdown("Hỏi đáp về bảo mật Smart Contract sử dụng **CodeBERT RAG** + **LLM**.")
+    
+    # Chat Input
+    with st.form("chat_form"):
+        user_query = st.text_input("Câu hỏi của bạn:", placeholder="Ví dụ: Reentrancy attack là gì và cách phòng tránh?")
+        submitted = st.form_submit_button("Gửi câu hỏi")
+    
+    if submitted and user_query:
+        try:
+            with st.spinner("Đang tìm kiếm tài liệu và generate câu trả lời..."):
+                # 1. Retrieve
+                docs = retrieve(user_query, k=3)
+                
+                # 2. Generate
+
+                api_key = os.getenv("OPENAI_API_KEY")
+                answer = generate_answer_with_openai(user_query, docs, api_key=api_key)
+                
+                # 3. Display
+                st.markdown("### 💡 Câu trả lời")
+                st.write(answer)
+                
+                st.markdown("---")
+                st.markdown("### 📚 Tài liệu tham khảo")
+                for i, doc in enumerate(docs, 1):
+                    with st.expander(f"Document {i}: {doc['title']}"):
+                        st.write(doc['content'])
+                        st.caption(f"ID: {doc['id']}")
+                        
+        except Exception as e:
+            st.error(f"Lỗi: {e}")
+            if "FAISS index không tồn tại" in str(e):
+                st.warning("Vui lòng chạy file `src/ingest_to_vectorstore.py` để tạo dữ liệu tìm kiếm trước.")
 
 # Footer
 st.markdown("---")
